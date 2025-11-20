@@ -72,7 +72,7 @@ class ProtocolType(StrEnum):
     SPX = 'Spx'
     SPXII = 'SpxII'
 
-class ReferenceEnvironmentInjectionFlags(StrEnum):
+class ReferenceEnvironment(StrEnum):
     NONE = 'None'
     CONNECTION_STRING = 'ConnectionString'
     CONNECTION_PROPERTIES = 'ConnectionProperties'

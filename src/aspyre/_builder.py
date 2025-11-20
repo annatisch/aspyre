@@ -11,6 +11,10 @@ import json
 
 from .resources._base import (
     Resource,
+    ResourceOptions,
+    ResourceWithConnectionString,
+    ProjectResource,
+    ProjectResourceOptions,
     ParameterResource,
     ParameterResourceOptions,
 )
@@ -47,6 +51,10 @@ class DistributedApplicationBuilder:
         self._builder = "\n".join([f"{d}@{self.version}" for d in dependencies]) + "\n" + self._builder
         self._builder += "\nbuilder.Build().Run();\n"
 
+    def add_resource(self, resource: Resource, **kwargs: Unpack[ResourceOptions]) -> Resource:
+        self._builder += f"\nbuilder.AddResource({resource.name})"
+        return Resource(resource.name, builder=self._builder, **kwargs)
+
     @overload
     def add_parameter(self, name: str, /,*, secret: bool = False, **kwargs: Unpack[ParameterResourceOptions]):
         ...
@@ -67,9 +75,9 @@ class DistributedApplicationBuilder:
         value = kwargs.pop("value", None)
         publish_value_as_default = kwargs.pop("publish_value_as_default", False)
         if not value:
-            self._builder += f'\nvar {name} = builder.AddParameter("{name}", {str(secret).lower()});'
+            self._builder += f'\nvar {name} = builder.AddParameter("{name}", {str(secret).lower()})'
         else:
-            self._builder += f'\nvar {name} = builder.AddParameter("{name}", "{value}", {str(publish_value_as_default).lower()}, {str(secret).lower()});'
+            self._builder += f'\nvar {name} = builder.AddParameter("{name}", "{value}", {str(publish_value_as_default).lower()}, {str(secret).lower()})'
         result = ParameterResource(name, builder=self._builder, **kwargs)
         self._dependencies.append(result.package)
         return result
@@ -80,9 +88,40 @@ class DistributedApplicationBuilder:
         self._dependencies.append(result.package)
         return result
 
+    def add_connection_string(self, name: str, /, *, environment_variable_name: str | None = None, **kwargs: Unpack[ParameterResourceOptions]) -> ResourceWithConnectionString:
+        if environment_variable_name:
+            self._builder += f'\nvar {name} = builder.AddConnectionString("{name}", "{environment_variable_name}");'
+        else:
+            self._builder += f'\nvar {name} = builder.AddConnectionString("{name}");'
+        return ResourceWithConnectionString()
+        #TODO: return resource, fix kwargs
+        #public static ApplicationModel.IResourceBuilder<ApplicationModel.IResourceWithConnectionString> AddConnectionString(this IDistributedApplicationBuilder builder, string name, string? environmentVariableName = null) { throw null; }
+
+    def create_default_password_parameter(self, name: str, /, *, lower: bool = True, upper: bool = True, numeric: bool = True, special: bool = True, min_lower: int = 0, min_upper: int = 0, min_numeric: int = 0, min_special: int = 0, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
+        self._builder += f'\nvar {name} = builder.CreateDefaultPasswordParameter("{name}", {str(lower).lower()}, {str(upper).lower()}, {str(numeric).lower()}, {str(special).lower()}, {min_lower}, {min_upper}, {min_numeric}, {min_special})'
+        result = ParameterResource(name, builder=self._builder, **kwargs)
+        self._dependencies.append(result.package)
+        return result
+
+    def create_parameter(self, name: str, /, *, secret: bool, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
+        self._builder += f'\nvar {name} = builder.CreateParameter("{name}", {str(secret).lower()});'
+        result = ParameterResource(name, builder=self._builder, **kwargs)
+        self._dependencies.append(result.package)
+        return result
+
+    def add_project(self, name: str, /, *, project_path: str | None = None, launch_profile_name: str | None = None, **kwargs: Unpack[ProjectResourceOptions]) -> ProjectResource:
+        self._builder += f'\nvar {name} = builder.AddProject("{name}"'
+        if project_path:
+            self._builder += f', "{project_path}"'
+        if launch_profile_name:
+            self._builder += f', "{launch_profile_name}"'
+        self._builder += ')'
+        result = ProjectResource(name, builder=self._builder, **kwargs)
+        self._dependencies.append(result.package)
+        return result
+
+
 
 
 def build_distributed_application(*args) -> DistributedApplicationBuilder:
-
     return DistributedApplicationBuilder(*args)
-

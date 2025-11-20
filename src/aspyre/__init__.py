@@ -4,9 +4,13 @@
 #   -------------------------------------------------------------
 from ._version import VERSION
 from ._builder import build_distributed_application, DistributedApplicationBuilder
+from .resources._base import (
+    ParameterResource,
+    ParameterResourceOptions,
+)
 
 __version__ = VERSION
 __all__ = [
     "build_distributed_application",
-    "ResourceBuilder",
+    "DistributedApplicationBuilder",
 ]

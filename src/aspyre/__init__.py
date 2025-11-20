@@ -3,7 +3,7 @@
 #   Licensed under the MIT License. See LICENSE in project root for information.
 #   -------------------------------------------------------------
 from ._version import VERSION
-from ._builder import build_distributed_application, ResourceBuilder
+from ._builder import build_distributed_application, DistributedApplicationBuilder
 
 __version__ = VERSION
 __all__ = [

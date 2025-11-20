@@ -3,13 +3,17 @@
 #   Licensed under the MIT License. See LICENSE in project root for information.
 #   -------------------------------------------------------------
 
-from typing import Any, Iterable, Mapping, TypedDict
+from typing import Any, Iterable, Mapping, TypedDict, overload
 from typing_extensions import Unpack
 import subprocess
 import pathlib
 import json
 
-from .resources._base import Resource
+from .resources._base import (
+    Resource,
+    ParameterResource,
+    ParameterResourceOptions,
+)
 
 
 class DistributedApplicationOptions(TypedDict, total=False):
@@ -31,59 +35,54 @@ class DistributedApplicationOptions(TypedDict, total=False):
     """Whether to attempt to implicitly add trust for developer certificates (currently the ASP.NET developer certificate) by default at runtime."""
 
 
-class ResourceBuilder:
-    execution_context: Mapping[str, Any]
-    environment: Mapping[str, Any]
-    resources: Iterable[Resource]
+class DistributedApplicationBuilder:
     version: str = "13.0.0"
 
-    def __init__(self, **kwargs: Unpack[DistributedApplicationOptions]) -> None:
-        self._options = kwargs
-        self.resources = []
-        self.execution_context = {}
-        self.environment = {}
+    def __init__(self, *args) -> None:
+        self._dependencies = []
+        self._builder = "var builder = DistributedApplication.CreateBuilder(args);\n"
 
     def build(self) -> None:
-        """Generate csharp project"""
-        root_path = pathlib.Path.cwd()
-        aspire_dir = root_path / ".aspire"
-        if not aspire_dir.exists():
-            aspire_dir.mkdir()
+        dependencies = set(self._dependencies)
+        self._builder = "\n".join([f"{d}@{self.version}" for d in dependencies]) + "\n" + self._builder
+        self._builder += "\nbuilder.Build().Run();\n"
 
-        aspyre_dir = aspire_dir / "aspyre"
-        if aspyre_dir.exists():
-            aspyre_dir.unlink()
+    @overload
+    def add_parameter(self, name: str, /,*, secret: bool = False, **kwargs: Unpack[ParameterResourceOptions]):
+        ...
+    @overload
+    def add_parameter(
+        self,
+        name: str,
+        /, *,
+        value: str,
+        publish_value_as_default: bool = False,
+        secret: bool = False,
+        **kwargs: Unpack[ParameterResourceOptions]
+    ) -> ParameterResource:
+        ...
+    def add_parameter(self, *args, **kwargs):
+        name = args[0]
+        secret = kwargs.pop("secret", False)
+        value = kwargs.pop("value", None)
+        publish_value_as_default = kwargs.pop("publish_value_as_default", False)
+        if not value:
+            self._builder += f'\nvar {name} = builder.AddParameter("{name}", {str(secret).lower()});'
+        else:
+            self._builder += f'\nvar {name} = builder.AddParameter("{name}", "{value}", {str(publish_value_as_default).lower()}, {str(secret).lower()});'
+        result = ParameterResource(name, builder=self._builder, **kwargs)
+        self._dependencies.append(result.package)
+        return result
 
-        args = [
-            "aspire",
-            "new",
-            "aspire-apphost-singlefile",
-            "--version",
-            self.version,
-            "--name",
-            "aspireapp1",
-            "--output",
-            "./.aspire/aspyre",
-            "--non-interactive"
-        ]
-        output = subprocess.run(args, check=False)
-        if output.returncode != 0:
-            raise RuntimeError()
-
-        aspire_settings = aspire_dir / "settings.json"
-        with aspire_settings.open("w", encoding="utf-8") as f:
-            json.dump({"appHostPath": "./.aspire/aspyre/apphost.cs"}, f, indent=4)
-
-        apphost_path = aspyre_dir / "apphost.cs"
-        with apphost_path.open("a", encoding="utf-8") as f:
-            for resource in self.resources:
-                f.write(resource._build())
-                f.write("\n")
-
-
-    def run(self) -> None:
-        """Run aspire run command"""
+    def add_parameter_from_configuration(self, name: str, *, configuration_key: str, secret: bool = False, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
+        self._builder += f'\nvar {name} = builder.AddParameterFromConfiguration("{name}",  "{configuration_key}", {str(secret).lower()});'
+        result = ParameterResource(name, builder=self._builder, **kwargs)
+        self._dependencies.append(result.package)
+        return result
 
 
-def build_distributed_application(**kwargs: Unpack[DistributedApplicationOptions]) -> ResourceBuilder:
-    return ResourceBuilder(**kwargs)
+
+def build_distributed_application(*args) -> DistributedApplicationBuilder:
+
+    return DistributedApplicationBuilder(*args)
+

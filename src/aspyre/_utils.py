@@ -12,7 +12,9 @@ def to_pascal_case(snake_str):
 def format_string(value: Any) -> str:
     return f'"{value}"'
 
-def format_string_array(strings: Iterable[str]) -> str:
+def format_string_array(strings: Iterable[str] | None) -> str:
+    if strings is None:
+        return "null"
     formatted_items = ', '.join(format_string(s) for s in strings)
     return f'new string[] {{ {formatted_items} }}'
 

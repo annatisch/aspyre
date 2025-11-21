@@ -258,7 +258,7 @@ class Resource:
 
 
 class ResourceWithArgsOptions(TypedDict, total=False):
-    args: Iterable[str]
+    # args: Iterable[str]  # Duplicate with add method parameter
     certificate_trust_scope: CertificateTrustScope
     developer_certificate_trust: bool
     certificate_authority_collection: CertificateAuthorityCollection

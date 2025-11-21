@@ -9,7 +9,17 @@ import subprocess
 import pathlib
 import json
 
+from aspyre._utils import format_bool, format_string, format_string_array, get_nullable_value
+
 from .resources._base import (
+    CSharpAppResource,
+    CertificateAuthorityCollection,
+    CertificateAuthorityCollectionOptions,
+    ContainerResource,
+    ContainerResourceOptions,
+    ExecutableResource,
+    ExecutableResourceOptions,
+    ExternalServiceResource,
     Resource,
     ResourceOptions,
     ConnectionStringResource,
@@ -56,6 +66,18 @@ class DistributedApplicationBuilder:
         self._builder += f"\nbuilder.AddResource({resource.name})"
         return Resource(resource.name, builder=self._builder, **kwargs)
 
+    def create_parameter(self, name: str, /, *, secret: bool, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
+        self._builder += f'\nvar {name} = builder.CreateParameter("{name}", {str(secret).lower()})'
+        result = ParameterResource(name, builder=self._builder, **kwargs)
+        self._dependencies.append(result.package)
+        return result
+
+    def create_default_password_parameter(self, name: str, /, *, lower: bool = True, upper: bool = True, numeric: bool = True, special: bool = True, min_lower: int = 0, min_upper: int = 0, min_numeric: int = 0, min_special: int = 0, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
+        self._builder += f'\nvar {name} = builder.CreateDefaultPasswordParameter("{name}", {str(lower).lower()}, {str(upper).lower()}, {str(numeric).lower()}, {str(special).lower()}, {min_lower}, {min_upper}, {min_numeric}, {min_special})'
+        result = ParameterResource(name, builder=self._builder, **kwargs)
+        self._dependencies.append(result.package)
+        return result
+
     @overload
     def add_parameter(self, name: str, /,*, secret: bool = False, **kwargs: Unpack[ParameterResourceOptions]):
         ...
@@ -63,8 +85,8 @@ class DistributedApplicationBuilder:
     def add_parameter(
         self,
         name: str,
-        /, *,
         value: str,
+        /, *,
         publish_value_as_default: bool = False,
         secret: bool = False,
         **kwargs: Unpack[ParameterResourceOptions]
@@ -73,59 +95,77 @@ class DistributedApplicationBuilder:
     def add_parameter(self, *args, **kwargs):
         name = args[0]
         secret = kwargs.pop("secret", False)
-        value = kwargs.pop("value", None)
         publish_value_as_default = kwargs.pop("publish_value_as_default", False)
-        if not value:
-            self._builder += f'\nvar {name} = builder.AddParameter("{name}", {str(secret).lower()})'
+        if len(args) ==1:
+            self._builder += f'\nvar {name} = builder.AddParameter("{name}", {format_bool(secret)})'
         else:
-            self._builder += f'\nvar {name} = builder.AddParameter("{name}", "{value}", {str(publish_value_as_default).lower()}, {str(secret).lower()})'
+            self._builder += f'\nvar {name} = builder.AddParameter("{name}", {format_string(args[1])}, {format_bool(publish_value_as_default)}, {format_bool(secret)})'
         result = ParameterResource(name, builder=self._builder, **kwargs)
         self._dependencies.append(result.package)
         return result
 
-    def add_parameter_from_configuration(self, name: str, *, configuration_key: str, secret: bool = False, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
-        self._builder += f'\nvar {name} = builder.AddParameterFromConfiguration("{name}",  "{configuration_key}", {str(secret).lower()});'
+    def add_parameter_from_configuration(self, name: str, configuration_key: str, /, *, secret: bool = False, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
+        self._builder += f'\nvar {name} = builder.AddParameterFromConfiguration({format_string(name)},  {format_string(configuration_key)}, {format_bool(secret)})'
         result = ParameterResource(name, builder=self._builder, **kwargs)
         self._dependencies.append(result.package)
         return result
 
-    def add_connection_string(self, name: str, /, *, environment_variable_name: str | None = None, **kwargs: Unpack[ConnectionStringResourceOptions]) -> ConnectionStringResource:
-        if environment_variable_name:
-            self._builder += f'\nvar {name} = builder.AddConnectionString("{name}", "{environment_variable_name}");'
+    def add_connection_string(self, name: str, /, *, env_var: str | None = None, **kwargs: Unpack[ConnectionStringResourceOptions]) -> ConnectionStringResource:
+        if env_var:
+            self._builder += f'\nvar {name} = builder.AddConnectionString({format_string(name)}, {format_string(env_var)})'
         else:
-            self._builder += f'\nvar {name} = builder.AddConnectionString("{name}");'
-        return ConnectionStringResource(name, builder=self._builder, **kwargs)
-
-    def create_default_password_parameter(self, name: str, /, *, lower: bool = True, upper: bool = True, numeric: bool = True, special: bool = True, min_lower: int = 0, min_upper: int = 0, min_numeric: int = 0, min_special: int = 0, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
-        self._builder += f'\nvar {name} = builder.CreateDefaultPasswordParameter("{name}", {str(lower).lower()}, {str(upper).lower()}, {str(numeric).lower()}, {str(special).lower()}, {min_lower}, {min_upper}, {min_numeric}, {min_special})'
-        result = ParameterResource(name, builder=self._builder, **kwargs)
+            self._builder += f'\nvar {name} = builder.AddConnectionString({format_string(name)})'
+        result = ConnectionStringResource(name, builder=self._builder, **kwargs)
         self._dependencies.append(result.package)
         return result
 
-    def create_parameter(self, name: str, /, *, secret: bool, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
-        self._builder += f'\nvar {name} = builder.CreateParameter("{name}", {str(secret).lower()});'
-        result = ParameterResource(name, builder=self._builder, **kwargs)
+    def add_container(self, name: str, image: str, /, *, tag: str | None = None, **kwargs: Unpack[ContainerResourceOptions]) -> ContainerResource:
+        if tag:
+            self._builder += f'\nvar {name} = builder.AddContainer({format_string(name)}, {format_string(image)}, {format_string(tag)})'
+        else:
+            self._builder += f'\nvar {name} = builder.AddContainer({format_string(name)}, {format_string(image)})'
+        result = ContainerResource(name, builder=self._builder, **kwargs)
         self._dependencies.append(result.package)
         return result
 
-    def add_project(self, name: str, /, *, project_path: str | None = None, launch_profile_name: str | None = None, **kwargs: Unpack[ProjectResourceOptions]) -> ProjectResource:
-        self._builder += f'\nvar {name} = builder.AddProject("{name}"'
-        if project_path:
-            self._builder += f', "{project_path}"'
-        if launch_profile_name:
-            self._builder += f', "{launch_profile_name}"'
-        self._builder += ')'
+    def add_project(self, name: str, project_path: str, /, *, launch_profile_name: str | None = None, **kwargs: Unpack[ProjectResourceOptions]) -> ProjectResource:
+        self._builder += f'\nvar {name} = builder.AddProject({format_string(name)}, {format_string(project_path)}, {get_nullable_value(launch_profile_name)})'
         result = ProjectResource(name, builder=self._builder, **kwargs)
         self._dependencies.append(result.package)
         return result
 
+    def add_external_service(self, name: str, url: str | ParameterResource, /, **kwargs: Unpack[ResourceOptions]) -> ExternalServiceResource:
+        if isinstance(url, ParameterResource):
+            self._builder += f'\nvar {name} = builder.AddExternalService({format_string(name)}, {url.name})'
+        else:
+            self._builder += f'\nvar {name} = builder.AddExternalService({format_string(name)}, {format_string(url)})'
+        result = ExternalServiceResource(name, builder=self._builder, **kwargs)
+        self._dependencies.append(result.package)
+        return result
 
-        # public static ApplicationModel.IResourceBuilder<ApplicationModel.ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name, string image, string tag) { throw null; }
+    def add_csharp_app(self, name: str, path: str, /, **kwargs: Unpack[ProjectResourceOptions]) -> CSharpAppResource:
+        self._builder += f'\nvar {name} = builder.AddCSharpApp({format_string(name)}, {format_string(path)})'
+        result = CSharpAppResource(name, builder=self._builder, **kwargs)
+        self._dependencies.append(result.package)
+        return result
 
-        # public static ApplicationModel.IResourceBuilder<ApplicationModel.ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name, string image) { throw null; }
+    def add_certificate_authority_collection(self, name: str, /, **kwargs: Unpack[CertificateAuthorityCollectionOptions]) -> CertificateAuthorityCollection:
+        self._builder += f'\nvar {name} = builder.AddCertificateAuthorityCollection({format_string(name)})'
+        result = CertificateAuthorityCollection(name, builder=self._builder, **kwargs)
+        self._dependencies.append(result.package)
+        return result
 
-        # public static ApplicationModel.IResourceBuilder<ApplicationModel.ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, string name, string contextPath, string? dockerfilePath = null, string? stage = null) { throw null; }
+    def add_executable(self, name: str, command: str, working_directory: str, /, *, args: Iterable[str] | None = None, **kwargs: Unpack[ExecutableResourceOptions]) -> ExecutableResource:
+        self._builder += f'\nvar {name} = builder.AddExecutable({format_string(name)}, {format_string(command)}, {format_string(working_directory)}, {format_string_array(args)})'
+        result = ExecutableResource(name, builder=self._builder, **kwargs)
+        self._dependencies.append(result.package)
+        return result
 
+    def add_dockerfile(self, name: str, context_path: str, /, *, dockerfile_path: str | None = None, stage: str | None = None, **kwargs: Unpack[ContainerResourceOptions]) -> ContainerResource:
+        self._builder += f'\nbuilder.AddDockerfile({format_string(name)}, {format_string(context_path)}, {get_nullable_value(dockerfile_path)}, {get_nullable_value(stage)})'
+        result = ContainerResource(name, builder=self._builder, **kwargs)
+        self._dependencies.append(result.package)
+        return result
 
 
 def build_distributed_application(*args) -> DistributedApplicationBuilder:

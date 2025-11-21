@@ -134,7 +134,7 @@ class Resource:
 
     @relationship.setter
     def relationship(self, value: tuple[Resource, str]) -> None:
-        self._builder.write(f'\n{self.name}.WithRelationship({value[0].name}, "{value[1]}");')
+        self._builder.write(f'\n{self.name}.WithRelationship({value[0].name}.Resource, "{value[1]}");')
 
     @property
     def relationships(self) -> NoReturn:
@@ -143,7 +143,7 @@ class Resource:
     @relationships.setter
     def relationships(self, value: Iterable[tuple[Resource, str]]) -> None:
         for rel in value:
-            self._builder.write(f'\n{self.name}.WithRelationship({rel[0].name}, "{rel[1]}");')
+            self._builder.write(f'\n{self.name}.WithRelationship({rel[0].name}.Resource, "{rel[1]}");')
 
     @property
     def reference_relationship(self) -> NoReturn:
@@ -237,10 +237,10 @@ class Resource:
         if health_check := kwargs.pop("health_check", None):
             self._builder.write(f'\n    .WithHealthCheck({format_string(health_check)})')
         if relationship := kwargs.pop("relationship", None):
-            self._builder.write(f'\n    .WithRelationship({relationship[0].name}, {format_string(relationship[1])})')
+            self._builder.write(f'\n    .WithRelationship({relationship[0].name}.Resource, {format_string(relationship[1])})')
         if relationships := kwargs.pop("relationships", None):
             for rel in relationships:
-                self._builder.write(f'\n    .WithRelationship({rel[0].name}, {format_string(rel[1])})')
+                self._builder.write(f'\n    .WithRelationship({rel[0].name}.Resource, {format_string(rel[1])})')
         if reference_relationship := kwargs.pop("reference_relationship", None):
             self._builder.write(f'\n    .WithReferenceRelationship({reference_relationship.name})')
         if reference_relationships := kwargs.pop("reference_relationships", None):
@@ -267,7 +267,7 @@ class Resource:
             else:
                 build_image = get_nullable_from_map(dockerfile_base_image, "build_image")
                 runtime_image = get_nullable_from_map(dockerfile_base_image, "runtime_image")
-                self._builder.write(f'\n{self.name}.WithDockerfileBaseImage({build_image}, {runtime_image});')
+                self._builder.write(f'\n    .WithDockerfileBaseImage({build_image}, {runtime_image})')
         self._builder.write(";")
 
 

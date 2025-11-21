@@ -3,6 +3,8 @@
 #   Licensed under the MIT License. See LICENSE in project root for information.
 #   -------------------------------------------------------------
 
+import os
+import shutil
 from typing import Any, Iterable, Mapping, TypedDict, overload
 from typing_extensions import Unpack
 from io import StringIO
@@ -57,14 +59,19 @@ class DistributedApplicationBuilder:
     def __init__(self, *args) -> None:
         self._dependencies = []
         self._builder = StringIO()
-        self._builder.write("#:sdk Aspire.AppHost.Sdk\n\n")
+        self._builder.write(f"#:sdk Aspire.AppHost.Sdk@{self.version}\n\n")
         self._builder.write("var builder = DistributedApplication.CreateBuilder(args);\n")
 
-    def build(self) -> str:
+    def build(self, *, output_dir: str | None = None, name: str | None = None) -> str:
         #dependencies = set(self._dependencies) # TODO: deduplicate
-        self._builder.write("\n\nbuilder.Build();\n")
         csharp = self._builder.getvalue()
+        csharp += "\n\nbuilder.Build().Run();\n"
         csharp = "\n".join([f"{d}@{self.version}" for dependency in self._dependencies for d in dependency]) + "\n" + csharp
+        if output_dir:
+            output_path = pathlib.Path(output_dir)
+            output_path.mkdir(parents=True, exist_ok=True)
+            with open(output_path / "apphost.cs", "w", encoding="utf-8") as f:
+                f.write(csharp)
         return csharp
 
     def add_resource(self, resource: Resource, **kwargs: Unpack[ResourceOptions]) -> Resource:

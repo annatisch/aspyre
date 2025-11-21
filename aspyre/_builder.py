@@ -74,24 +74,8 @@ class DistributedApplicationBuilder:
                 f.write(csharp)
         return csharp
 
-    def add_resource(self, resource: Resource, **kwargs: Unpack[ResourceOptions]) -> Resource:
-        self._builder.write(f"\nbuilder.AddResource({resource.name})")
-        return Resource(resource.name, builder=self._builder, **kwargs)
-
-    def create_parameter(self, name: str, /, *, secret: bool, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
-        self._builder.write(f'\nvar {name} = builder.CreateParameter("{name}", {str(secret).lower()})')
-        result = ParameterResource(name, builder=self._builder, **kwargs)
-        self._dependencies.append(result.package)
-        return result
-
-    def create_default_password_parameter(self, name: str, /, *, lower: bool = True, upper: bool = True, numeric: bool = True, special: bool = True, min_lower: int = 0, min_upper: int = 0, min_numeric: int = 0, min_special: int = 0, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
-        self._builder.write(f'\nvar {name} = builder.CreateDefaultPasswordParameter({format_string(name)}, {format_bool(lower)}, {format_bool(upper)}, {format_bool(numeric)}, {format_bool(special)}, {min_lower}, {min_upper}, {min_numeric}, {min_special})')
-        result = ParameterResource(name, builder=self._builder, **kwargs)
-        self._dependencies.append(result.package)
-        return result
-
     @overload
-    def add_parameter(self, name: str, /,*, secret: bool = False, **kwargs: Unpack[ParameterResourceOptions]):
+    def add_parameter(self, name: str, /,*, secret: bool = False, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
         ...
     @overload
     def add_parameter(

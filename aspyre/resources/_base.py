@@ -1098,9 +1098,9 @@ class ParameterResource(Resource):
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ParameterResourceOptions]) -> None:
         if description := kwargs.pop("description", None):
             if isinstance(description, str):
-                builder.write(f"\n    .WithDescription(\"{description}\");")
+                builder.write(f"\n    .WithDescription(\"{description}\")")
             else:
-                builder.write(f"\n    .WithDescription(\"{description[0]}\", {str(description[1]).lower()});")
+                builder.write(f"\n    .WithDescription(\"{description[0]}\", {str(description[1]).lower()})")
         super().__init__(name, builder=builder, **kwargs)
 
 

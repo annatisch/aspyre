@@ -12,7 +12,8 @@ import json
 from .resources._base import (
     Resource,
     ResourceOptions,
-    ResourceWithConnectionString,
+    ConnectionStringResource,
+    ConnectionStringResourceOptions,
     ProjectResource,
     ProjectResourceOptions,
     ParameterResource,
@@ -88,14 +89,12 @@ class DistributedApplicationBuilder:
         self._dependencies.append(result.package)
         return result
 
-    def add_connection_string(self, name: str, /, *, environment_variable_name: str | None = None, **kwargs: Unpack[ParameterResourceOptions]) -> ResourceWithConnectionString:
+    def add_connection_string(self, name: str, /, *, environment_variable_name: str | None = None, **kwargs: Unpack[ConnectionStringResourceOptions]) -> ConnectionStringResource:
         if environment_variable_name:
             self._builder += f'\nvar {name} = builder.AddConnectionString("{name}", "{environment_variable_name}");'
         else:
             self._builder += f'\nvar {name} = builder.AddConnectionString("{name}");'
-        return ResourceWithConnectionString()
-        #TODO: return resource, fix kwargs
-        #public static ApplicationModel.IResourceBuilder<ApplicationModel.IResourceWithConnectionString> AddConnectionString(this IDistributedApplicationBuilder builder, string name, string? environmentVariableName = null) { throw null; }
+        return ConnectionStringResource(name, builder=self._builder, **kwargs)
 
     def create_default_password_parameter(self, name: str, /, *, lower: bool = True, upper: bool = True, numeric: bool = True, special: bool = True, min_lower: int = 0, min_upper: int = 0, min_numeric: int = 0, min_special: int = 0, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
         self._builder += f'\nvar {name} = builder.CreateDefaultPasswordParameter("{name}", {str(lower).lower()}, {str(upper).lower()}, {str(numeric).lower()}, {str(special).lower()}, {min_lower}, {min_upper}, {min_numeric}, {min_special})'
@@ -120,6 +119,12 @@ class DistributedApplicationBuilder:
         self._dependencies.append(result.package)
         return result
 
+
+        # public static ApplicationModel.IResourceBuilder<ApplicationModel.ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name, string image, string tag) { throw null; }
+
+        # public static ApplicationModel.IResourceBuilder<ApplicationModel.ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name, string image) { throw null; }
+
+        # public static ApplicationModel.IResourceBuilder<ApplicationModel.ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, string name, string contextPath, string? dockerfilePath = null, string? stage = null) { throw null; }
 
 
 

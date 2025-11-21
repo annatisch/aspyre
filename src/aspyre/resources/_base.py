@@ -4,11 +4,34 @@
 #   -------------------------------------------------------------
 from __future__ import annotations
 from collections.abc import Mapping
-from typing import Any, Iterable, Literal, NoReturn, TypeAlias, TypedDict, MutableSequence, Union, Unpack, cast
+from typing import Any, Iterable, Literal, NoReturn, Optional, Required, TypeAlias, TypedDict, MutableSequence, Union, Unpack, cast
 
-from ._models import IconVariant, OtlpProtocol, ProbeType, ProtocolType, ReferenceEnvironment, WaitBehavior
+from aspyre._utils import (
+    format_bool,
+    format_enum,
+    format_string,
+    format_string_array,
+    get_nullable_value,
+    get_nullable_from_map,
+    get_nullable_from_tuple,
+)
+from ._models import (
+    CertificateTrustScope,
+    ContainerLifetime,
+    IconVariant,
+    OtlpProtocol,
+    ProbeType,
+    ProtocolType,
+    ReferenceEnvironment,
+    UnixFileMode,
+    WaitBehavior,
+    StoreLocation,
+    StoreName,
+    ImagePullPolicy,
+)
 
 EndpointReference = object  # TODO: implement EndpointReference
+
 
 class ResourceOptions(TypedDict, total=False):
     url: str | tuple[str, str]
@@ -21,23 +44,28 @@ class ResourceOptions(TypedDict, total=False):
     """Prevents the resource from being automatically started when the application host starts."""
     health_check: str
     """Adds a health check to the resource."""
-    relationships: tuple[Resource, str] | Iterable[tuple[Resource, str]]
+    relationship: tuple[Resource, str]
+    relationships: Iterable[tuple[Resource, str]]
     """Adds a relationship reference to the resource."""
-    reference_relationships: Resource | Iterable[Resource]
+    reference_relationship: Resource
+    reference_relationships: Iterable[Resource]
     """Adds a reference relationship reference to the resource."""
-    parent_relationships: Resource | Iterable[Resource]
+    parent_relationship: Resource
+    parent_relationships: Iterable[Resource]
     """Adds a parent-child relationship reference to the resource."""
-    child_relationships: Resource | Iterable[Resource]
+    child_relationship: Resource
+    child_relationships: Iterable[Resource]
     """Adds a parent-child relationship reference to the resource."""
     icon_name: str | tuple[str, IconVariant]
     """Specifies the icon to use when displaying the resource in the dashboard. Either icon name string,
     or tuple of (icon_name, icon_variant). The default icon variant is Filled."""
+    dockerfile_base_image: Literal[True] | Mapping[str, str]
 
 
 class Resource:
 
     @property
-    def package(self) -> str:
+    def package(self) -> Iterable[str]:
         raise NotImplementedError()
 
     @property
@@ -87,53 +115,72 @@ class Resource:
         self._builder += f'\n{self.name}.WithHealthCheck("{value}");'
 
     @property
+    def relationship(self) -> NoReturn:
+        raise TypeError("relationship is write-only")
+
+    @relationship.setter
+    def relationship(self, value: tuple[Resource, str]) -> None:
+        self._builder += f'\n{self.name}.WithRelationship({value[0].name}, "{value[1]}");'
+
+    @property
     def relationships(self) -> NoReturn:
         raise TypeError("relationships is write-only")
 
     @relationships.setter
-    def relationships(self, value: tuple[Resource, str] | Iterable[tuple[Resource, str]]) -> None:
-        if isinstance(value, tuple) and isinstance(value[0], Resource):
-            self._builder += f'\n{self.name}.WithRelationship({value[0].name}, "{value[1]}");'
-        else:
-            for rel in value:
-                rel = cast(tuple[Resource, str], rel)
-                self._builder += f'\n{self.name}.WithRelationship({rel[0].name}, "{rel[1]}");'
+    def relationships(self, value: Iterable[tuple[Resource, str]]) -> None:
+        for rel in value:
+            self._builder += f'\n{self.name}.WithRelationship({rel[0].name}, "{rel[1]}");'
+
+    @property
+    def reference_relationship(self) -> NoReturn:
+        raise TypeError("reference_relationship is write-only")
+
+    @reference_relationship.setter
+    def reference_relationship(self, value: Resource) -> None:
+        self._builder += f'\n{self.name}.WithReferenceRelationship({value.name});'
 
     @property
     def reference_relationships(self) -> NoReturn:
         raise TypeError("reference_relationships is write-only")
 
     @reference_relationships.setter
-    def reference_relationships(self, value: Resource | Iterable[Resource]) -> None:
-        if isinstance(value, Resource):
-            self._builder += f'\n{self.name}.WithReferenceRelationship({value.name});'
-        else:
-            for reference in value:
-                self._builder += f'\n{self.name}.WithReferenceRelationship({reference.name});'
+    def reference_relationships(self, value: Iterable[Resource]) -> None:
+        for reference in value:
+            self._builder += f'\n{self.name}.WithReferenceRelationship({reference.name});'
+
+    @property
+    def parent_relationship(self) -> NoReturn:
+        raise TypeError("parent_relationship is write-only")
+
+    @parent_relationship.setter
+    def parent_relationship(self, value: Resource) -> None:
+        self._builder += f'\n{self.name}.WithParentRelationship({value.name});'
 
     @property
     def parent_relationships(self) -> NoReturn:
         raise TypeError("parent_relationships is write-only")
 
     @parent_relationships.setter
-    def parent_relationships(self, value: Resource | Iterable[Resource]) -> None:
-        if isinstance(value, Resource):
-            self._builder += f'\n{self.name}.WithParentRelationship({value.name});'
-        else:
-            for parent in value:
-                self._builder += f'\n{self.name}.WithParentRelationship({parent.name});'
+    def parent_relationships(self, value: Iterable[Resource]) -> None:
+        for parent in value:
+            self._builder += f'\n{self.name}.WithParentRelationship({parent.name});'
+
+    @property
+    def child_relationship(self) -> NoReturn:
+        raise TypeError("child_relationship is write-only")
+
+    @child_relationship.setter
+    def child_relationship(self, value: Resource) -> None:
+        self._builder += f'\n{self.name}.WithChildRelationship({value.name});'
 
     @property
     def child_relationships(self) -> NoReturn:
         raise TypeError("child_relationships is write-only")
 
     @child_relationships.setter
-    def child_relationships(self, value: Resource | Iterable[Resource]) -> None:
-        if isinstance(value, Resource):
-            self._builder += f'\n{self.name}.WithChildRelationship({value.name});'
-        else:
-            for child in value:
-                self._builder += f'\n{self.name}.WithChildRelationship({child.name});'
+    def child_relationships(self, value: Iterable[Resource]) -> None:
+        for child in value:
+            self._builder += f'\n{self.name}.WithChildRelationship({child.name});'
 
     @property
     def icon_name(self) -> NoReturn:
@@ -146,71 +193,107 @@ class Resource:
         else:
             self._builder += f'\n{self.name}.WithIconName("{value[0]}", IconVariant.{value[1].value});'
 
+    @property
+    def dockerfile_base_image(self) -> NoReturn:
+        raise TypeError("dockerfile_base_image is write-only")
+
+    @dockerfile_base_image.setter
+    def dockerfile_base_image(self, value: Literal[True] | Mapping[str, str]) -> None:
+        if value is True:
+            self._builder += f'\n{self.name}.WithDockerfileBaseImage();'
+        else:
+            build_image = get_nullable_from_map(value, "build_image")
+            runtime_image = get_nullable_from_map(value, "runtime_image")
+            self._builder += f'\n{self.name}.WithDockerfileBaseImage({build_image}, {runtime_image});'
+
     def __init__(self, name: str, builder: str, **kwargs: Unpack[ResourceOptions]) -> None:
         self.name = name
         self._builder = builder
-
         if url := kwargs.pop("url", None):
             if isinstance(url, str):
-                self._builder += "\n    .WithUrl(\"{}\")".format(url)
+                self._builder += f"\n    .WithUrl({format_string(url)})"
             else:
-                self._builder += "\n    .WithUrl(\"{}\", \"{}\")".format(url[0], url[1])
-
+                self._builder += f"\n    .WithUrl({format_string(url[0])}, {format_string(url[1])})"
         if kwargs.pop("exclude_from_manifest", None) is True:
             self._builder += f"\n    .ExcludeFromManifest()"
-
         if kwargs.pop("exclude_from_mcp", None) is True:
             self._builder += f"\n    .ExcludeFromMcp()"
-
         if kwargs.pop("explicit_start", None) is True:
             self._builder += f"\n    .WithExplicitStart()"
-
         if health_check := kwargs.pop("health_check", None):
-            self._builder += f'\n    .WithHealthCheck("{health_check}")'
-
+            self._builder += f'\n    .WithHealthCheck({format_string(health_check)})'
+        if relationship := kwargs.pop("relationship", None):
+            self._builder += f'\n    .WithRelationship({relationship[0].name}, {format_string(relationship[1])})'
         if relationships := kwargs.pop("relationships", None):
-            if isinstance(relationships, tuple) and isinstance(relationships[0], Resource):
-                self._builder += f'\n    .WithRelationship({relationships[0].name}, "{relationships[1]}")'
-            else:
-                for rel in relationships:
-                    rel = cast(tuple[Resource, str], rel)
-                    self._builder += f'\n    .WithRelationship({rel[0].name}, "{rel[1]}")'
-
+            for rel in relationships:
+                self._builder += f'\n    .WithRelationship({rel[0].name}, {format_string(rel[1])})'
+        if reference_relationship := kwargs.pop("reference_relationship", None):
+            self._builder += f'\n    .WithReferenceRelationship({reference_relationship.name})'
         if reference_relationships := kwargs.pop("reference_relationships", None):
-            if isinstance(reference_relationships, Resource):
-                self._builder += f'\n    .WithReferenceRelationship({reference_relationships.name})'
-            else:
-                for reference in reference_relationships:
-                    self._builder += f'\n    .WithReferenceRelationship({reference.name})'
-
+            for reference in reference_relationships:
+                self._builder += f'\n    .WithReferenceRelationship({reference.name})'
+        if parent_relationship := kwargs.pop("parent_relationship", None):
+            self._builder += f'\n    .WithParentRelationship({parent_relationship.name})'
         if parent_relationships := kwargs.pop("parent_relationships", None):
-            if isinstance(parent_relationships, Resource):
-                self._builder += f'\n    .WithParentRelationship({parent_relationships.name})'
-            else:
-                for parent in parent_relationships:
-                    self._builder += f'\n    .WithParentRelationship({parent.name})'
-
+            for parent in parent_relationships:
+                self._builder += f'\n    .WithParentRelationship({parent.name})'
+        if child_relationship := kwargs.pop("child_relationship", None):
+            self._builder += f'\n    .WithChildRelationship({child_relationship.name})'
         if child_relationships := kwargs.pop("child_relationships", None):
-            if isinstance(child_relationships, Resource):
-                self._builder += f'\n    .WithChildRelationship({child_relationships.name})'
-            else:
-                for child in child_relationships:
-                    self._builder += f'\n    .WithChildRelationship({child.name})'
-
+            for child in child_relationships:
+                self._builder += f'\n    .WithChildRelationship({child.name})'
         if icon_name := kwargs.pop("icon_name", None):
             if isinstance(icon_name, str):
-                self._builder += f'\n    .WithIconName("{icon_name}")'
+                self._builder += f'\n    .WithIconName({format_string(icon_name)})'
             else:
-                self._builder += f'\n    .WithIconName("{icon_name[0]}", IconVariant.{icon_name[1].value})'
+                self._builder += f'\n    .WithIconName({format_string(icon_name[0])}, {format_enum(icon_name[1])})'
+        if dockerfile_base_image := kwargs.pop("dockerfile_base_image", None):
+            if dockerfile_base_image is True:
+                self._builder += f'\n    .WithDockerfileBaseImage()'
+            else:
+                build_image = get_nullable_from_map(dockerfile_base_image, "build_image")
+                runtime_image = get_nullable_from_map(dockerfile_base_image, "runtime_image")
+                self._builder += f'\n{self.name}.WithDockerfileBaseImage({build_image}, {runtime_image});'
         self._builder += ";"
 
 
 class ResourceWithArgsOptions(TypedDict, total=False):
     args: Iterable[str]
+    certificate_trust_scope: CertificateTrustScope
+    developer_certificate_trust: bool
+    certificate_authority_collection: CertificateAuthorityCollection
 
 
 class ResourceWithArgs:
-    ...
+    @property
+    def args(self) -> NoReturn:
+        raise TypeError("args is write-only")
+
+    @args.setter
+    def args(self, value: Iterable[str]) -> None:
+        self._builder: str
+        self.name: str
+        self._builder += f'\n{self.name}.WithArgs({format_string_array(value)});'
+
+    @property
+    def certificate_trust_scope(self) -> NoReturn:
+        raise TypeError("certificate_trust_scope is write-only")
+
+    @certificate_trust_scope.setter
+    def certificate_trust_scope(self, value: CertificateTrustScope) -> None:
+        self._builder: str
+        self.name: str
+        self._builder += f'\n{self.name}.WithCertificateTrustScope({format_enum(value)});'
+
+    @property
+    def developer_certificate_trust(self) -> NoReturn:
+        raise TypeError("developer_certificate_trust is write-only")
+
+    @developer_certificate_trust.setter
+    def developer_certificate_trust(self, value: bool) -> None:
+        self._builder: str
+        self.name: str
+        self._builder += f'\n{self.name}.WithDeveloperCertificateTrust({format_bool(value)});'
 
 
 class EndpointConfiguration(TypedDict, total=False):
@@ -229,8 +312,9 @@ class HttpHealthCheckConfiguration(TypedDict, total=False):
     status_code: int
     endpoint_name: str
 
+
 class HttpProbeConfiguration(TypedDict, total=False):
-    type: ProbeType
+    type: Required[ProbeType]
     path: str
     initial_delay_seconds: int
     period_seconds: int
@@ -238,6 +322,7 @@ class HttpProbeConfiguration(TypedDict, total=False):
     failure_threshold: int
     success_threshold: int
     endpoint_name: str
+
 
 class ResourceWithEndpointsOptions(TypedDict, total=False):
     http2_service: Literal[True]
@@ -250,21 +335,147 @@ class ResourceWithEndpointsOptions(TypedDict, total=False):
 
 
 class ResourceWithEndpoints:
+    @property
+    def http2_service(self) -> NoReturn:
+        raise TypeError("http2_service is write-only")
 
-    def get_endpoint(self, name: str) -> EndpointReference:
+    @http2_service.setter
+    def http2_service(self, value: Literal[True]) -> None:
+        self._builder += f'\n{self.name}.WithHttp2Service();'
+
+    @property
+    def endpoint(self) -> NoReturn:
+        raise TypeError("endpoint is write-only")
+
+    @endpoint.setter
+    def endpoint(self, value: EndpointConfiguration) -> None:
         self._builder: str
         self.name: str
-        self._builder += f'{self.name}.GetEndpoint("{name}")'
-        return EndpointReference()
+        port = get_nullable_from_map(value, "port")
+        target_port = get_nullable_from_map(value, "target_port")
+        scheme = get_nullable_from_map(value, "scheme")
+        name = get_nullable_from_map(value, "name")
+        env = get_nullable_from_map(value, "env")
+        is_proxied = get_nullable_from_map(value, "is_proxied", True)
+        is_external = get_nullable_from_map(value, "is_external", False)
+        protocol = get_nullable_from_map(value, "protocol")
+        self._builder += f'\n{self.name}.WithEndpoint({port}, {target_port}, {scheme}, {name}, {env}, {is_proxied}, {is_external}, {protocol});'
 
+    @property
+    def external_http_endpoints(self) -> NoReturn:
+        raise TypeError("external_http_endpoints is write-only")
 
-        # WithHttpEndpoint<T>(this ApplicationModel.IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? name = null, string? env = null, bool isProxied = true)
-        # WithHttpHealthCheck<T>(this ApplicationModel.IResourceBuilder<T> builder, string? path = null, int? statusCode = null, string? endpointName = null)
-        # WithHttpProbe<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.ProbeType type, string? path = null, int? initialDelaySeconds = null, int? periodSeconds = null, int? timeoutSeconds = null, int? failureThreshold = null, int? successThreshold = null, string? endpointName = null)
-        #     where T : ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResourceWithProbes { throw null; }
+    @external_http_endpoints.setter
+    def external_http_endpoints(self, value: Literal[True]) -> None:
+        self._builder: str
+        self.name: str
+        if value is True:
+            self._builder += f'\n{self.name}.WithExternalHttpEndpoints();'
 
-        # WithHttpsEndpoint<T>(this ApplicationModel.IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? name = null, string? env = null, bool isProxied = true)
-        #     where T : ApplicationModel.IResourceWithEndpoints { throw null; }
+    @property
+    def http_endpoint(self) -> NoReturn:
+        raise TypeError("http_endpoint is write-only")
+
+    @http_endpoint.setter
+    def http_endpoint(self, value: EndpointConfiguration) -> None:
+        self._builder: str
+        self.name: str
+        port = get_nullable_from_map(value, "port")
+        target_port = get_nullable_from_map(value, "target_port")
+        name = get_nullable_from_map(value, "name")
+        env = get_nullable_from_map(value, "env")
+        is_proxied = get_nullable_from_map(value, "is_proxied", True)
+        self._builder += f'\n{self.name}.WithHttpEndpoint({port}, {target_port}, {name}, {env}, {is_proxied});'
+
+    @property
+    def https_endpoint(self) -> NoReturn:
+        raise TypeError("https_endpoint is write-only")
+
+    @https_endpoint.setter
+    def https_endpoint(self, value: EndpointConfiguration) -> None:
+        self._builder: str
+        self.name: str
+        port = get_nullable_from_map(value, "port")
+        target_port = get_nullable_from_map(value, "target_port")
+        name = get_nullable_from_map(value, "name")
+        env = get_nullable_from_map(value, "env")
+        is_proxied = get_nullable_from_map(value, "is_proxied", True)
+        self._builder += f'\n{self.name}.WithHttpsEndpoint({port}, {target_port}, {name}, {env}, {is_proxied});'
+
+    @property
+    def http_health_check(self) -> NoReturn:
+        raise TypeError("http_health_check is write-only")
+
+    @http_health_check.setter
+    def http_health_check(self, value: HttpHealthCheckConfiguration) -> None:
+        self._builder: str
+        self.name: str
+        path = get_nullable_from_map(value, "path")
+        status_code = get_nullable_from_map(value, "status_code")
+        endpoint_name = get_nullable_from_map(value, "endpoint_name")
+        self._builder += f'\n{self.name}.WithHttpHealthCheck({path}, {status_code}, {endpoint_name});'
+
+    @property
+    def http_probe(self) -> NoReturn:
+        raise TypeError("http_probe is write-only")
+
+    @http_probe.setter
+    def http_probe(self, value: HttpProbeConfiguration) -> None:
+        self._builder: str
+        self.name: str
+        path = get_nullable_from_map(value, "path")
+        initial_delay_seconds = get_nullable_from_map(value, "initial_delay_seconds")
+        period_seconds = get_nullable_from_map(value, "period_seconds")
+        timeout_seconds = get_nullable_from_map(value, "timeout_seconds")
+        failure_threshold = get_nullable_from_map(value, "failure_threshold")
+        success_threshold = get_nullable_from_map(value, "success_threshold")
+        endpoint_name = get_nullable_from_map(value, "endpoint_name")
+        self._builder += f'\n{self.name}.WithHttpProbe({format_enum(value["type"])}, {path}, {initial_delay_seconds}, {period_seconds}, {timeout_seconds}, {failure_threshold}, {success_threshold}, {endpoint_name});'
+
+    def __init__(self, name: str, builder: str, **kwargs: Unpack[ResourceWithEndpointsOptions]) -> None:
+        if kwargs.get("http2_service", None) is True:
+            builder += f'\n    .WithHttp2Service()'
+        if endpoint := kwargs.get("endpoint", None):
+            port = get_nullable_from_map(endpoint, "port")
+            target_port = get_nullable_from_map(endpoint, "target_port")
+            scheme = get_nullable_from_map(endpoint, "scheme")
+            name_ = get_nullable_from_map(endpoint, "name")
+            env = get_nullable_from_map(endpoint, "env")
+            is_proxied = get_nullable_from_map(endpoint, "is_proxied", True)
+            is_external = get_nullable_from_map(endpoint, "is_external", False)
+            protocol = get_nullable_from_map(endpoint, "protocol")
+            builder += f'\n    .WithEndpoint({port}, {target_port}, {scheme}, {name_}, {env}, {is_proxied}, {is_external}, {protocol})'
+        if kwargs.get("external_http_endpoints", None) is True:
+            builder += f'\n    .WithExternalHttpEndpoints()'
+        if http_endpoint := kwargs.get("http_endpoint", None):
+            port = get_nullable_from_map(http_endpoint, "port")
+            target_port = get_nullable_from_map(http_endpoint, "target_port")
+            name_ = get_nullable_from_map(http_endpoint, "name")
+            env = get_nullable_from_map(http_endpoint, "env")
+            is_proxied = get_nullable_from_map(http_endpoint, "is_proxied", True)
+            builder += f'\n    .WithHttpEndpoint({port}, {target_port}, {name_}, {env}, {is_proxied})'
+        if https_endpoint := kwargs.get("https_endpoint", None):
+            port = get_nullable_from_map(https_endpoint, "port")
+            target_port = get_nullable_from_map(https_endpoint, "target_port")
+            name_ = get_nullable_from_map(https_endpoint, "name")
+            env = get_nullable_from_map(https_endpoint, "env")
+            is_proxied = get_nullable_from_map(https_endpoint, "is_proxied", True)
+            builder += f'\n    .WithHttpsEndpoint({port}, {target_port}, {name_}, {env}, {is_proxied})'
+        if http_health_check := kwargs.get("http_health_check", None):
+            path = get_nullable_from_map(http_health_check, "path")
+            status_code = get_nullable_from_map(http_health_check, "status_code")
+            endpoint_name = get_nullable_from_map(http_health_check, "endpoint_name")
+            builder += f'\n    .WithHttpHealthCheck({path}, {status_code}, {endpoint_name})'
+        if http_probe := kwargs.get("http_probe", None):
+            path = get_nullable_from_map(http_probe, "path")
+            initial_delay_seconds = get_nullable_from_map(http_probe, "initial_delay_seconds")
+            period_seconds = get_nullable_from_map(http_probe, "period_seconds")
+            timeout_seconds = get_nullable_from_map(http_probe, "timeout_seconds")
+            failure_threshold = get_nullable_from_map(http_probe, "failure_threshold")
+            success_threshold = get_nullable_from_map(http_probe, "success_threshold")
+            endpoint_name = get_nullable_from_map(http_probe, "endpoint_name")
+            builder += f'\n    .WithHttpProbe({format_enum(http_probe["type"])}, {path}, {initial_delay_seconds}, {period_seconds}, {timeout_seconds}, {failure_threshold}, {success_threshold}, {endpoint_name})'
+        super().__init__(name=name, builder=builder, **kwargs) # type: ignore Assuming multiple inheritance with Resource
 
 
 class ResourceWithProbesOptions(TypedDict, total=False):
@@ -272,13 +483,43 @@ class ResourceWithProbesOptions(TypedDict, total=False):
 
 
 class ResourceWithProbes:
+    @property
+    def http_probe(self) -> NoReturn:
+        raise TypeError("http_probe is write-only")
+
+    @http_probe.setter
+    def http_probe(self, value: HttpProbeConfiguration) -> None:
+        self._builder: str
+        self.name: str
+        path = get_nullable_from_map(value, "path")
+        initial_delay_seconds = get_nullable_from_map(value, "initial_delay_seconds")
+        period_seconds = get_nullable_from_map(value, "period_seconds")
+        timeout_seconds = get_nullable_from_map(value, "timeout_seconds")
+        failure_threshold = get_nullable_from_map(value, "failure_threshold")
+        success_threshold = get_nullable_from_map(value, "success_threshold")
+        endpoint_name = get_nullable_from_map(value, "endpoint_name")
+        self._builder += f'\n{self.name}.WithHttpProbe({format_enum(value["type"])}, {path}, {initial_delay_seconds}, {period_seconds}, {timeout_seconds}, {failure_threshold}, {success_threshold}, {endpoint_name});'
+
+    def __init__(self, name: str, builder: str, **kwargs: Unpack[ResourceWithProbesOptions]) -> None:
+        if http_probe := kwargs.pop("http_probe", None):
+            path = get_nullable_from_map(http_probe, "path")
+            initial_delay_seconds = get_nullable_from_map(http_probe, "initial_delay_seconds")
+            period_seconds = get_nullable_from_map(http_probe, "period_seconds")
+            timeout_seconds = get_nullable_from_map(http_probe, "timeout_seconds")
+            failure_threshold = get_nullable_from_map(http_probe, "failure_threshold")
+            success_threshold = get_nullable_from_map(http_probe, "success_threshold")
+            endpoint_name = get_nullable_from_map(http_probe, "endpoint_name")
+            builder += f'\n    .WithHttpProbe({format_enum(http_probe["type"])}, {path}, {initial_delay_seconds}, {period_seconds}, {timeout_seconds}, {failure_threshold}, {success_threshold}, {endpoint_name})'
+        super().__init__(name=name, builder=builder, **kwargs) # type: ignore Assuming multiple inheritance with Resource
+
+
+class ResourceWithServiceDiscoveryOptions(ResourceWithEndpointsOptions, total=False):
     ...
 
-class ResourceWithServiceDiscoveryOptions(TypedDict, total=False):
+
+class ResourceWithServiceDiscovery(ResourceWithEndpoints):
     ...
 
-class ResourceWithServiceDiscovery:
-    ...
 
 class ResourceWithConnectionStringOptions(TypedDict, total=False):
     publish_as_connection_string: Literal[True]
@@ -286,46 +527,242 @@ class ResourceWithConnectionStringOptions(TypedDict, total=False):
 
 
 class ResourceWithConnectionString:
+    @property
+    def publish_as_connection_string(self) -> NoReturn:
+        raise TypeError("publish_as_connection_string is write-only")
+
+    @publish_as_connection_string.setter
+    def publish_as_connection_string(self, value: Literal[True]) -> None:
+        self._builder: str
+        self.name: str
+        if value is True:
+            self._builder += f'\n{self.name}.PublishAsConnectionString();'
+
+    @property
+    def connection_string_redirection(self) -> NoReturn:
+        raise TypeError("connection_string_redirection is write-only")
+
+    @connection_string_redirection.setter
+    def connection_string_redirection(self, value: ResourceWithConnectionString) -> None:
+        self._builder: str
+        self.name: str
+        self._builder += f'\n{self.name}.WithConnectionStringRedirection({value.name});'
+
+    def __init__(self, name: str, builder: str, **kwargs: Unpack[ResourceWithConnectionStringOptions]) -> None:
+        if kwargs.get("publish_as_connection_string", None) is True:
+            builder += f'\n    .PublishAsConnectionString()'
+        if connection_string_redirection := kwargs.get("connection_string_redirection", None):
+            builder += f'\n    .WithConnectionStringRedirection({connection_string_redirection.name})'
+        super().__init__(name=name, builder=builder, **kwargs) # type: ignore Assuming multiple inheritance with Resource
+
     def configure_connection_string_manifest_publisher(self) -> None:
-        ...
-
-class ExternalServiceResourceOptions(TypedDict, total=False):
-    ...
-
-
-class ExternalServiceResource:
-    ...
+        self._builder: str
+        self.name: str
+        self._builder += f'\n{self.name}.ConfigureConnectionStringManifestPublisher();'
 
 
-EnvironmentType: TypeAlias
-ReferenceType: TypeAlias = Union[EndpointReference, ExternalServiceResource, ResourceWithServiceDiscovery, tuple[str, str], ResourceWithConnectionString, Mapping[str, Any]]
 class ResourceWithEnvironmentOptions(TypedDict, total=False):
-    environment: tuple[str, EndpointReference | ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None] | Iterable[tuple[str, EndpointReference | ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None]]
-    reference: ReferenceType | Iterable[ReferenceType]
+    environment: tuple[str, EndpointReference | ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None]
+    environments: Iterable[tuple[str, EndpointReference | ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None]]
+    reference: EndpointReference | ExternalServiceResource | ResourceWithServiceDiscovery | tuple[str, str] | ResourceWithConnectionString
+    references: Iterable[EndpointReference | ExternalServiceResource | ResourceWithServiceDiscovery | tuple[str, str] | ResourceWithConnectionString]
     otlp_exporter: Literal[True] | OtlpProtocol
     reference_environment: ReferenceEnvironment
+    certificate_trust_scope: CertificateTrustScope
+    developer_certificate_trust: bool
+    certificate_authority_collection: CertificateAuthorityCollection
+
 
 class ResourceWithEnvironment:
-    ...
-        #     public static ApplicationModel.IResourceBuilder<T> WithOtlpExporter<T>(this ApplicationModel.IResourceBuilder<T> builder, OtlpProtocol protocol)
-        #     where T : ApplicationModel.IResourceWithEnvironment { throw null; }
+    @property
+    def environment(self) -> NoReturn:
+        raise TypeError("environment is write-only")
 
-        # public static ApplicationModel.IResourceBuilder<T> WithOtlpExporter<T>(this ApplicationModel.IResourceBuilder<T> builder)
-        #     where T : ApplicationModel.IResourceWithEnvironment { throw null; }
-        # WithReference<TDestination>(this ApplicationModel.IResourceBuilder<TDestination> builder, ApplicationModel.EndpointReference endpointReference)
-        #     where TDestination : ApplicationModel.IResourceWithEnvironment { throw null; }
+    @environment.setter
+    def environment(self, value: tuple[str, EndpointReference | ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None]) -> None:
+        name, ref = value
+        self._builder: str
+        self.name: str
+        if isinstance(ref, EndpointReference):
+            self._builder += f'\n{self.name}.WithEnvironment({format_string(name)}, {ref});'  # TODO: fix EndpointReference string representation
+        elif isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
+            self._builder += f'\n{self.name}.WithEnvironment({format_string(name)}, {cast(Resource, ref).name});'
+        elif isinstance(ref, ExternalServiceResource):
+            self._builder += f'\n{self.name}.WithEnvironment({format_string(name)}, {cast(Resource, ref).name});'
+        else:
+            self._builder += f'\n{self.name}.WithEnvironment({format_string(name)}, {get_nullable_value(ref)});'
 
-        # WithReference<TDestination>(this ApplicationModel.IResourceBuilder<TDestination> builder, ApplicationModel.IResourceBuilder<ApplicationModel.IResourceWithConnectionString> source, string? connectionName = null, bool optional = false)
-        #     where TDestination : ApplicationModel.IResourceWithEnvironment { throw null; }
+    @property
+    def environments(self) -> NoReturn:
+        raise TypeError("environments is write-only")
 
-        # WithReference<TDestination>(this ApplicationModel.IResourceBuilder<TDestination> builder, ApplicationModel.IResourceBuilder<ExternalServiceResource> externalService)
-        #     where TDestination : ApplicationModel.IResourceWithEnvironment { throw null; }
+    @environments.setter
+    def environments(self, value: Iterable[tuple[str, EndpointReference | ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None]]) -> None:
+        self._builder: str
+        self.name: str
+        for env in value:
+            name, ref = env
+            if isinstance(ref, EndpointReference):
+                self._builder += f'\n{self.name}.WithEnvironment({format_string(name)}, {ref});'  # TODO: fix EndpointReference string representation
+            elif isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
+                self._builder += f'\n{self.name}.WithEnvironment({format_string(name)}, {ref.name});'
+            elif isinstance(ref, ExternalServiceResource):
+                self._builder += f'\n{self.name}.WithEnvironment({format_string(name)}, {ref.name});'
+            else:
+                self._builder += f'\n{self.name}.WithEnvironment({format_string(name)}, {get_nullable_value(ref)});'
 
-        # WithReference<TDestination>(this ApplicationModel.IResourceBuilder<TDestination> builder, ApplicationModel.IResourceBuilder<IResourceWithServiceDiscovery> source)
-        #     where TDestination : ApplicationModel.IResourceWithEnvironment { throw null; }
+    @property
+    def reference(self) -> NoReturn:
+        raise TypeError("reference is write-only")
 
-        # WithReference<TDestination>(this ApplicationModel.IResourceBuilder<TDestination> builder, string name, System.Uri uri)
-        #     where TDestination : ApplicationModel.IResourceWithEnvironment { throw null; }
+    @reference.setter
+    def reference(self, value: EndpointReference | ExternalServiceResource | ResourceWithServiceDiscovery | tuple[str, str] | ResourceWithConnectionString | Mapping[str, Any]) -> None:
+        self._builder: str
+        self.name: str
+        if isinstance(value, EndpointReference):
+            self._builder += f'\n{self.name}.WithReference({value});'  # TODO: fix EndpointReference string representation
+        elif isinstance(value, ExternalServiceResource):
+            self._builder += f'\n{self.name}.WithReference({cast(Resource, value).name});'
+        elif isinstance(value, ResourceWithServiceDiscovery):
+            self._builder += f'\n{self.name}.WithReference({cast(Resource, value).name});'
+        elif isinstance(value, tuple):
+            self._builder += f'\n{self.name}.WithReference({format_string(value[0])}, {format_string(value[1])});'
+        elif isinstance(value, ResourceWithConnectionString):
+            self._builder += f'\n{self.name}.WithReference({cast(Resource, value).name});'
+
+    @property
+    def references(self) -> NoReturn:
+        raise TypeError("references is write-only")
+
+    @references.setter
+    def references(self, value: Iterable[EndpointReference | ExternalServiceResource | ResourceWithServiceDiscovery | tuple[str, str] | ResourceWithConnectionString]) -> None:
+        self._builder: str
+        self.name: str
+        for ref in value:
+            if isinstance(ref, EndpointReference):
+                self._builder += f'\n{self.name}.WithReference({ref});'  # TODO: fix EndpointReference string representation
+            elif isinstance(ref, ExternalServiceResource):
+                self._builder += f'\n{self.name}.WithReference({cast(Resource, ref).name});'
+            elif isinstance(ref, ResourceWithServiceDiscovery):
+                self._builder += f'\n{self.name}.WithReference({cast(Resource, ref).name});'
+            elif isinstance(ref, tuple):
+                self._builder += f'\n{self.name}.WithReference({format_string(ref[0])}, {format_string(ref[1])});'
+            elif isinstance(ref, ResourceWithConnectionString):  # TODO: Missing IResourceWithConnectionString> source, string? connectionName = null, bool optional = false
+                self._builder += f'\n{self.name}.WithReference({cast(Resource, ref).name});'
+
+    @property
+    def otlp_exporter(self) -> NoReturn:
+        raise TypeError("otlp_exporter is write-only")
+
+    @otlp_exporter.setter
+    def otlp_exporter(self, value: Literal[True] | OtlpProtocol) -> None:
+        self._builder: str
+        self.name: str
+        if value is True:
+            self._builder += f'\n{self.name}.WithOtlpExporter();'
+        else:
+            self._builder += f'\n{self.name}.WithOtlpExporter({format_enum(value)});'
+
+    @property
+    def reference_environment(self) -> NoReturn:
+        raise TypeError("reference_environment is write-only")
+
+    @reference_environment.setter
+    def reference_environment(self, value: ReferenceEnvironment) -> None:
+        self._builder: str
+        self.name: str
+        self._builder += f'\n{self.name}.WithReferenceEnvironment({format_enum(value)});'
+
+    @property
+    def certificate_trust_scope(self) -> NoReturn:
+        raise TypeError("certificate_trust_scope is write-only")
+
+    @certificate_trust_scope.setter
+    def certificate_trust_scope(self, value: CertificateTrustScope) -> None:
+        self._builder: str
+        self.name: str
+        self._builder += f'\n{self.name}.WithCertificateTrustScope({format_enum(value)});'
+
+    @property
+    def developer_certificate_trust(self) -> NoReturn:
+        raise TypeError("developer_certificate_trust is write-only")
+
+    @developer_certificate_trust.setter
+    def developer_certificate_trust(self, value: bool) -> None:
+        self._builder: str
+        self.name: str
+        self._builder += f'\n{self.name}.WithDeveloperCertificateTrust({format_bool(value)});'
+
+    @property
+    def certificate_authority_collection(self) -> NoReturn:
+        raise TypeError("certificate_authority_collection is write-only")
+
+    @certificate_authority_collection.setter
+    def certificate_authority_collection(self, value: CertificateAuthorityCollection) -> None:
+        self._builder: str
+        self.name: str
+        self._builder += f'\n{self.name}.WithCertificateAuthorityCollection({cast(Resource, value).name});'
+
+    def __init__(self, name: str, builder: str, **kwargs: Unpack[ResourceWithEnvironmentOptions]) -> None:
+        if environment := kwargs.pop("environment", None):
+            name, ref = environment
+            if isinstance(ref, EndpointReference):
+                builder += f'\n    .WithEnvironment({format_string(name)}, {ref})'
+            elif isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
+                builder += f'\n    .WithEnvironment({format_string(name)}, {cast(Resource, ref).name})'
+            elif isinstance(ref, ExternalServiceResource):
+                builder += f'\n    .WithEnvironment({format_string(name)}, {cast(Resource, ref).name})'
+            else:
+                builder += f'\n    .WithEnvironment({format_string(name)}, {get_nullable_value(ref)})'
+        if environments := kwargs.pop("environments", None):
+            for env in environments:
+                name, ref = env
+                if isinstance(ref, EndpointReference):
+                    builder += f'\n    .WithEnvironment({format_string(name)}, {ref})'
+                elif isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
+                    builder += f'\n    .WithEnvironment({format_string(name)}, {cast(Resource, ref).name})'
+                elif isinstance(ref, ExternalServiceResource):
+                    builder += f'\n    .WithEnvironment({format_string(name)}, {cast(Resource, ref).name})'
+                else:
+                    builder += f'\n    .WithEnvironment({format_string(name)}, {get_nullable_value(ref)})'
+        if reference := kwargs.pop("reference", None):
+            if isinstance(reference, EndpointReference):
+                builder += f'\n    .WithReference({reference})'
+            elif isinstance(reference, ExternalServiceResource):
+                builder += f'\n    .WithReference({cast(Resource, reference).name})'
+            elif isinstance(reference, ResourceWithServiceDiscovery):
+                builder += f'\n    .WithReference({cast(Resource, reference).name})'
+            elif isinstance(reference, tuple):
+                builder += f'\n    .WithReference({format_string(reference[0])}, {format_string(reference[1])})'
+            elif isinstance(reference, ResourceWithConnectionString):
+                builder += f'\n    .WithReference({cast(Resource, reference).name})'
+        if references := kwargs.pop("references", None):
+            for ref in references:
+                if isinstance(ref, EndpointReference):
+                    builder += f'\n    .WithReference({ref})'
+                elif isinstance(ref, ExternalServiceResource):
+                    builder += f'\n    .WithReference({cast(Resource, ref).name})'
+                elif isinstance(ref, ResourceWithServiceDiscovery):
+                    builder += f'\n    .WithReference({cast(Resource, ref).name})'
+                elif isinstance(ref, tuple):
+                    builder += f'\n    .WithReference({format_string(ref[0])}, {format_string(ref[1])})'
+                elif isinstance(ref, ResourceWithConnectionString):
+                    builder += f'\n    .WithReference({cast(Resource, ref).name})'
+        if otlp_exporter := kwargs.pop("otlp_exporter", None):
+            if otlp_exporter is True:
+                builder += f'\n    .WithOtlpExporter()'
+            else:
+                builder += f'\n    .WithOtlpExporter({format_enum(otlp_exporter)})'
+        if reference_environment := kwargs.pop("reference_environment", None):
+            builder += f'\n    .WithReferenceEnvironment({format_enum(reference_environment)})'
+        if certificate_trust_scope := kwargs.pop("certificate_trust_scope", None):
+            builder += f'\n    .WithCertificateTrustScope({format_enum(certificate_trust_scope)})'
+        if developer_certificate_trust := kwargs.pop("developer_certificate_trust", None):
+            builder += f'\n    .WithDeveloperCertificateTrust({format_bool(developer_certificate_trust)})'
+        if certificate_authority_collection := kwargs.pop("certificate_authority_collection", None):
+            builder += f'\n    .WithCertificateAuthorityCollection({cast(Resource, certificate_authority_collection).name})'
+        super().__init__(name=name, builder=builder, **kwargs) # type: ignore Assuming multiple inheritance with Resource
+
 
 class ResourceWithWaitSupportOptions(TypedDict, total=False):
     wait_for: Resource | tuple[Resource, WaitBehavior] | Iterable[Resource | tuple[Resource, WaitBehavior]]
@@ -334,7 +771,105 @@ class ResourceWithWaitSupportOptions(TypedDict, total=False):
 
 
 class ResourceWithWaitSupport:
-    ...
+    @property
+    def wait_for(self) -> NoReturn:
+        raise TypeError("wait_for is write-only")
+
+    @wait_for.setter
+    def wait_for(self, value: Resource | tuple[Resource, WaitBehavior] | Iterable[Resource | tuple[Resource, WaitBehavior]]) -> None:
+        self._builder: str
+        self.name: str
+        if isinstance(value, Resource):
+            self._builder += f'\n{self.name}.WaitFor({value.name});'
+        elif isinstance(value, tuple) and isinstance(value[0], Resource):
+            self._builder += f'\n{self.name}.WaitFor({value[0].name}, {format_enum(cast(WaitBehavior, value[1]))});'
+        else:
+            for item in value:
+                if isinstance(item, Resource):
+                    self._builder += f'\n{self.name}.WaitFor({item.name});'
+                else:
+                    item = cast(tuple[Resource, WaitBehavior], item)
+                    self._builder += f'\n{self.name}.WaitFor({item[0].name}, {format_enum(item[1])});'
+
+    @property
+    def wait_for_completion(self) -> NoReturn:
+        raise TypeError("wait_for_completion is write-only")
+
+    @wait_for_completion.setter
+    def wait_for_completion(self, value: Resource | tuple[Resource, int] | Iterable[Resource | tuple[Resource, int]]) -> None:
+        self._builder: str
+        self.name: str
+        if isinstance(value, Resource):
+            self._builder += f'\n{self.name}.WaitForCompletion({value.name});'
+        elif isinstance(value, tuple) and isinstance(value[0], Resource):
+            self._builder += f'\n{self.name}.WaitForCompletion({value[0].name}, {value[1]});'
+        else:
+            for item in value:
+                if isinstance(item, Resource):
+                    self._builder += f'\n{self.name}.WaitForCompletion({item.name});'
+                else:
+                    item = cast(tuple[Resource, int], item)
+                    self._builder += f'\n{self.name}.WaitForCompletion({item[0].name}, {item[1]});'
+
+    @property
+    def wait_for_start(self) -> NoReturn:
+        raise TypeError("wait_for_start is write-only")
+
+    @wait_for_start.setter
+    def wait_for_start(self, value: Resource | tuple[Resource, WaitBehavior] | Iterable[Resource | tuple[Resource, WaitBehavior]]) -> None:
+        self._builder: str
+        self.name: str
+        if isinstance(value, Resource):
+            self._builder += f'\n{self.name}.WaitForStart({value.name});'
+        elif isinstance(value, tuple) and isinstance(value[0], Resource):
+            self._builder += f'\n{self.name}.WaitForStart({value[0].name}, {format_enum(cast(WaitBehavior, value[1]))});'
+        else:
+            for item in value:
+                if isinstance(item, Resource):
+                    self._builder += f'\n{self.name}.WaitForStart({item.name});'
+                else:
+                    item = cast(tuple[Resource, WaitBehavior], item)
+                    self._builder += f'\n{self.name}.WaitForStart({item[0].name}, {format_enum(item[1])});'
+
+    def __init__(self, name: str, builder: str, **kwargs: Unpack[ResourceWithWaitSupportOptions]) -> None:
+        if wait_for := kwargs.pop("wait_for", None):
+            if isinstance(wait_for, Resource):
+                builder += f'\n    .WaitFor({wait_for.name})'
+            elif isinstance(wait_for, tuple) and isinstance(wait_for[0], Resource):
+                builder += f'\n    .WaitFor({wait_for[0].name}, {format_enum(cast(WaitBehavior, wait_for[1]))})'
+            else:
+                for item in wait_for:
+                    if isinstance(item, Resource):
+                        builder += f'\n    .WaitFor({item.name})'
+                    else:
+                        item = cast(tuple[Resource, WaitBehavior], item)
+                        builder += f'\n    .WaitFor({item[0].name}, {format_enum(item[1])})'
+        if wait_for_completion := kwargs.pop("wait_for_completion", None):
+            if isinstance(wait_for_completion, Resource):
+                builder += f'\n    .WaitForCompletion({wait_for_completion.name})'
+            elif isinstance(wait_for_completion, tuple) and isinstance(wait_for_completion[0], Resource):
+                builder += f'\n    .WaitForCompletion({wait_for_completion[0].name}, {wait_for_completion[1]})'
+            else:
+                for item in wait_for_completion:
+                    if isinstance(item, Resource):
+                        builder += f'\n    .WaitForCompletion({item.name})'
+                    else:
+                        item = cast(tuple[Resource, int], item)
+                        builder += f'\n    .WaitForCompletion({item[0].name}, {item[1]})'
+        if wait_for_start := kwargs.pop("wait_for_start", None):
+            if isinstance(wait_for_start, Resource):
+                builder += f'\n    .WaitForStart({wait_for_start.name})'
+            elif isinstance(wait_for_start, tuple) and isinstance(wait_for_start[0], Resource):
+                builder += f'\n    .WaitForStart({wait_for_start[0].name}, {format_enum(cast(WaitBehavior, wait_for_start[1]))})'
+            else:
+                for item in wait_for_start:
+                    if isinstance(item, Resource):
+                        builder += f'\n    .WaitForStart({item.name})'
+                    else:
+                        item = cast(tuple[Resource, WaitBehavior], item)
+                        builder += f'\n    .WaitForStart({item[0].name}, {format_enum(item[1])})'
+
+        super().__init__(name=name, builder=builder, **kwargs)  # type: ignore Assumes multiple inheritance
 
 
 class ComputeEnvironmentOptions(TypedDict, total=False):
@@ -350,10 +885,172 @@ class ComputeResourceOptions(TypedDict, total=False):
 
 
 class ComputeResource:
+    @property
+    def compute_environment(self) -> NoReturn:
+        raise TypeError("compute_environment is write-only")
+
+    @compute_environment.setter
+    def compute_environment(self, value: ComputeEnvironmentResource) -> None:
+        self._builder: str
+        self.name: str
+        self._builder += f'\n{self.name}.WithComputeEnvironment({cast(Resource, value).name});'
+
+    def __init__(self, name: str, builder: str, **kwargs: Unpack[ComputeResourceOptions]) -> None:
+        if compute_environment := kwargs.pop("compute_environment", None):
+            builder += f'\n    .WithComputeEnvironment({cast(Resource, compute_environment).name})'
+        super().__init__(name=name, builder=builder, **kwargs)  # type: ignore Assumes multiple inheritance
+
+
+class ResourceWithContainerFilesOptions(TypedDict, total=False):
+    container_files_source: str
+    clear_container_files_sources: Literal[True]
+
+
+class ResourceWithContainerFiles:
+    @property
+    def container_files_source(self) -> NoReturn:
+        raise TypeError("container_files_source is write-only")
+
+    @container_files_source.setter
+    def container_files_source(self, value: str) -> None:
+        self._builder: str
+        self.name: str
+        self._builder += f'\n{self.name}.AddContainerFilesSource({format_string(value)});'
+
+    @property
+    def clear_container_files_sources(self) -> NoReturn:
+        raise TypeError("clear_container_files_sources is write-only")
+
+    @clear_container_files_sources.setter
+    def clear_container_files_sources(self, value: Literal[True]) -> None:
+        if value is True:
+            self._builder: str
+            self.name: str
+            self._builder += f'\n{self.name}.ClearContainerFilesSources();'
+
+    def __init__(self, name: str, builder: str, **kwargs: Unpack[ResourceWithContainerFilesOptions]) -> None:
+        if container_files_source := kwargs.pop("container_files_source", None):
+            builder += f'\n    .AddContainerFilesSource({format_string(container_files_source)})'
+        if kwargs.pop("clear_container_files_sources", None) is True:
+            builder += f'\n    .ClearContainerFilesSources()'
+        super().__init__(name=name, builder=builder, **kwargs)  # type: ignore Assumes multiple inheritance
+
+
+class ContainerFilesDestinationResourceOptions(TypedDict, total=False):
+    publish_with_container_files: tuple[ResourceWithContainerFiles, str]
+
+
+class ContainerFilesDestinationResource:
+    @property
+    def publish_with_container_files(self) -> NoReturn:
+        raise TypeError("publish_with_container_files is write-only")
+
+    @publish_with_container_files.setter
+    def publish_with_container_files(self, value: tuple[ResourceWithContainerFiles, str]) -> None:
+        self._builder: str
+        self.name: str
+        self._builder += f'\n{self.name}.PublishWithContainerFiles({cast(Resource, value[0]).name}, {format_string(value[1])});'
+
+    def __init__(self, name: str, builder: str, **kwargs: Unpack[ContainerFilesDestinationResourceOptions]) -> None:
+        if publish_with_container_files := kwargs.pop("publish_with_container_files", None):
+            builder += f'\n    .PublishWithContainerFiles({cast(Resource, publish_with_container_files[0]).name}, {format_string(publish_with_container_files[1])})'
+        super().__init__(name=name, builder=builder, **kwargs)  # type: ignore Assumes multiple inheritance
+
+#-------------------------------------------------------------
+
+
+class ExternalServiceResource(Resource):
+    ...
+
+class CertificateAuthorityCollectionOptions(ResourceOptions, total=False):
+    certificate: bytes | str
+    certificates: Iterable[bytes | str]
+    certificates_from_store: tuple[StoreName, StoreLocation]  # TODO: support filter
+    certificates_from_file: str  # TODO: support filter
+
+
+class CertificateAuthorityCollection(Resource):
+
+    @property
+    def package(self) -> Iterable[str]:
+        return [
+            "using System.Security.Cryptography.X509Certificates;"
+            "#:sdk Aspire.AppHost.Sdk"
+        ]
+
+    @property
+    def certificate(self) -> NoReturn:
+        raise TypeError("certificate is write-only")
+
+    @certificate.setter
+    def certificate(self, value: bytes | str) -> None:
+            if isinstance(value, bytes):
+                # TODO: This will need X509Certificate2 certificate = X509CertificateLoader.LoadCertificate(certData);
+                self._builder += f'\n{self.name}.AddCertificate(Convert.FromBase64String("{value.decode()}"));'
+            else:
+                self._builder += f'\n{self.name}.AddCertificate(File.ReadAllText("{value}"));'
+
+    @property
+    def certificates(self) -> NoReturn:
+        raise TypeError("certificates is write-only")
+
+    @certificates.setter
+    def certificates(self, value: Iterable[bytes | str]) -> None:
+            for cert in value:
+                if isinstance(cert, bytes):
+                    self._builder += f'\n{self.name}.AddCertificate(Convert.FromBase64String("{cert.decode()}"))'
+                else:
+                    self._builder += f'\n{self.name}.AddCertificate(File.ReadAllText("{cert}"))'
+    @property
+    def certificates_from_store(self) -> NoReturn:
+        raise TypeError("certificates_from_store is write-only")
+
+    @certificates_from_store.setter
+    def certificates_from_store(self, value: tuple[StoreName, StoreLocation]) -> None:
+            store_name, store_location = value
+            self._builder += f'\n{self.name}.AddCertificatesFromStore(StoreName.{store_name.value}, StoreLocation.{store_location.value});'
+
+    @property
+    def certificates_from_file(self) -> NoReturn:
+        raise TypeError("certificates_from_file is write-only")
+
+    @certificates_from_file.setter
+    def certificates_from_file(self, value: str) -> None:
+        self._builder += f'\n{self.name}.AddCertificatesFromFile("{value}");'
+
+    def __init__(self, name: str, builder: str, **kwargs: Unpack[CertificateAuthorityCollectionOptions]) -> None:
+        if certificate := kwargs.pop("certificate", None):
+            if isinstance(certificate, bytes):
+                # TODO: This will need X509Certificate2 certificate = X509CertificateLoader.LoadCertificate(certData);
+                builder += f'\n    .AddCertificate(Convert.FromBase64String("{certificate.decode()}"))'
+            else:
+                builder += f'\n    .AddCertificate(File.ReadAllText("{certificate}"))'
+        if certificates := kwargs.pop("certificates", None):
+            for cert in certificates:
+                if isinstance(cert, bytes):
+                    builder += f'\n    .AddCertificate(Convert.FromBase64String("{cert.decode()}"))'
+                else:
+                    builder += f'\n    .AddCertificate(File.ReadAllText("{cert}"))'
+        if certificates_from_store := kwargs.pop("certificates_from_store", None):
+            store_name, store_location = certificates_from_store
+            builder += f'\n    .AddCertificatesFromStore(StoreName.{store_name.value}, StoreLocation.{store_location.value})'
+        if certificates_from_file := kwargs.pop("certificates_from_file", None):
+            builder += f'\n    .AddCertificatesFromFile("{certificates_from_file}")'
+        super().__init__(name=name, builder=builder, **kwargs)
+
+
+class ConnectionStringResourceOptions(ResourceOptions, ResourceWithConnectionStringOptions, ResourceWithWaitSupportOptions, total=False):
     ...
 
 
-#-------------------------------------------------------------
+class ConnectionStringResource(ResourceWithConnectionString, ResourceWithWaitSupport, Resource):
+
+    @property
+    def package(self) -> Iterable[str]:
+        return ["#:sdk Aspire.AppHost.Sdk"]
+
+    def __init__(self, name: str, builder: str, **kwargs: Unpack[ConnectionStringResourceOptions]) -> None:
+        super().__init__(name=name, builder=builder, **kwargs)
 
 
 class ParameterResourceOptions(ResourceOptions, total=False):
@@ -362,8 +1059,8 @@ class ParameterResourceOptions(ResourceOptions, total=False):
 
 class ParameterResource(Resource):
     @property
-    def package(self) -> str:
-        return "#:sdk Aspire.AppHost.Sdk"
+    def package(self) -> Iterable[str]:
+        return ["#:sdk Aspire.AppHost.Sdk"]
 
     @property
     def description(self) -> NoReturn:
@@ -385,44 +1082,460 @@ class ParameterResource(Resource):
         super().__init__(name, builder=builder, **kwargs)
 
 
-
-class ProjectResourceOptions(ResourceOptions, total=False):
+class ProjectResourceOptions(ResourceOptions, ResourceWithEnvironmentOptions, ResourceWithArgsOptions, ResourceWithServiceDiscoveryOptions, ResourceWithWaitSupportOptions, ResourceWithProbesOptions,
+    ComputeResourceOptions, ContainerFilesDestinationResourceOptions, total=False):
     disable_forwarded_headers: Literal[True]
     replicas: int
 
 
-class ProjectResource(Resource):
-    ...
+class ProjectResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWithServiceDiscovery, ResourceWithWaitSupport, ResourceWithProbes,
+    ComputeResource, ContainerFilesDestinationResource, Resource):
+
+    @property
+    def package(self) -> Iterable[str]:
+        return ["#:sdk Aspire.AppHost.Sdk"]
+
+    @property
+    def disable_forwarded_headers(self) -> NoReturn:
+        raise TypeError("disable_forwarded_headers is write-only")
+
+    @disable_forwarded_headers.setter
+    def disable_forwarded_headers(self, value: Literal[True]) -> None:
+        if value is True:
+            self._builder += f"\n{self.name}.DisableForwardedHeaders();"
+
+    @property
+    def replicas(self) -> NoReturn:
+        raise TypeError("replicas is write-only")
+
+    @replicas.setter
+    def replicas(self, value: int) -> None:
+        self._builder += f"\n{self.name}.WithReplicas({value});"
+
+    def __init__(self, name: str, builder: str, **kwargs: Unpack[ProjectResourceOptions]) -> None:
+        if disable_forwarded_headers := kwargs.pop("disable_forwarded_headers", None):
+            if disable_forwarded_headers is True:
+                builder += f"\n    .DisableForwardedHeaders()"
+        if replicas := kwargs.pop("replicas", None):
+            builder += f"\n    .WithReplicas({replicas})"
+        super().__init__(name=name, builder=builder, **kwargs)
 
 
 class ExecutableResourceOptions(ResourceWithEnvironmentOptions, ResourceWithArgsOptions, ResourceWithEndpointsOptions, ResourceWithWaitSupportOptions, ResourceWithProbesOptions, ComputeResourceOptions, total=False):
-    ...
+    publish_as_dockerfile: Literal[True]
+    command: str
+    working_directory: str
+
 
 class ExecutableResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWithEndpoints, ResourceWithWaitSupport, ResourceWithProbes, ComputeResource, Resource):
     @property
-    def package(self) -> str:
-        return "#:sdk Aspire.AppHost.Sdk"
+    def package(self) -> Iterable[str]:
+        return ["#:sdk Aspire.AppHost.Sdk"]
 
     @property
-    def command(self) -> str:
-        return self._command
+    def publish_as_dockerfile(self) -> NoReturn:
+        raise TypeError("publish_as_dockerfile is write-only")
+
+    @publish_as_dockerfile.setter
+    def publish_as_dockerfile(self, value: Literal[True]) -> None:
+        if value is True:
+            self._builder += f'\n{self.name}.PublishAsDockerfile();'
+
+    @property
+    def command(self) -> NoReturn:
+        raise TypeError("command is write-only")
 
     @command.setter
     def command(self, value: str) -> None:
         self._builder += f'\n{self.name}.WithCommand("{value}");'
-        self._command = value
 
     @property
-    def working_directory(self) -> str:
-        return self._working_directory
+    def working_directory(self) -> NoReturn:
+        raise TypeError("working_directory is write-only")
 
     @working_directory.setter
     def working_directory(self, value: str) -> None:
         self._builder += f'\n{self.name}.WithWorkingDirectory("{value}");'
-        self._working_directory = value
 
-    def __init__(self, name: str, command: str, working_directory: str, builder: str, **kwargs: Unpack[ExecutableResourceOptions]) -> None:
-        self._command = command
-        self._working_directory = working_directory
+    def __init__(self, name: str, builder: str, **kwargs: Unpack[ExecutableResourceOptions]) -> None:
+        if command := kwargs.pop("command", None):
+            builder += f'\n    .WithCommand("{command}")'
+        if working_directory := kwargs.pop("working_directory", None):
+            builder += f'\n    .WithWorkingDirectory("{working_directory}")'
+        if publish_as_dockerfile := kwargs.pop("publish_as_dockerfile", None):
+            if publish_as_dockerfile is True:
+                builder += f'\n    .PublishAsDockerfile()'
         super().__init__(name=name, builder=builder, **kwargs)
 
+
+class ContainerFileSystemItem(TypedDict, total=False, extra_items=bool):
+    group: int
+    mode: Required[UnixFileMode]
+    name: Required[str]
+    owner: int
+
+
+class ContainerFiles(TypedDict, total=False):
+    destination_path: Required[str]
+    entries: Required[Iterable[ContainerFileSystemItem]]
+    default_owner: int
+    default_group: int
+    umask: UnixFileMode
+
+
+class ContainerFilesFromSource(TypedDict, total=False):
+    destination_path: Required[str]
+    source_path: Required[str]
+    default_owner: int
+    default_group: int
+    umask: UnixFileMode
+
+
+class Volume(TypedDict, total=False):
+    name: str
+    target: Required[str]
+    is_read_only: bool
+
+
+class ContainerResourceOptions(ResourceOptions, ResourceWithEnvironmentOptions, ResourceWithArgsOptions, ResourceWithEndpointsOptions, ResourceWithWaitSupportOptions, ResourceWithProbesOptions,
+    ComputeResourceOptions, total=False):
+    publish_as_container: Literal[True]
+    bind_mount: tuple[str, str] | tuple[str, str, bool]
+    bind_mounts: Iterable[tuple[str, str] | tuple[str, str, bool]]
+    build_arg: tuple[str, ParameterResource]
+    build_args: Iterable[tuple[str, ParameterResource]]
+    build_secret: tuple[str, ParameterResource]
+    build_secrets: Iterable[tuple[str, ParameterResource]]
+    container_files: ContainerFiles | ContainerFilesFromSource
+    container_runtime_args: Iterable[str]
+    container_name: str
+    dockerfile: str | tuple[str, Mapping[str, str]]
+    endpoint_proxy_support: bool
+    entrypoint: str
+    image: str | tuple[str, str]
+    image_pull_policy: ImagePullPolicy
+    image_registry: Literal[True] | str
+    image_sha256: str
+    image_tag: str
+    lifetime: ContainerLifetime
+    volume: Volume
+
+
+class ContainerResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWithEndpoints, ResourceWithWaitSupport, ResourceWithProbes,
+    ComputeResource, Resource):
+    @property
+    def package(self) -> Iterable[str]:
+        return ["#:sdk Aspire.AppHost.Sdk"]
+
+    @property
+    def publish_as_container(self) -> NoReturn:
+        raise TypeError("publish_as_container is write-only")
+
+    @publish_as_container.setter
+    def publish_as_container(self, value: Literal[True]) -> None:
+        if value is True:
+            self._builder += f'\n{self.name}.PublishAsContainer();'
+
+    @property
+    def bind_mount(self) -> NoReturn:
+        raise TypeError("bind_mount is write-only")
+
+    @bind_mount.setter
+    def bind_mount(self, value: tuple[str, str] | tuple[str, str, bool]) -> None:
+        if len(value) == 2:
+            self._builder += f'\n{self.name}.WithBindMount("{value[0]}", "{value[1]}");'
+        else:
+            self._builder += f'\n{self.name}.WithBindMount("{value[0]}", "{value[1]}", {str(value[2]).lower()});'
+
+    @property
+    def bind_mounts(self) -> NoReturn:
+        raise TypeError("bind_mounts is write-only")
+
+    @bind_mounts.setter
+    def bind_mounts(self, value: Iterable[tuple[str, str] | tuple[str, str, bool]]) -> None:
+        for mount in value:
+            if len(mount) == 2:
+                self._builder += f'\n{self.name}.WithBindMount("{mount[0]}", "{mount[1]}");'
+            else:
+                self._builder += f'\n{self.name}.WithBindMount("{mount[0]}", "{mount[1]}", {str(mount[2]).lower()});'
+
+    @property
+    def build_arg(self) -> NoReturn:
+        raise TypeError("build_arg is write-only")
+
+    @build_arg.setter
+    def build_arg(self, value: tuple[str, ParameterResource]) -> None:
+        self._builder += f'\n{self.name}.WithBuildArg("{value[0]}", {value[1].name});'
+
+    @property
+    def build_args(self) -> NoReturn:
+        raise TypeError("build_args is write-only")
+
+    @build_args.setter
+    def build_args(self, value: Iterable[tuple[str, ParameterResource]]) -> None:
+        for arg in value:
+            self._builder += f'\n{self.name}.WithBuildArg("{arg[0]}", {arg[1].name});'
+
+    @property
+    def build_secret(self) -> NoReturn:
+        raise TypeError("build_secret is write-only")
+
+    @build_secret.setter
+    def build_secret(self, value: tuple[str, ParameterResource]) -> None:
+        self._builder += f'\n{self.name}.WithBuildSecret("{value[0]}", {value[1].name});'
+
+    @property
+    def build_secrets(self) -> NoReturn:
+        raise TypeError("build_secrets is write-only")
+
+    @build_secrets.setter
+    def build_secrets(self, value: Iterable[tuple[str, ParameterResource]]) -> None:
+        for secret in value:
+            self._builder += f'\n{self.name}.WithBuildSecret("{secret[0]}", {secret[1].name});'
+
+    @property
+    def container_files(self) -> NoReturn:
+        raise TypeError("container_files is write-only")
+
+    @container_files.setter
+    def container_files(self, value: ContainerFiles | ContainerFilesFromSource) -> None:
+        # TODO: Test this logic. Seesm suspect
+        if "entries" in value:
+            entries = value["entries"]
+            destination_path = value["destination_path"]
+            default_owner = value.get("default_owner", None)
+            default_group = value.get("default_group", None)
+            umask = value.get("umask", None)
+            self._builder += f'\n{self.name}.WithContainerFiles("{destination_path}", new List<ContainerFileSystemItem>{{'
+            for entry in entries:
+                entry_str = f'new ContainerFileSystemItem{{ Name = "{entry["name"]}", Mode = (UnixFileMode){entry["mode"]}'
+                if "owner" in entry:
+                    entry_str += f', Owner = {entry["owner"]}'
+                if "group" in entry:
+                    entry_str += f', Group = {entry["group"]}'
+                entry_str += ' }'
+                self._builder += entry_str + ','
+            self._builder += '}}'
+            if default_owner is not None:
+                self._builder += f', defaultOwner: {default_owner}'
+            if default_group is not None:
+                self._builder += f', defaultGroup: {default_group}'
+            if umask is not None:
+                self._builder += f', umask: (UnixFileMode){umask}'
+            self._builder += ');'
+        elif "source_path" in value:
+            source_path = value["source_path"]
+            destination_path = value["destination_path"]
+            default_owner = value.get("default_owner", None)
+            default_group = value.get("default_group", None)
+            umask = value.get("umask", None)
+            self._builder += f'\n{self.name}.WithContainerFiles("{destination_path}", "{source_path}"'
+            if default_owner is not None:
+                self._builder += f', defaultOwner: {default_owner}'
+            if default_group is not None:
+                self._builder += f', defaultGroup: {default_group}'
+            if umask is not None:
+                self._builder += f', umask: (UnixFileMode){umask}'
+            self._builder += ');'
+
+    @property
+    def container_runtime_args(self) -> NoReturn:
+        raise TypeError("container_runtime_args is write-only")
+
+    @container_runtime_args.setter
+    def container_runtime_args(self, value: Iterable[str]) -> None:
+        self._builder += f'\n{self.name}.WithContainerRuntimeArgs({format_string_array(value)});'
+
+    @property
+    def dockerfile(self) -> NoReturn:
+        raise TypeError("dockerfile is write-only")
+
+    @dockerfile.setter
+    def dockerfile(self, value: str | tuple[str, Mapping[str, str]]) -> None:
+        if isinstance(value, str):
+            self._builder += f'\n{self.name}.WithDockerfile("{value}");'
+        else:
+            self._builder += f'\n{self.name}.WithDockerfile("{value[0]}", {get_nullable_from_map(value[1], "dockerfile_path")}, {get_nullable_from_map(value[1], "stage")});'
+
+    @property
+    def container_name(self) -> NoReturn:
+        raise TypeError("container_name is write-only")
+
+    @container_name.setter
+    def container_name(self, value: str) -> None:
+        self._builder += f'\n{self.name}.WithContainerName({format_string(value)});'
+
+    @property
+    def endpoint_proxy_support(self) -> NoReturn:
+        raise TypeError("endpoint_proxy_support is write-only")
+
+    @endpoint_proxy_support.setter
+    def endpoint_proxy_support(self, value: bool) -> None:
+        self._builder += f'\n{self.name}.WithEndpointProxySupport({str(value).lower()});'
+
+    @property
+    def entrypoint(self) -> NoReturn:
+        raise TypeError("entrypoint is write-only")
+
+    @entrypoint.setter
+    def entrypoint(self, value: str) -> None:
+        self._builder += f'\n{self.name}.WithEntrypoint({format_string(value)});'
+
+    @property
+    def image(self) -> NoReturn:
+        raise TypeError("image is write-only")
+
+    @image.setter
+    def image(self, value: str | tuple[str, str]) -> None:
+        if isinstance(value, str):
+            self._builder += f'\n{self.name}.WithImage({format_string(value)});'
+        else:
+            self._builder += f'\n{self.name}.WithImage({format_string(value[0])}, {format_string(value[1])});'
+
+    @property
+    def image_pull_policy(self) -> NoReturn:
+        raise TypeError("image_pull_policy is write-only")
+
+    @image_pull_policy.setter
+    def image_pull_policy(self, value: ImagePullPolicy) -> None:
+        self._builder += f'\n{self.name}.WithImagePullPolicy(ImagePullPolicy.{value.value});'
+
+    @property
+    def image_registry(self) -> NoReturn:
+        raise TypeError("image_registry is write-only")
+
+    @image_registry.setter
+    def image_registry(self, value: Literal[True] | str) -> None:
+        if value is True:
+            self._builder += f'\n{self.name}.WithImageRegistry();'
+        else:
+            self._builder += f'\n{self.name}.WithImageRegistry("{value}");'
+
+    @property
+    def image_sha256(self) -> NoReturn:
+        raise TypeError("image_sha256 is write-only")
+
+    @image_sha256.setter
+    def image_sha256(self, value: str) -> None:
+        self._builder += f'\n{self.name}.WithImageSHA256("{value}");'
+
+    @property
+    def image_tag(self) -> NoReturn:
+        raise TypeError("image_tag is write-only")
+
+    @image_tag.setter
+    def image_tag(self, value: str) -> None:
+        self._builder += f'\n{self.name}.WithImageTag("{value}");'
+
+    @property
+    def lifetime(self) -> NoReturn:
+        raise TypeError("lifetime is write-only")
+
+    @lifetime.setter
+    def lifetime(self, value: ContainerLifetime) -> None:
+        self._builder += f'\n{self.name}.WithLifetime(ContainerLifetime.{value.value});'
+
+    @property
+    def volume(self) -> NoReturn:
+        raise TypeError("volume is write-only")
+
+    @volume.setter
+    def volume(self, value: Volume) -> None:
+        self._builder += f'\n{self.name}.WithVolume({get_nullable_from_map(value, "name")}, "{value["target"]}", {get_nullable_from_map(value, "is_read_only", False)});' # type: ignore
+
+    def __init__(self, name: str, builder: str, **kwargs: Unpack[ContainerResourceOptions]) -> None:
+        if publish_as_container := kwargs.pop("publish_as_container", None):
+            if publish_as_container is True:
+                builder += f'\n    .PublishAsContainer()'
+        if bind_mount := kwargs.pop("bind_mount", None):
+            builder += f'\n    .WithBindMount(source: "{bind_mount[0]}", target: "{bind_mount[1]}", isReadOnly: {get_nullable_from_tuple(bind_mount, 2, False)} )'
+        if bind_mounts := kwargs.pop("bind_mounts", None):
+            for mount in bind_mounts:
+                builder += f'\n    .WithBindMount(source: "{mount[0]}", target: "{mount[1]}", isReadOnly: {get_nullable_from_tuple(mount, 2, False)} )'
+        if build_arg := kwargs.pop("build_arg", None):
+            builder += f'\n    .WithBuildArg("{build_arg[0]}", {build_arg[1].name})'
+        if build_args := kwargs.pop("build_args", None):
+            for arg in build_args:
+                builder += f'\n    .WithBuildArg("{arg[0]}", {arg[1].name})'
+        if build_secret := kwargs.pop("build_secret", None):
+            builder += f'\n    .WithBuildSecret("{build_secret[0]}", {build_secret[1].name})'
+        if build_secrets := kwargs.pop("build_secrets", None):
+            for secret in build_secrets:
+                builder += f'\n    .WithBuildSecret("{secret[0]}", {secret[1].name})'
+        if container_files := kwargs.pop("container_files", None):
+            # TODO: Refactor
+            if "entries" in container_files:
+                entries = container_files["entries"]
+                destination_path = container_files["destination_path"]
+                default_owner = container_files.get("default_owner", None)
+                default_group = container_files.get("default_group", None)
+                umask = container_files.get("umask", None)
+                builder += f'\n    .WithContainerFiles("{destination_path}", new List<ContainerFileSystemItem>{{'
+                for entry in entries:
+                    entry_str = f'new ContainerFileSystemItem{{ Name = "{entry["name"]}", Mode = (UnixFileMode){entry["mode"]}'
+                    if "owner" in entry:
+                        entry_str += f', Owner = {entry["owner"]}'
+                    if "group" in entry:
+                        entry_str += f', Group = {entry["group"]}'
+                    entry_str += ' }'
+                    builder += entry_str + ','
+                builder += '}}'
+                if default_owner is not None:
+                    builder += f', defaultOwner: {default_owner}'
+                if default_group is not None:
+                    builder += f', defaultGroup: {default_group}'
+                if umask is not None:
+                    builder += f', umask: (UnixFileMode){umask}'
+                builder += ')'
+            elif "source_path" in container_files:
+                source_path = container_files["source_path"]
+                destination_path = container_files["destination_path"]
+                default_owner = container_files.get("default_owner", None)
+                default_group = container_files.get("default_group", None)
+                umask = container_files.get("umask", None)
+                builder += f'\n    .WithContainerFiles("{destination_path}", "{source_path}"'
+                if default_owner is not None:
+                    builder += f', defaultOwner: {default_owner}'
+                if default_group is not None:
+                    builder += f', defaultGroup: {default_group}'
+                if umask is not None:
+                    builder += f', umask: (UnixFileMode){umask}'
+                builder += ')'
+        if container_runtime_args := kwargs.pop("container_runtime_args", None):
+            builder += f'\n    .WithContainerRuntimeArgs({format_string_array(container_runtime_args)})'
+        if container_name := kwargs.pop("container_name", None):
+            builder += f'\n    .WithContainerName({format_string(container_name)})'
+        if dockerfile := kwargs.pop("dockerfile", None):
+            if isinstance(dockerfile, str):
+                builder += f'\n    .WithDockerfile({format_string(dockerfile)})'
+            else:
+                builder += f'\n    .WithDockerfile({format_string(dockerfile[0])}, {get_nullable_from_map(dockerfile[1], "dockerfile_path")}, {get_nullable_from_map(dockerfile[1], "stage")})'
+        if endpoint_proxy_support := kwargs.pop("endpoint_proxy_support", None):
+            builder += f'\n    .WithEndpointProxySupport({format_bool(endpoint_proxy_support)})'
+        if entrypoint := kwargs.pop("entrypoint", None):
+            builder += f'\n    .WithEntrypoint({format_string(entrypoint)})'
+        if image := kwargs.pop("image", None):
+            if isinstance(image, str):
+                builder += f'\n    .WithImage(image: {format_string(image)})'
+            else:
+                builder += f'\n    .WithImage(image: {format_string(image[0])}, tag: {format_string(image[1])})'
+        if image_pull_policy := kwargs.pop("image_pull_policy", None):
+            builder += f'\n    .WithImagePullPolicy(pullPolicy: {format_enum(image_pull_policy)})'
+        if image_registry := kwargs.pop("image_registry", None):
+            if image_registry is True:
+                builder += f'\n    .WithImageRegistry()'
+            else:
+                builder += f'\n    .WithImageRegistry({format_string(image_registry)})'
+        if image_sha256 := kwargs.pop("image_sha256", None):
+            builder += f'\n    .WithImageSHA256({format_string(image_sha256)})'
+        if image_tag := kwargs.pop("image_tag", None):
+            builder += f'\n    .WithImageTag({format_string(image_tag)})'
+        if lifetime := kwargs.pop("lifetime", None):
+            builder += f'\n    .WithLifetime({format_enum(lifetime)})'
+        if volume := kwargs.pop("volume", None):
+            builder += f'\n    .WithVolume({get_nullable_from_map(volume, "name")}, {format_string(volume["target"])}, {get_nullable_from_map(volume, "is_read_only", False)})'  # type: ignore
+        super().__init__(name=name, builder=builder, **kwargs)
+
+
+class CSharpAppResource(ProjectResource):
+    ...

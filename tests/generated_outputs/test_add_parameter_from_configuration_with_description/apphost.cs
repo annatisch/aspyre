@@ -4,6 +4,6 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var dbhost = builder.AddParameterFromConfiguration("dbhost",  "ConnectionStrings:DbHost", false)
-    .WithDescription("Database host from config");;
+    .WithDescription("Database host from config");
 
 builder.Build().Run();

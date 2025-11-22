@@ -3,6 +3,7 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var mypassword = builder.CreateParameter("mypassword", true);
+var myconnection = builder.AddConnectionString("myconnection")
+    .ExcludeFromManifest();
 
 builder.Build().Run();

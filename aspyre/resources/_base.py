@@ -547,22 +547,10 @@ class ResourceWithServiceDiscovery(ResourceWithEndpoints):
 
 
 class ResourceWithConnectionStringOptions(TypedDict, total=False):
-    publish_as_connection_string: Literal[True]
     connection_string_redirection: ResourceWithConnectionString
 
 
 class ResourceWithConnectionString:
-    @property
-    def publish_as_connection_string(self) -> NoReturn:
-        raise TypeError("publish_as_connection_string is write-only")
-
-    @publish_as_connection_string.setter
-    def publish_as_connection_string(self, value: Literal[True]) -> None:
-        self._builder: StringIO
-        self.name: str
-        if value is True:
-            self._builder.write(f'\n{self.name}.PublishAsConnectionString();')
-
     @property
     def connection_string_redirection(self) -> NoReturn:
         raise TypeError("connection_string_redirection is write-only")
@@ -571,19 +559,12 @@ class ResourceWithConnectionString:
     def connection_string_redirection(self, value: ResourceWithConnectionString) -> None:
         self._builder: StringIO
         self.name: str
-        self._builder.write(f'\n{self.name}.WithConnectionStringRedirection({value.name});')
+        self._builder.write(f'\n{self.name}.WithConnectionStringRedirection({value.name}.Resource);')
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithConnectionStringOptions]) -> None:
-        if kwargs.get("publish_as_connection_string", None) is True:
-            builder.write(f'\n    .PublishAsConnectionString()')
         if connection_string_redirection := kwargs.get("connection_string_redirection", None):
-            builder.write(f'\n    .WithConnectionStringRedirection({connection_string_redirection.name})')
+            builder.write(f'\n    .WithConnectionStringRedirection({connection_string_redirection.name}.Resource)')
         super().__init__(name=name, builder=builder, **kwargs) # type: ignore Assuming multiple inheritance with Resource
-
-    def configure_connection_string_manifest_publisher(self) -> None:
-        self._builder: StringIO
-        self.name: str
-        self._builder.write(f'\n{self.name}.ConfigureConnectionStringManifestPublisher();')
 
 
 class ResourceWithEnvironmentOptions(TypedDict, total=False):
@@ -762,9 +743,7 @@ class ResourceWithEnvironment:
                 builder.write(f'\n    .WithReference({cast(Resource, reference).name})')
         if references := kwargs.pop("references", None):
             for ref in references:
-                if isinstance(ref, EndpointReference):
-                    builder.write(f'\n    .WithReference({ref})')
-                elif isinstance(ref, ExternalServiceResource):
+                if isinstance(ref, ExternalServiceResource):
                     builder.write(f'\n    .WithReference({cast(Resource, ref).name})')
                 elif isinstance(ref, ResourceWithServiceDiscovery):
                     builder.write(f'\n    .WithReference({cast(Resource, ref).name})')
@@ -772,6 +751,8 @@ class ResourceWithEnvironment:
                     builder.write(f'\n    .WithReference({format_string(ref[0])}, {format_string(ref[1])})')
                 elif isinstance(ref, ResourceWithConnectionString):
                     builder.write(f'\n    .WithReference({cast(Resource, ref).name})')
+                elif isinstance(ref, EndpointReference):
+                    builder.write(f'\n    .WithReference({ref})')
         if otlp_exporter := kwargs.pop("otlp_exporter", None):
             if otlp_exporter is True:
                 builder.write(f'\n    .WithOtlpExporter()')
@@ -1071,7 +1052,7 @@ class ConnectionStringResourceOptions(ResourceOptions, ResourceWithConnectionStr
     ...
 
 
-class ConnectionStringResource(ResourceWithConnectionString, ResourceWithWaitSupport, Resource):
+class ConnectionStringResource(ResourceWithConnectionString, Resource):
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ConnectionStringResourceOptions]) -> None:
         super().__init__(name=name, builder=builder, **kwargs)

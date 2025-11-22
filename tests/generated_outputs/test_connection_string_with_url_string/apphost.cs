@@ -3,7 +3,7 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var apikey = builder.AddParameter("apikey", false)
-    .WithDescription("API Key for service");
+var myconnection = builder.AddConnectionString("myconnection")
+    .WithUrl("http://localhost:5432");
 
 builder.Build().Run();

@@ -125,7 +125,7 @@ class DistributedApplicationBuilder:
         return result
 
     def add_project(self, name: str, project_path: str, /, *, launch_profile_name: str | None = None, **kwargs: Unpack[ProjectResourceOptions]) -> ProjectResource:
-        self._builder.write(f'\nvar {name} = builder.AddProject({format_string(name)}, {format_string(project_path)}, {get_nullable_value(launch_profile_name)})')
+        self._builder.write(f'\nvar {name} = builder.AddProject(name: {format_string(name)}, projectPath: {format_string(project_path)}, launchProfileName: {get_nullable_value(launch_profile_name)})')
         result = ProjectResource(name, builder=self._builder, **kwargs)
         self._dependencies.append(result.package)
         return result

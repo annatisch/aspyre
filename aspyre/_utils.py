@@ -6,8 +6,6 @@
 from enum import Enum
 from typing import Any, Iterable, Mapping
 
-def to_pascal_case(snake_str):
-    return "".join(x.capitalize() for x in snake_str.lower().split("_"))
 
 def format_string(value: Any) -> str:
     return f'"{value}"'
@@ -33,10 +31,10 @@ def get_nullable_value(value: Any, default: Any = None) -> str | int:
         return "null"
     if isinstance(value, Enum):
         return format_enum(value)
-    if isinstance(value, int):
-        return value
     if value in [True, False]:
         return format_bool(value)
+    if isinstance(value, int):
+        return value
     return format_string(value)
 
 def get_nullable_from_map(value: Mapping[str, Any], key: str, default: Any = None) -> str | int:

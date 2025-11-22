@@ -13,7 +13,7 @@ import pathlib
 import functools
 
 
-SUPPRESS_WARNINGS = ["ASPIREDOCKERFILEBUILDER001"]
+SUPPRESS_WARNINGS = ["ASPIREDOCKERFILEBUILDER001", "ASPIREPROBES001"]
 
 
 def _generate_suffix(length: int = 5, /) -> str:

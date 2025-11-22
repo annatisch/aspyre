@@ -272,7 +272,7 @@ class Resource:
 
 
 class ResourceWithArgsOptions(TypedDict, total=False):
-    # args: Iterable[str]  # Duplicate with add method parameter
+    args: Iterable[str]
     certificate_trust_scope: CertificateTrustScope
     developer_certificate_trust: bool
     certificate_authority_collection: CertificateAuthorityCollection
@@ -366,7 +366,7 @@ class ResourceWithEndpoints:
     def http2_service(self, value: Literal[True]) -> None:
         self._builder: StringIO
         self.name: str
-        self._builder.write(f'\n{self.name}.WithHttp2Service();')
+        self._builder.write(f'\n{self.name}.AsHttp2Service();')
 
     @property
     def endpoint(self) -> NoReturn:
@@ -459,7 +459,7 @@ class ResourceWithEndpoints:
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithEndpointsOptions]) -> None:
         if kwargs.get("http2_service", None) is True:
-            builder.write(f'\n    .WithHttp2Service()')
+            builder.write(f'\n    .AsHttp2Service()')
         if endpoint := kwargs.get("endpoint", None):
             port = get_nullable_from_map(endpoint, "port")
             target_port = get_nullable_from_map(endpoint, "target_port")
@@ -589,9 +589,9 @@ class ResourceWithEnvironment:
         name, ref = value
         self._builder: StringIO
         self.name: str
-        if isinstance(ref, EndpointReference):
-            self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {ref});')  # TODO: fix EndpointReference string representation
-        elif isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
+        # if isinstance(ref, EndpointReference):
+        #     self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {ref});')  # TODO: fix EndpointReference string representation
+        if isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
             self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {cast(Resource, ref).name});')
         elif isinstance(ref, ExternalServiceResource):
             self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {cast(Resource, ref).name});')
@@ -607,9 +607,9 @@ class ResourceWithEnvironment:
         self.name: str
         for env in value:
             name, ref = env
-            if isinstance(ref, EndpointReference):
-                self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {ref});')  # TODO: fix EndpointReference string representation
-            elif isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
+            # if isinstance(ref, EndpointReference):
+            #     self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {ref});')  # TODO: fix EndpointReference string representation
+            if isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
                 self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {ref.name});')
             elif isinstance(ref, ExternalServiceResource):
                 self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {ref.name});')
@@ -624,9 +624,9 @@ class ResourceWithEnvironment:
     def reference(self, value: EndpointReference | ExternalServiceResource | ResourceWithServiceDiscovery | tuple[str, str] | ResourceWithConnectionString | Mapping[str, Any]) -> None:
         self._builder: StringIO
         self.name: str
-        if isinstance(value, EndpointReference):
-            self._builder.write(f'\n{self.name}.WithReference({value});')  # TODO: fix EndpointReference string representation
-        elif isinstance(value, ExternalServiceResource):
+        # if isinstance(value, EndpointReference):
+        #     self._builder.write(f'\n{self.name}.WithReference({value});')  # TODO: fix EndpointReference string representation
+        if isinstance(value, ExternalServiceResource):
             self._builder.write(f'\n{self.name}.WithReference({cast(Resource, value).name});')
         elif isinstance(value, ResourceWithServiceDiscovery):
             self._builder.write(f'\n{self.name}.WithReference({cast(Resource, value).name});')
@@ -644,9 +644,9 @@ class ResourceWithEnvironment:
         self._builder: StringIO
         self.name: str
         for ref in value:
-            if isinstance(ref, EndpointReference):
-                self._builder.write(f'\n{self.name}.WithReference({ref});')  # TODO: fix EndpointReference string representation
-            elif isinstance(ref, ExternalServiceResource):
+            # if isinstance(ref, EndpointReference):
+            #     self._builder.write(f'\n{self.name}.WithReference({ref});')  # TODO: fix EndpointReference string representation
+            if isinstance(ref, ExternalServiceResource):
                 self._builder.write(f'\n{self.name}.WithReference({cast(Resource, ref).name});')
             elif isinstance(ref, ResourceWithServiceDiscovery):
                 self._builder.write(f'\n{self.name}.WithReference({cast(Resource, ref).name});')
@@ -710,30 +710,30 @@ class ResourceWithEnvironment:
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithEnvironmentOptions]) -> None:
         if environment := kwargs.pop("environment", None):
-            name, ref = environment
-            if isinstance(ref, EndpointReference):
-                builder.write(f'\n    .WithEnvironment({format_string(name)}, {ref})')
-            elif isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
-                builder.write(f'\n    .WithEnvironment({format_string(name)}, {cast(Resource, ref).name})')
+            env_name, ref = environment
+            # if isinstance(ref, EndpointReference):
+            #     builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {ref})')
+            if isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
+                builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {cast(Resource, ref).name})')
             elif isinstance(ref, ExternalServiceResource):
-                builder.write(f'\n    .WithEnvironment({format_string(name)}, {cast(Resource, ref).name})')
+                builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {cast(Resource, ref).name})')
             else:
-                builder.write(f'\n    .WithEnvironment({format_string(name)}, {get_nullable_value(ref)})')
+                builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {get_nullable_value(ref)})')
         if environments := kwargs.pop("environments", None):
             for env in environments:
-                name, ref = env
-                if isinstance(ref, EndpointReference):
-                    builder.write(f'\n    .WithEnvironment({format_string(name)}, {ref})')
-                elif isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
-                    builder.write(f'\n    .WithEnvironment({format_string(name)}, {cast(Resource, ref).name})')
+                env_name, ref = env
+                # if isinstance(ref, EndpointReference):
+                #     builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {ref})')
+                if isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
+                    builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {cast(Resource, ref).name})')
                 elif isinstance(ref, ExternalServiceResource):
-                    builder.write(f'\n    .WithEnvironment({format_string(name)}, {cast(Resource, ref).name})')
+                    builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {cast(Resource, ref).name})')
                 else:
-                    builder.write(f'\n    .WithEnvironment({format_string(name)}, {get_nullable_value(ref)})')
+                    builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {get_nullable_value(ref)})')
         if reference := kwargs.pop("reference", None):
-            if isinstance(reference, EndpointReference):
-                builder.write(f'\n    .WithReference({reference})')
-            elif isinstance(reference, ExternalServiceResource):
+            # if isinstance(reference, EndpointReference):
+            #     builder.write(f'\n    .WithReference({reference})')
+            if isinstance(reference, ExternalServiceResource):
                 builder.write(f'\n    .WithReference({cast(Resource, reference).name})')
             elif isinstance(reference, ResourceWithServiceDiscovery):
                 builder.write(f'\n    .WithReference({cast(Resource, reference).name})')
@@ -751,8 +751,8 @@ class ResourceWithEnvironment:
                     builder.write(f'\n    .WithReference({format_string(ref[0])}, {format_string(ref[1])})')
                 elif isinstance(ref, ResourceWithConnectionString):
                     builder.write(f'\n    .WithReference({cast(Resource, ref).name})')
-                elif isinstance(ref, EndpointReference):
-                    builder.write(f'\n    .WithReference({ref})')
+                # elif isinstance(ref, EndpointReference):
+                #     builder.write(f'\n    .WithReference({ref})')
         if otlp_exporter := kwargs.pop("otlp_exporter", None):
             if otlp_exporter is True:
                 builder.write(f'\n    .WithOtlpExporter()')
@@ -1123,10 +1123,13 @@ class ProjectResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWithSer
         super().__init__(name=name, builder=builder, **kwargs)
 
 
-class ExecutableResourceOptions(ResourceWithEnvironmentOptions, ResourceWithArgsOptions, ResourceWithEndpointsOptions, ResourceWithWaitSupportOptions, ResourceWithProbesOptions, ComputeResourceOptions, total=False):
+class ExecutableResourceOptions(ResourceWithEnvironmentOptions, ResourceWithEndpointsOptions, ResourceWithWaitSupportOptions, ResourceWithProbesOptions, ComputeResourceOptions, total=False):
     publish_as_dockerfile: Literal[True]
     command: str
     working_directory: str
+    certificate_trust_scope: CertificateTrustScope
+    developer_certificate_trust: bool
+    certificate_authority_collection: CertificateAuthorityCollection
 
 
 class ExecutableResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWithEndpoints, ResourceWithWaitSupport, ResourceWithProbes, ComputeResource, Resource):

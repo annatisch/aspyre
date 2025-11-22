@@ -13,7 +13,10 @@ import pathlib
 import functools
 
 
-SUPPRESS_WARNINGS = ["ASPIREDOCKERFILEBUILDER001", "ASPIREPROBES001"]
+SUPPRESS_WARNINGS = [
+    "ASPIREDOCKERFILEBUILDER001",
+    "ASPIREPROBES001",
+]
 
 
 def _generate_suffix(length: int = 5, /) -> str:
@@ -27,16 +30,16 @@ def _get_output_dir() -> pathlib.Path:
 
 def _build_outputs(record_dir: pathlib.Path):
     apphost = record_dir / "apphost.cs"
-    args = ["dotnet", "build", apphost]
-    for suppress in SUPPRESS_WARNINGS:
-        args.append(f"/p:NoWarn={suppress}")
+    suppressions = ",".join(SUPPRESS_WARNINGS)
+    args = ["dotnet", "build", apphost, f"/p:NoWarn={suppressions}"]
+
     print("Building with dotnet to validate generated apphost.cs", args)
     output = subprocess.run(args, check=False, capture_output=True, text=True)
     if output.returncode != 0:
         print("Build failed:")
         print(output.stdout)
         print(output.stderr)
-        pytest.fail(f"Build failed for generated apphost.cs in {apphost}")
+        pytest.fail(f"Build failed for generated apphost.cs in {apphost}: \n\n{output.stderr}")
 
 
 def _compare_outputs(ref_dir: pathlib.Path, test_dir: pathlib.Path):

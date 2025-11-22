@@ -1123,7 +1123,7 @@ class ProjectResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWithSer
         super().__init__(name=name, builder=builder, **kwargs)
 
 
-class ExecutableResourceOptions(ResourceWithEnvironmentOptions, ResourceWithEndpointsOptions, ResourceWithWaitSupportOptions, ResourceWithProbesOptions, ComputeResourceOptions, total=False):
+class ExecutableResourceOptions(ResourceOptions, ResourceWithEnvironmentOptions, ResourceWithEndpointsOptions, ResourceWithWaitSupportOptions, ResourceWithProbesOptions, ComputeResourceOptions, total=False):
     publish_as_dockerfile: Literal[True]
     command: str
     working_directory: str
@@ -1142,7 +1142,7 @@ class ExecutableResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWith
         if value is True:
             self._builder: StringIO
             self.name: str
-            self._builder.write(f'\n{self.name}.PublishAsDockerfile();')
+            self._builder.write(f'\n{self.name}.PublishAsDockerFile();')
 
     @property
     def command(self) -> NoReturn:
@@ -1171,7 +1171,7 @@ class ExecutableResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWith
             builder.write(f'\n    .WithWorkingDirectory("{working_directory}")')
         if publish_as_dockerfile := kwargs.pop("publish_as_dockerfile", None):
             if publish_as_dockerfile is True:
-                builder.write(f'\n    .PublishAsDockerfile()')
+                builder.write(f'\n    .PublishAsDockerFile()')
         super().__init__(name=name, builder=builder, **kwargs)
 
 

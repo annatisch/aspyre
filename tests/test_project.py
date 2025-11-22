@@ -17,6 +17,14 @@ def test_add_project_basic(verify_dotnet_apphost):
     verify()
 
 
+def test_add_csharp_app_basic(verify_dotnet_apphost):
+    export_path, verify = verify_dotnet_apphost
+    builder = build_distributed_application()
+    project = builder.add_csharp_app("myproject", "../MyProject/MyProject.csproj")
+    builder.build(output_dir=export_path)
+    verify()
+
+
 def test_add_project_with_launch_profile(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()

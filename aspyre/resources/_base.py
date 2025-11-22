@@ -22,6 +22,7 @@ from typing_extensions import TypedDict
 
 from aspyre._utils import (
     format_bool,
+    format_byte_array,
     format_enum,
     format_string,
     format_string_array,
@@ -43,6 +44,7 @@ from ._models import (
     StoreName,
     ImagePullPolicy,
 )
+
 
 EndpointReference = object  # TODO: implement EndpointReference
 
@@ -967,6 +969,7 @@ class ContainerFilesDestinationResource:
 class ExternalServiceResource(Resource):
     ...
 
+
 class CertificateAuthorityCollectionOptions(ResourceOptions, total=False):
     certificate: bytes | str
     certificates: Iterable[bytes | str]
@@ -989,10 +992,9 @@ class CertificateAuthorityCollection(Resource):
         self._builder: StringIO
         self.name: str
         if isinstance(value, bytes):
-            # TODO: This will need X509Certificate2 certificate = X509CertificateLoader.LoadCertificate(certData);
-            self._builder.write(f'\n{self.name}.AddCertificate(Convert.FromBase64String("{value.decode()}"));')
+            self._builder.write(f'\n{self.name}.WithCertificate(X509CertificateLoader.LoadCertificate({format_byte_array(value)}));')
         else:
-            self._builder.write(f'\n{self.name}.AddCertificate(File.ReadAllText("{value}"));')
+            self._builder.write(f'\n{self.name}.WithCertificate(X509CertificateLoader.LoadCertificateFromFile("{value}"));')
 
     @property
     def certificates(self) -> NoReturn:
@@ -1004,9 +1006,9 @@ class CertificateAuthorityCollection(Resource):
         self.name: str
         for cert in value:
             if isinstance(cert, bytes):
-                self._builder.write(f'\n{self.name}.AddCertificate(Convert.FromBase64String("{cert.decode()}"))')
+                self._builder.write(f'\n{self.name}.WithCertificate(X509CertificateLoader.LoadCertificate({format_byte_array(cert)}));')
             else:
-                self._builder.write(f'\n{self.name}.AddCertificate(File.ReadAllText("{cert}"))')
+                self._builder.write(f'\n{self.name}.WithCertificate(X509CertificateLoader.LoadCertificateFromFile("{cert}"));')
     @property
     def certificates_from_store(self) -> NoReturn:
         raise TypeError("certificates_from_store is write-only")
@@ -1015,7 +1017,7 @@ class CertificateAuthorityCollection(Resource):
     def certificates_from_store(self, value: tuple[StoreName, StoreLocation]) -> None:
         self._builder: StringIO
         self.name: str
-        self._builder.write(f'\n{self.name}.AddCertificatesFromStore({format_enum(value[0])}, {format_enum(value[1])});')
+        self._builder.write(f'\n{self.name}.WithCertificatesFromStore({format_enum(value[0])}, {format_enum(value[1])});')
 
     @property
     def certificates_from_file(self) -> NoReturn:
@@ -1025,26 +1027,25 @@ class CertificateAuthorityCollection(Resource):
     def certificates_from_file(self, value: str) -> None:
         self._builder: StringIO
         self.name: str
-        self._builder.write(f'\n{self.name}.AddCertificatesFromFile("{value}");')
+        self._builder.write(f'\n{self.name}.WithCertificatesFromFile("{value}");')
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[CertificateAuthorityCollectionOptions]) -> None:
         if certificate := kwargs.pop("certificate", None):
             if isinstance(certificate, bytes):
-                # TODO: This will need X509Certificate2 certificate = X509CertificateLoader.LoadCertificate(certData);
-                builder.write(f'\n    .AddCertificate(Convert.FromBase64String("{certificate.decode()}"))')
+                builder.write(f'\n    .WithCertificate(X509CertificateLoader.LoadCertificate({format_byte_array(certificate)}))')
             else:
-                builder.write(f'\n    .AddCertificate(File.ReadAllText("{certificate}"))')
+                builder.write(f'\n    .WithCertificate(X509CertificateLoader.LoadCertificateFromFile("{certificate}"))')
         if certificates := kwargs.pop("certificates", None):
             for cert in certificates:
                 if isinstance(cert, bytes):
-                    builder.write(f'\n    .AddCertificate(Convert.FromBase64String("{cert.decode()}"))')
+                    builder.write(f'\n    .WithCertificate(X509CertificateLoader.LoadCertificate({format_byte_array(cert)}))')
                 else:
-                    builder.write(f'\n    .AddCertificate(File.ReadAllText("{cert}"))')
+                    builder.write(f'\n    .WithCertificate(X509CertificateLoader.LoadCertificateFromFile("{cert}"))')
         if certificates_from_store := kwargs.pop("certificates_from_store", None):
             store_name, store_location = certificates_from_store
-            builder.write(f'\n    .AddCertificatesFromStore(StoreName.{store_name.value}, StoreLocation.{store_location.value})')
+            builder.write(f'\n    .WithCertificatesFromStore(StoreName.{store_name.value}, StoreLocation.{store_location.value})')
         if certificates_from_file := kwargs.pop("certificates_from_file", None):
-            builder.write(f'\n    .AddCertificatesFromFile("{certificates_from_file}")')
+            builder.write(f'\n    .WithCertificatesFromFile("{certificates_from_file}")')
         super().__init__(name=name, builder=builder, **kwargs)
 
 

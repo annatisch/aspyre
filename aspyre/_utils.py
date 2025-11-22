@@ -5,6 +5,7 @@
 
 from enum import Enum
 from typing import Any, Iterable, Mapping
+from base64 import b64encode
 
 
 def format_string(value: Any) -> str:
@@ -15,6 +16,10 @@ def format_string_array(strings: Iterable[str] | None) -> str:
         return "null"
     formatted_items = ', '.join(format_string(s) for s in strings)
     return f'new string[] {{ {formatted_items} }}'
+
+def format_byte_array(bytes_value: bytes) -> str:
+    base64_str = b64encode(bytes_value).decode('utf-8')
+    return f'Convert.FromBase64String("{base64_str}")'
 
 def format_enum(enum: Enum) -> str:
     return f'{enum.__class__.__name__}.{enum.value}'

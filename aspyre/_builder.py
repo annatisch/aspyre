@@ -59,14 +59,16 @@ class DistributedApplicationBuilder:
     def __init__(self, *args) -> None:
         self._dependencies = []
         self._builder = StringIO()
-        self._builder.write(f"#:sdk Aspire.AppHost.Sdk@{self.version}\n\n")
         self._builder.write("var builder = DistributedApplication.CreateBuilder(args);\n")
 
     def build(self, *, output_dir: str | None = None, name: str | None = None) -> str:
-        #dependencies = set(self._dependencies) # TODO: deduplicate
         csharp = self._builder.getvalue()
         csharp += "\n\nbuilder.Build().Run();\n"
-        csharp = "\n".join([f"{d}@{self.version}" for dependency in self._dependencies for d in dependency]) + "\n" + csharp
+        csharp = (
+            f"#:sdk Aspire.AppHost.Sdk@{self.version}\n" +
+            "\n".join(set(sorted([d if d.endswith(';') else f"{d}@{self.version}" for dependency in self._dependencies for d in dependency]))) +
+            "\n\n" + csharp
+        )
         if output_dir:
             output_path = pathlib.Path(output_dir)
             output_path.mkdir(parents=True, exist_ok=True)

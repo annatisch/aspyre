@@ -18,6 +18,7 @@ SUPPRESS_WARNINGS = [
     "ASPIREDOCKERFILEBUILDER001",
     "ASPIREPROBES001",
     "ASPIREPROXYENDPOINTS001",
+    "ASPIRECSHARPAPPS001",
 ]
 DOTNET_ERRORS = re.compile(r"^(?P<file>.*)\((?P<line>\d+),(?P<column>\d+)\):\s+(?P<type>error|warning)\s+(?P<code>\w+):\s*(?P<message>.*)")
 

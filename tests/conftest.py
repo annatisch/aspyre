@@ -11,13 +11,15 @@ import random
 import string
 import pathlib
 import functools
+import re
 
 
 SUPPRESS_WARNINGS = [
     "ASPIREDOCKERFILEBUILDER001",
     "ASPIREPROBES001",
+    "ASPIREPROXYENDPOINTS001",
 ]
-
+DOTNET_ERRORS = re.compile(r"^(?P<file>.*)\((?P<line>\d+),(?P<column>\d+)\):\s+(?P<type>error|warning)\s+(?P<code>\w+):\s*(?P<message>.*)")
 
 def _generate_suffix(length: int = 5, /) -> str:
     return "".join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(length)).lower()
@@ -32,17 +34,27 @@ def _build_outputs(record_dir: pathlib.Path):
     apphost = record_dir / "apphost.cs"
     suppressions = ",".join(SUPPRESS_WARNINGS)
     args = ["dotnet", "build", apphost, f"/p:NoWarn={suppressions}"]
-
-    print("Building with dotnet to validate generated apphost.cs", args)
     output = subprocess.run(args, check=False, capture_output=True, text=True)
     if output.returncode != 0:
-        print("Build failed:")
-        print(output.stdout)
-        print(output.stderr)
-        pytest.fail(f"Build failed for generated apphost.cs in {apphost}: \n\n{output.stderr}")
+        errors = []
+        for line in output.stdout.splitlines():
+            match = DOTNET_ERRORS.match(line)
+            if match:
+                error_info = match.groupdict()
+                test_file = "/".join(pathlib.Path(error_info["file"]).parts[-2:])
+                errors.append(
+                    f'{error_info["type"].title()}: {error_info["code"]}\nFile: {test_file}\nLine: {error_info["line"]}, Column: {error_info["column"]}\n{error_info["message"].strip()}')
+        if errors:
+            pytest.fail(f"Build failed for generated apphost.cs:\n\n{'\n\n'.join(errors)}\n")
+        pytest.fail(f"Build failed for generated apphost.cs:\n\n{output.stdout}")
 
 
 def _compare_outputs(ref_dir: pathlib.Path, test_dir: pathlib.Path):
+    if ref_dir.exists() is False:
+        pytest.fail(f"Recording directory does not exist: {ref_dir}. Please run test in recording mode first.")
+    ref_files = set(os.listdir(ref_dir))
+    if not ref_files:
+        pytest.fail(f"Recording directory is empty: {ref_dir}. Please run test in recording mode first.")
     for _, _, files in os.walk(ref_dir):
         try:
             for filename in files:

@@ -1442,7 +1442,7 @@ class ContainerResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWithE
         self._builder: StringIO
         self.name: str
         if value is True:
-            self._builder.write(f'\n{self.name}.WithImageRegistry();')
+            self._builder.write(f'\n{self.name}.WithImageRegistry(null);')
         else:
             self._builder.write(f'\n{self.name}.WithImageRegistry("{value}");')
 
@@ -1566,7 +1566,7 @@ class ContainerResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWithE
             builder.write(f'\n    .WithImagePullPolicy(pullPolicy: {format_enum(image_pull_policy)})')
         if image_registry := kwargs.pop("image_registry", None):
             if image_registry is True:
-                builder.write(f'\n    .WithImageRegistry()')
+                builder.write(f'\n    .WithImageRegistry(null)')
             else:
                 builder.write(f'\n    .WithImageRegistry({format_string(image_registry)})')
         if image_sha256 := kwargs.pop("image_sha256", None):

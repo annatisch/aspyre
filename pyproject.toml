@@ -44,3 +44,43 @@ exclude = [
 
 [tool.setuptools.package-data]
 pytyped = ["py.typed"]
+
+[project.optional-dependencies]
+test = [
+    "bandit[toml]",
+    "black",
+    "pylint",
+    "mypy",
+    "pyright",
+    "pytest",
+    "pytest-cov",
+    "pytest-xdist",
+]
+
+[tool.coverage]
+omit = [
+    "**/conftest.py",
+]
+
+[tool.bandit]
+exclude_dirs = ["build","dist","tests","scripts"]
+recursive = true
+
+[tool.black]
+line-length = 120
+
+[tool.pylint]
+ignore-patterns="test.*?py,conftest.py"
+
+[tool.pylint.'MESSAGES CONTROL']
+disable=[
+    "C0114",  # missing-module-docstring
+    "R0903",  # too-few-public-methods
+    "R0913",  # too-many-arguments
+    "R0914",  # too-many-locals
+    "R0915",  # too-many-statements
+]
+
+[tool.pylint.'FORMAT']
+max-line-length=120
+max-module-lines=1000

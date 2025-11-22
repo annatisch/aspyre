@@ -16,6 +16,17 @@ from ._base import (
     ContainerResource,
     ContainerResourceOptions,
 )
+from ._models import (
+    IconVariant,
+    WaitBehavior,
+    ProtocolType,
+    ProbeType,
+    ContainerLifetime,
+    ImagePullPolicy,
+    UnixFileMode,
+
+)
+
 
 __all__ = [
     "Resource",
@@ -29,4 +40,11 @@ __all__ = [
     "ExecutableResourceOptions",
     "ContainerResource",
     "ContainerResourceOptions",
+    "IconVariant",
+    "WaitBehavior",
+    "ProtocolType",
+    "ProbeType",
+    "ContainerLifetime",
+    "ImagePullPolicy",
+    "UnixFileMode",
 ]

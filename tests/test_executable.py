@@ -264,72 +264,6 @@ def test_executable_with_wait_for_start(verify_dotnet_apphost):
     verify()
 
 
-# Tests for property setters
-def test_executable_publish_as_dockerfile_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    executable = builder.add_executable("myapp", "python", "/app", args=["app.py"])
-    executable.publish_as_dockerfile = True
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_executable_command_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    executable = builder.add_executable("myapp", "python", "/app", args=["app.py"])
-    executable.command = "python3"
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_executable_working_directory_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    executable = builder.add_executable("myapp", "python", "/app")
-    executable.working_directory = "/app/src"
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_executable_environment_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    executable = builder.add_executable("myapp", "python", "/app", args=["app.py"])
-    executable.environment = ("DEBUG", "true")
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_executable_reference_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    db = builder.add_connection_string("db")
-    executable = builder.add_executable("myapp", "python", "/app", args=["app.py"])
-    executable.reference = db
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_executable_http_endpoint_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    executable = builder.add_executable("myapp", "python", "/app", args=["app.py"])
-    executable.http_endpoint = {"port": 8080}
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_executable_wait_for_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    db = builder.add_connection_string("db")
-    executable = builder.add_executable("myapp", "python", "/app", args=["app.py"])
-    executable.wait_for = db
-    builder.build(output_dir=export_path)
-    verify()
-
-
 # Tests combining multiple options
 def test_executable_with_comprehensive_options(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
@@ -368,14 +302,14 @@ def test_executable_with_multiple_property_setters(verify_dotnet_apphost):
     api_key = builder.add_parameter("apikey", "key123")
 
     executable = builder.add_executable("myapp", "python", "/app", args=["app.py"])
-    executable.command = "python3"
-    executable.working_directory = "/app/src"
-    executable.publish_as_dockerfile = True
-    executable.environment = ("API_KEY", api_key)
-    executable.reference = db
-    executable.http_endpoint = {"port": 8080}
-    executable.wait_for = db
-    executable.icon_name = "application"
+    executable.with_command("python3").with_command("python3 -u")
+    executable.with_working_directory("/app/src").with_working_directory("/app/src/v2")
+    executable.publish_as_dockerfile()
+    executable.with_environment(("API_KEY", api_key)).with_environment(("DEBUG", "true"))
+    executable.with_reference(db).with_reference(api_key)
+    executable.with_http_endpoint(port=8080, name="http").with_http_endpoint(port=8081, name="http-alt")
+    executable.wait_for(db).wait_for(api_key)
+    executable.with_icon_name("application").with_icon_name(("application", IconVariant.FILLED))
 
     builder.build(output_dir=export_path)
     verify()
@@ -476,8 +410,8 @@ def test_executable_microservices_scenario(verify_dotnet_apphost):
                                            parent_relationships=[user_service, product_service])
 
     # Update gateway to reference all services
-    gateway.references = [user_service, product_service, order_service]
-    gateway.wait_for_start = [user_service, product_service, order_service]
+    gateway.with_reference(user_service).with_reference(product_service).with_reference(order_service)
+    gateway.wait_for_start(user_service).wait_for_start(product_service).wait_for_start(order_service)
 
     builder.build(output_dir=export_path)
     verify()

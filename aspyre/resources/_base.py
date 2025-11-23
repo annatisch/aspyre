@@ -17,6 +17,7 @@ from typing import (
     Union,
     Unpack,
     cast,
+    Self,
 )
 from typing_extensions import TypedDict
 
@@ -84,143 +85,58 @@ class Resource:
     def package(self) -> Iterable[str]:
         return []
 
-    @property
-    def url(self) -> NoReturn:
-        raise TypeError("url is write-only")
-
-    @url.setter
-    def url(self, value: str | tuple[str, str]) -> None:
+    def with_url(self, value: str | tuple[str, str]) -> Self:
         if isinstance(value, str):
             self._builder.write(f"\n{self.name}.WithUrl(\"{value}\");")
         else:
             self._builder.write(f"\n{self.name}.WithUrl(\"{value[0]}\", \"{value[1]}\");")
+        return self
 
-    @property
-    def exclude_from_manifest(self) -> NoReturn:
-        raise TypeError("exclude_from_manifest is write-only")
+    def exclude_from_manifest(self) -> Self:
+        self._builder.write(f"\n{self.name}.ExcludeFromManifest();")
+        return self
 
-    @exclude_from_manifest.setter
-    def exclude_from_manifest(self, value: Literal[True]) -> None:
-        if value is True:
-            self._builder.write(f"\n{self.name}.ExcludeFromManifest();")
+    def exclude_from_mcp(self) -> Self:
+        self._builder.write(f"\n{self.name}.ExcludeFromMcp();")
+        return self
 
-    @property
-    def exclude_from_mcp(self) -> NoReturn:
-        raise TypeError("exclude_from_mcp is write-only")
+    def explicit_start(self) -> Self:
+        self._builder.write(f"\n{self.name}.WithExplicitStart();")
+        return self
 
-    @exclude_from_mcp.setter
-    def exclude_from_mcp(self, value: Literal[True]) -> None:
-        if value is True:
-            self._builder.write(f"\n{self.name}.ExcludeFromMcp();")
-
-    @property
-    def explicit_start(self) -> NoReturn:
-        raise TypeError("explicit_start is write-only")
-
-    @explicit_start.setter
-    def explicit_start(self, value: Literal[True]) -> None:
-        if value is True:
-            self._builder.write(f"\n{self.name}.WithExplicitStart();")
-
-    @property
-    def health_check(self) -> NoReturn:
-        raise TypeError("health_check is write-only")
-
-    @health_check.setter
-    def health_check(self, value: str) -> None:
+    def with_health_check(self, value: str) -> Self:
         self._builder.write(f'\n{self.name}.WithHealthCheck("{value}");')
+        return self
 
-    @property
-    def relationship(self) -> NoReturn:
-        raise TypeError("relationship is write-only")
-
-    @relationship.setter
-    def relationship(self, value: tuple[Resource, str]) -> None:
+    def with_relationship(self, value: tuple[Resource, str]) -> Self:
         self._builder.write(f'\n{self.name}.WithRelationship({value[0].name}.Resource, "{value[1]}");')
+        return self
 
-    @property
-    def relationships(self) -> NoReturn:
-        raise TypeError("relationships is write-only")
-
-    @relationships.setter
-    def relationships(self, value: Iterable[tuple[Resource, str]]) -> None:
-        for rel in value:
-            self._builder.write(f'\n{self.name}.WithRelationship({rel[0].name}.Resource, "{rel[1]}");')
-
-    @property
-    def reference_relationship(self) -> NoReturn:
-        raise TypeError("reference_relationship is write-only")
-
-    @reference_relationship.setter
-    def reference_relationship(self, value: Resource) -> None:
+    def with_reference_relationship(self, value: Resource) -> Self:
         self._builder.write(f'\n{self.name}.WithReferenceRelationship({value.name});')
+        return self
 
-    @property
-    def reference_relationships(self) -> NoReturn:
-        raise TypeError("reference_relationships is write-only")
-
-    @reference_relationships.setter
-    def reference_relationships(self, value: Iterable[Resource]) -> None:
-        for reference in value:
-            self._builder.write(f'\n{self.name}.WithReferenceRelationship({reference.name});')
-
-    @property
-    def parent_relationship(self) -> NoReturn:
-        raise TypeError("parent_relationship is write-only")
-
-    @parent_relationship.setter
-    def parent_relationship(self, value: Resource) -> None:
+    def with_parent_relationship(self, value: Resource) -> Self:
         self._builder.write(f'\n{self.name}.WithParentRelationship({value.name});')
+        return self
 
-    @property
-    def parent_relationships(self) -> NoReturn:
-        raise TypeError("parent_relationships is write-only")
-
-    @parent_relationships.setter
-    def parent_relationships(self, value: Iterable[Resource]) -> None:
-        for parent in value:
-            self._builder.write(f'\n{self.name}.WithParentRelationship({parent.name});')
-
-    @property
-    def child_relationship(self) -> NoReturn:
-        raise TypeError("child_relationship is write-only")
-
-    @child_relationship.setter
-    def child_relationship(self, value: Resource) -> None:
+    def with_child_relationship(self, value: Resource) -> Self:
         self._builder.write(f'\n{self.name}.WithChildRelationship({value.name});')
+        return self
 
-    @property
-    def child_relationships(self) -> NoReturn:
-        raise TypeError("child_relationships is write-only")
-
-    @child_relationships.setter
-    def child_relationships(self, value: Iterable[Resource]) -> None:
-        for child in value:
-            self._builder.write(f'\n{self.name}.WithChildRelationship({child.name});')
-
-    @property
-    def icon_name(self) -> NoReturn:
-        raise TypeError("icon_name is write-only")
-
-    @icon_name.setter
-    def icon_name(self, value: str | tuple[str, IconVariant]) -> None:
+    def with_icon_name(self, value: str | tuple[str, IconVariant]) -> Self:
         if isinstance(value, str):
             self._builder.write(f'\n{self.name}.WithIconName("{value}");')
         else:
             self._builder.write(f'\n{self.name}.WithIconName("{value[0]}", IconVariant.{value[1].value});')
+        return self
 
-    @property
-    def dockerfile_base_image(self) -> NoReturn:
-        raise TypeError("dockerfile_base_image is write-only")
-
-    @dockerfile_base_image.setter
-    def dockerfile_base_image(self, value: Literal[True] | Mapping[str, str]) -> None:
-        if value is True:
+    def with_dockerfile_base_image(self, *, build_image: str | None = None, runtime_image: str | None = None) -> Self:
+        if build_image is None and runtime_image is None:
             self._builder.write(f'\n{self.name}.WithDockerfileBaseImage();')
         else:
-            build_image = get_nullable_from_map(value, "build_image")
-            runtime_image = get_nullable_from_map(value, "runtime_image")
-            self._builder.write(f'\n{self.name}.WithDockerfileBaseImage({build_image}, {runtime_image});')
+            self._builder.write(f'\n{self.name}.WithDockerfileBaseImage({get_nullable_value(build_image)}, {get_nullable_value(runtime_image)});')
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceOptions]) -> None:
         self.name = name
@@ -281,35 +197,23 @@ class ResourceWithArgsOptions(TypedDict, total=False):
 
 
 class ResourceWithArgs:
-    @property
-    def args(self) -> NoReturn:
-        raise TypeError("args is write-only")
-
-    @args.setter
-    def args(self, value: Iterable[str]) -> None:
+    def with_args(self, value: Iterable[str]) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithArgs({format_string_array(value)});')
+        return self
 
-    @property
-    def certificate_trust_scope(self) -> NoReturn:
-        raise TypeError("certificate_trust_scope is write-only")
-
-    @certificate_trust_scope.setter
-    def certificate_trust_scope(self, value: CertificateTrustScope) -> None:
+    def with_certificate_trust_scope(self, value: CertificateTrustScope) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithCertificateTrustScope({format_enum(value)});')
+        return self
 
-    @property
-    def developer_certificate_trust(self) -> NoReturn:
-        raise TypeError("developer_certificate_trust is write-only")
-
-    @developer_certificate_trust.setter
-    def developer_certificate_trust(self, value: bool) -> None:
+    def with_developer_certificate_trust(self, value: bool) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithDeveloperCertificateTrust({format_bool(value)});')
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithArgsOptions]) -> None:
         if args := kwargs.get("args", None):
@@ -360,104 +264,75 @@ class ResourceWithEndpointsOptions(TypedDict, total=False):
 
 
 class ResourceWithEndpoints:
-    @property
-    def http2_service(self) -> NoReturn:
-        raise TypeError("http2_service is write-only")
-
-    @http2_service.setter
-    def http2_service(self, value: Literal[True]) -> None:
+    def as_http2_service(self) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.AsHttp2Service();')
+        return self
 
-    @property
-    def endpoint(self) -> NoReturn:
-        raise TypeError("endpoint is write-only")
-
-    @endpoint.setter
-    def endpoint(self, value: EndpointConfiguration) -> None:
+    def with_endpoint(self, **kwargs: Unpack[EndpointConfiguration]) -> Self:
         self._builder: StringIO
         self.name: str
-        port = get_nullable_from_map(value, "port")
-        target_port = get_nullable_from_map(value, "target_port")
-        scheme = get_nullable_from_map(value, "scheme")
-        name = get_nullable_from_map(value, "name")
-        env = get_nullable_from_map(value, "env")
-        is_proxied = get_nullable_from_map(value, "is_proxied", True)
-        is_external = get_nullable_from_map(value, "is_external", False)
-        protocol = get_nullable_from_map(value, "protocol")
+        port = get_nullable_from_map(kwargs, "port")
+        target_port = get_nullable_from_map(kwargs, "target_port")
+        scheme = get_nullable_from_map(kwargs, "scheme")
+        name = get_nullable_from_map(kwargs, "name")
+        env = get_nullable_from_map(kwargs, "env")
+        is_proxied = get_nullable_from_map(kwargs, "is_proxied", True)
+        is_external = get_nullable_from_map(kwargs, "is_external", False)
+        protocol = get_nullable_from_map(kwargs, "protocol")
         self._builder.write(f'\n{self.name}.WithEndpoint({port}, {target_port}, {scheme}, {name}, {env}, {is_proxied}, {is_external}, {protocol});')
+        return self
 
-    @property
-    def external_http_endpoints(self) -> NoReturn:
-        raise TypeError("external_http_endpoints is write-only")
-
-    @external_http_endpoints.setter
-    def external_http_endpoints(self, value: Literal[True]) -> None:
+    def with_external_http_endpoints(self) -> Self:
         self._builder: StringIO
         self.name: str
-        if value is True:
-            self._builder.write(f'\n{self.name}.WithExternalHttpEndpoints();')
+        self._builder.write(f'\n{self.name}.WithExternalHttpEndpoints();')
+        return self
 
-    @property
-    def http_endpoint(self) -> NoReturn:
-        raise TypeError("http_endpoint is write-only")
-
-    @http_endpoint.setter
-    def http_endpoint(self, value: EndpointConfiguration) -> None:
+    def with_http_endpoint(self, **kwargs: Unpack[EndpointConfiguration]) -> Self:
         self._builder: StringIO
         self.name: str
-        port = get_nullable_from_map(value, "port")
-        target_port = get_nullable_from_map(value, "target_port")
-        name = get_nullable_from_map(value, "name")
-        env = get_nullable_from_map(value, "env")
-        is_proxied = get_nullable_from_map(value, "is_proxied", True)
+        port = get_nullable_from_map(kwargs, "port")
+        target_port = get_nullable_from_map(kwargs, "target_port")
+        name = get_nullable_from_map(kwargs, "name")
+        env = get_nullable_from_map(kwargs, "env")
+        is_proxied = get_nullable_from_map(kwargs, "is_proxied", True)
         self._builder.write(f'\n{self.name}.WithHttpEndpoint({port}, {target_port}, {name}, {env}, {is_proxied});')
+        return self
 
-    @property
-    def https_endpoint(self) -> NoReturn:
-        raise TypeError("https_endpoint is write-only")
-
-    @https_endpoint.setter
-    def https_endpoint(self, value: EndpointConfiguration) -> None:
+    def with_https_endpoint(self, **kwargs: Unpack[EndpointConfiguration]) -> Self:
         self._builder: StringIO
         self.name: str
-        port = get_nullable_from_map(value, "port")
-        target_port = get_nullable_from_map(value, "target_port")
-        name = get_nullable_from_map(value, "name")
-        env = get_nullable_from_map(value, "env")
-        is_proxied = get_nullable_from_map(value, "is_proxied", True)
+        port = get_nullable_from_map(kwargs, "port")
+        target_port = get_nullable_from_map(kwargs, "target_port")
+        name = get_nullable_from_map(kwargs, "name")
+        env = get_nullable_from_map(kwargs, "env")
+        is_proxied = get_nullable_from_map(kwargs, "is_proxied", True)
         self._builder.write(f'\n{self.name}.WithHttpsEndpoint({port}, {target_port}, {name}, {env}, {is_proxied});')
+        return self
 
-    @property
-    def http_health_check(self) -> NoReturn:
-        raise TypeError("http_health_check is write-only")
-
-    @http_health_check.setter
-    def http_health_check(self, value: HttpHealthCheckConfiguration) -> None:
+    def with_http_health_check(self, **kwargs: Unpack[HttpHealthCheckConfiguration]) -> Self:
         self._builder: StringIO
         self.name: str
-        path = get_nullable_from_map(value, "path")
-        status_code = get_nullable_from_map(value, "status_code")
-        endpoint_name = get_nullable_from_map(value, "endpoint_name")
+        path = get_nullable_from_map(kwargs, "path")
+        status_code = get_nullable_from_map(kwargs, "status_code")
+        endpoint_name = get_nullable_from_map(kwargs, "endpoint_name")
         self._builder.write(f'\n{self.name}.WithHttpHealthCheck({path}, {status_code}, {endpoint_name});')
+        return self
 
-    @property
-    def http_probe(self) -> NoReturn:
-        raise TypeError("http_probe is write-only")
-
-    @http_probe.setter
-    def http_probe(self, value: HttpProbeConfiguration) -> None:
+    def with_http_probe(self, **kwargs: Unpack[HttpProbeConfiguration]) -> Self:
         self._builder: StringIO
         self.name: str
-        path = get_nullable_from_map(value, "path")
-        initial_delay_seconds = get_nullable_from_map(value, "initial_delay_seconds")
-        period_seconds = get_nullable_from_map(value, "period_seconds")
-        timeout_seconds = get_nullable_from_map(value, "timeout_seconds")
-        failure_threshold = get_nullable_from_map(value, "failure_threshold")
-        success_threshold = get_nullable_from_map(value, "success_threshold")
-        endpoint_name = get_nullable_from_map(value, "endpoint_name")
-        self._builder.write(f'\n{self.name}.WithHttpProbe({format_enum(value["type"])}, {path}, {initial_delay_seconds}, {period_seconds}, {timeout_seconds}, {failure_threshold}, {success_threshold}, {endpoint_name});')
+        path = get_nullable_from_map(kwargs, "path")
+        initial_delay_seconds = get_nullable_from_map(kwargs, "initial_delay_seconds")
+        period_seconds = get_nullable_from_map(kwargs, "period_seconds")
+        timeout_seconds = get_nullable_from_map(kwargs, "timeout_seconds")
+        failure_threshold = get_nullable_from_map(kwargs, "failure_threshold")
+        success_threshold = get_nullable_from_map(kwargs, "success_threshold")
+        endpoint_name = get_nullable_from_map(kwargs, "endpoint_name")
+        self._builder.write(f'\n{self.name}.WithHttpProbe({format_enum(kwargs["type"])}, {path}, {initial_delay_seconds}, {period_seconds}, {timeout_seconds}, {failure_threshold}, {success_threshold}, {endpoint_name});')
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithEndpointsOptions]) -> None:
         if kwargs.get("http2_service", None) is True:
@@ -510,22 +385,18 @@ class ResourceWithProbesOptions(TypedDict, total=False):
 
 
 class ResourceWithProbes:
-    @property
-    def http_probe(self) -> NoReturn:
-        raise TypeError("http_probe is write-only")
-
-    @http_probe.setter
-    def http_probe(self, value: HttpProbeConfiguration) -> None:
+    def with_http_probe(self, **kwargs: Unpack[HttpProbeConfiguration]) -> Self:
         self._builder: StringIO
         self.name: str
-        path = get_nullable_from_map(value, "path")
-        initial_delay_seconds = get_nullable_from_map(value, "initial_delay_seconds")
-        period_seconds = get_nullable_from_map(value, "period_seconds")
-        timeout_seconds = get_nullable_from_map(value, "timeout_seconds")
-        failure_threshold = get_nullable_from_map(value, "failure_threshold")
-        success_threshold = get_nullable_from_map(value, "success_threshold")
-        endpoint_name = get_nullable_from_map(value, "endpoint_name")
-        self._builder.write(f'\n{self.name}.WithHttpProbe({format_enum(value["type"])}, {path}, {initial_delay_seconds}, {period_seconds}, {timeout_seconds}, {failure_threshold}, {success_threshold}, {endpoint_name});')
+        path = get_nullable_from_map(kwargs, "path")
+        initial_delay_seconds = get_nullable_from_map(kwargs, "initial_delay_seconds")
+        period_seconds = get_nullable_from_map(kwargs, "period_seconds")
+        timeout_seconds = get_nullable_from_map(kwargs, "timeout_seconds")
+        failure_threshold = get_nullable_from_map(kwargs, "failure_threshold")
+        success_threshold = get_nullable_from_map(kwargs, "success_threshold")
+        endpoint_name = get_nullable_from_map(kwargs, "endpoint_name")
+        self._builder.write(f'\n{self.name}.WithHttpProbe({format_enum(kwargs["type"])}, {path}, {initial_delay_seconds}, {period_seconds}, {timeout_seconds}, {failure_threshold}, {success_threshold}, {endpoint_name});')
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithProbesOptions]) -> None:
         if http_probe := kwargs.pop("http_probe", None):
@@ -553,15 +424,11 @@ class ResourceWithConnectionStringOptions(TypedDict, total=False):
 
 
 class ResourceWithConnectionString:
-    @property
-    def connection_string_redirection(self) -> NoReturn:
-        raise TypeError("connection_string_redirection is write-only")
-
-    @connection_string_redirection.setter
-    def connection_string_redirection(self, value: ResourceWithConnectionString) -> None:
+    def with_connection_string_redirection(self, value: ResourceWithConnectionString) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithConnectionStringRedirection({value.name}.Resource);')
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithConnectionStringOptions]) -> None:
         if connection_string_redirection := kwargs.get("connection_string_redirection", None):
@@ -582,12 +449,7 @@ class ResourceWithEnvironmentOptions(TypedDict, total=False):
 
 
 class ResourceWithEnvironment:
-    @property
-    def environment(self) -> NoReturn:
-        raise TypeError("environment is write-only")
-
-    @environment.setter
-    def environment(self, value: tuple[str, EndpointReference | ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None]) -> None:
+    def with_environment(self, value: tuple[str, EndpointReference | ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None]) -> Self:
         name, ref = value
         self._builder: StringIO
         self.name: str
@@ -599,34 +461,12 @@ class ResourceWithEnvironment:
             self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {cast(Resource, ref).name});')
         else:
             self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {get_nullable_value(ref)});')
-    @property
-    def environments(self) -> NoReturn:
-        raise TypeError("environments is write-only")
+        return self
 
-    @environments.setter
-    def environments(self, value: Iterable[tuple[str, EndpointReference | ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None]]) -> None:
+    def with_reference(self, value: EndpointReference | ExternalServiceResource | ResourceWithServiceDiscovery | tuple[str, str] | ResourceWithConnectionString | Mapping[str, Any]) -> Self:
         self._builder: StringIO
         self.name: str
-        for env in value:
-            name, ref = env
-            # if isinstance(ref, EndpointReference):
-            #     self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {ref});')  # TODO: fix EndpointReference string representation
-            if isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
-                self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {ref.name});')
-            elif isinstance(ref, ExternalServiceResource):
-                self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {ref.name});')
-            else:
-                self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {get_nullable_value(ref)});')
-
-    @property
-    def reference(self) -> NoReturn:
-        raise TypeError("reference is write-only")
-
-    @reference.setter
-    def reference(self, value: EndpointReference | ExternalServiceResource | ResourceWithServiceDiscovery | tuple[str, str] | ResourceWithConnectionString | Mapping[str, Any]) -> None:
-        self._builder: StringIO
-        self.name: str
-        # if isinstance(value, EndpointReference):
+        # if isinstance(value, EndpointReference):  # TODO
         #     self._builder.write(f'\n{self.name}.WithReference({value});')  # TODO: fix EndpointReference string representation
         if isinstance(value, ExternalServiceResource):
             self._builder.write(f'\n{self.name}.WithReference({cast(Resource, value).name});')
@@ -636,79 +476,40 @@ class ResourceWithEnvironment:
             self._builder.write(f'\n{self.name}.WithReference({format_string(value[0])}, {format_string(value[1])});')
         elif isinstance(value, ResourceWithConnectionString):
             self._builder.write(f'\n{self.name}.WithReference({cast(Resource, value).name});')
+        return self
 
-    @property
-    def references(self) -> NoReturn:
-        raise TypeError("references is write-only")
-
-    @references.setter
-    def references(self, value: Iterable[EndpointReference | ExternalServiceResource | ResourceWithServiceDiscovery | tuple[str, str] | ResourceWithConnectionString]) -> None:
+    def with_otlp_exporter(self, value: OtlpProtocol | None = None) -> Self:
         self._builder: StringIO
         self.name: str
-        for ref in value:
-            # if isinstance(ref, EndpointReference):
-            #     self._builder.write(f'\n{self.name}.WithReference({ref});')  # TODO: fix EndpointReference string representation
-            if isinstance(ref, ExternalServiceResource):
-                self._builder.write(f'\n{self.name}.WithReference({cast(Resource, ref).name});')
-            elif isinstance(ref, ResourceWithServiceDiscovery):
-                self._builder.write(f'\n{self.name}.WithReference({cast(Resource, ref).name});')
-            elif isinstance(ref, tuple):
-                self._builder.write(f'\n{self.name}.WithReference({format_string(ref[0])}, {format_string(ref[1])});')
-            elif isinstance(ref, ResourceWithConnectionString):  # TODO: Missing IResourceWithConnectionString> source, string? connectionName = null, bool optional = false
-                self._builder.write(f'\n{self.name}.WithReference({cast(Resource, ref).name});')
-
-    @property
-    def otlp_exporter(self) -> NoReturn:
-        raise TypeError("otlp_exporter is write-only")
-
-    @otlp_exporter.setter
-    def otlp_exporter(self, value: Literal[True] | OtlpProtocol) -> None:
-        self._builder: StringIO
-        self.name: str
-        if value is True:
+        if value is None:
             self._builder.write(f'\n{self.name}.WithOtlpExporter();')
         else:
             self._builder.write(f'\n{self.name}.WithOtlpExporter({format_enum(value)});')
+        return self
 
-    @property
-    def reference_environment(self) -> NoReturn:
-        raise TypeError("reference_environment is write-only")
-
-    @reference_environment.setter
-    def reference_environment(self, value: ReferenceEnvironment) -> None:
+    def with_reference_environment(self, value: ReferenceEnvironment) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithReferenceEnvironment({format_enum(value)});')
+        return self
 
-    @property
-    def certificate_trust_scope(self) -> NoReturn:
-        raise TypeError("certificate_trust_scope is write-only")
-
-    @certificate_trust_scope.setter
-    def certificate_trust_scope(self, value: CertificateTrustScope) -> None:
+    def with_certificate_trust_scope(self, value: CertificateTrustScope) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithCertificateTrustScope({format_enum(value)});')
+        return self
 
-    @property
-    def developer_certificate_trust(self) -> NoReturn:
-        raise TypeError("developer_certificate_trust is write-only")
-
-    @developer_certificate_trust.setter
-    def developer_certificate_trust(self, value: bool) -> None:
+    def with_developer_certificate_trust(self, value: bool) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithDeveloperCertificateTrust({format_bool(value)});')
+        return self
 
-    @property
-    def certificate_authority_collection(self) -> NoReturn:
-        raise TypeError("certificate_authority_collection is write-only")
-
-    @certificate_authority_collection.setter
-    def certificate_authority_collection(self, value: CertificateAuthorityCollection) -> None:
+    def with_certificate_authority_collection(self, value: CertificateAuthorityCollection) -> Self:
         self._builder: StringIO
         self.name: str
-        self._builder.write(f'\n{self.name}.WithCertificateAuthorityCollection({cast(Resource, value).name});')
+        self._builder.write(f'\n{self.name}.WithCertificateAuthorityCollection({value.name});')
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithEnvironmentOptions]) -> None:
         if environment := kwargs.pop("environment", None):
@@ -778,65 +579,32 @@ class ResourceWithWaitSupportOptions(TypedDict, total=False):
 
 
 class ResourceWithWaitSupport:
-    @property
-    def wait_for(self) -> NoReturn:
-        raise TypeError("wait_for is write-only")
-
-    @wait_for.setter
-    def wait_for(self, value: Resource | tuple[Resource, WaitBehavior] | Iterable[Resource | tuple[Resource, WaitBehavior]]) -> None:
+    def wait_for(self, value: Resource | tuple[Resource, WaitBehavior]) -> Self:
         self._builder: StringIO
         self.name: str
         if isinstance(value, Resource):
             self._builder.write(f'\n{self.name}.WaitFor({value.name});')
-        elif isinstance(value, tuple) and isinstance(value[0], Resource):
-            self._builder.write(f'\n{self.name}.WaitFor({value[0].name}, {format_enum(cast(WaitBehavior, value[1]))});')
         else:
-            for item in value:
-                if isinstance(item, Resource):
-                    self._builder.write(f'\n{self.name}.WaitFor({item.name});')
-                else:
-                    item = cast(tuple[Resource, WaitBehavior], item)
-                    self._builder.write(f'\n{self.name}.WaitFor({item[0].name}, {format_enum(item[1])});')
+            self._builder.write(f'\n{self.name}.WaitFor({value[0].name}, {format_enum(value[1])});')
+        return self
 
-    @property
-    def wait_for_completion(self) -> NoReturn:
-        raise TypeError("wait_for_completion is write-only")
-
-    @wait_for_completion.setter
-    def wait_for_completion(self, value: Resource | tuple[Resource, int] | Iterable[Resource | tuple[Resource, int]]) -> None:
+    def wait_for_completion(self, value: Resource | tuple[Resource, int]) -> Self:
         self._builder: StringIO
         self.name: str
         if isinstance(value, Resource):
             self._builder.write(f'\n{self.name}.WaitForCompletion({value.name});')
-        elif isinstance(value, tuple) and isinstance(value[0], Resource):
-            self._builder.write(f'\n{self.name}.WaitForCompletion({value[0].name}, {value[1]});')
         else:
-            for item in value:
-                if isinstance(item, Resource):
-                    self._builder.write(f'\n{self.name}.WaitForCompletion({item.name});')
-                else:
-                    item = cast(tuple[Resource, int], item)
-                    self._builder.write(f'\n{self.name}.WaitForCompletion({item[0].name}, {item[1]});')
+            self._builder.write(f'\n{self.name}.WaitForCompletion({value[0].name}, {value[1]});')
+        return self
 
-    @property
-    def wait_for_start(self) -> NoReturn:
-        raise TypeError("wait_for_start is write-only")
-
-    @wait_for_start.setter
-    def wait_for_start(self, value: Resource | tuple[Resource, WaitBehavior] | Iterable[Resource | tuple[Resource, WaitBehavior]]) -> None:
+    def wait_for_start(self, value: Resource | tuple[Resource, WaitBehavior]) -> Self:
         self._builder: StringIO
         self.name: str
         if isinstance(value, Resource):
             self._builder.write(f'\n{self.name}.WaitForStart({value.name});')
-        elif isinstance(value, tuple) and isinstance(value[0], Resource):
-            self._builder.write(f'\n{self.name}.WaitForStart({value[0].name}, {format_enum(cast(WaitBehavior, value[1]))});')
         else:
-            for item in value:
-                if isinstance(item, Resource):
-                    self._builder.write(f'\n{self.name}.WaitForStart({item.name});')
-                else:
-                    item = cast(tuple[Resource, WaitBehavior], item)
-                    self._builder.write(f'\n{self.name}.WaitForStart({item[0].name}, {format_enum(item[1])});')
+            self._builder.write(f'\n{self.name}.WaitForStart({value[0].name}, {format_enum(value[1])});')
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithWaitSupportOptions]) -> None:
         if wait_for := kwargs.pop("wait_for", None):
@@ -892,15 +660,11 @@ class ComputeResourceOptions(TypedDict, total=False):
 
 
 class ComputeResource:
-    @property
-    def compute_environment(self) -> NoReturn:
-        raise TypeError("compute_environment is write-only")
-
-    @compute_environment.setter
-    def compute_environment(self, value: ComputeEnvironmentResource) -> None:
+    def with_compute_environment(self, value: ComputeEnvironmentResource) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithComputeEnvironment({cast(Resource, value).name});')
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ComputeResourceOptions]) -> None:
         if compute_environment := kwargs.pop("compute_environment", None):
@@ -914,26 +678,18 @@ class ResourceWithContainerFilesOptions(TypedDict, total=False):
 
 
 class ResourceWithContainerFiles:
-    @property
-    def container_files_source(self) -> NoReturn:
-        raise TypeError("container_files_source is write-only")
 
-    @container_files_source.setter
-    def container_files_source(self, value: str) -> None:
+    def add_container_files_source(self, value: str) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.AddContainerFilesSource({format_string(value)});')
+        return self
 
-    @property
-    def clear_container_files_sources(self) -> NoReturn:
-        raise TypeError("clear_container_files_sources is write-only")
-
-    @clear_container_files_sources.setter
-    def clear_container_files_sources(self, value: Literal[True]) -> None:
-        if value is True:
-            self._builder: StringIO
-            self.name: str
-            self._builder.write(f'\n{self.name}.ClearContainerFilesSources();')
+    def clear_container_files_sources(self) -> Self:
+        self._builder: StringIO
+        self.name: str
+        self._builder.write(f'\n{self.name}.ClearContainerFilesSources();')
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithContainerFilesOptions]) -> None:
         if container_files_source := kwargs.pop("container_files_source", None):
@@ -948,15 +704,11 @@ class ContainerFilesDestinationResourceOptions(TypedDict, total=False):
 
 
 class ContainerFilesDestinationResource:
-    @property
-    def publish_with_container_files(self) -> NoReturn:
-        raise TypeError("publish_with_container_files is write-only")
-
-    @publish_with_container_files.setter
-    def publish_with_container_files(self, value: tuple[ResourceWithContainerFiles, str]) -> None:
+    def publish_with_container_files(self, value: tuple[ResourceWithContainerFiles, str]) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.PublishWithContainerFiles({cast(Resource, value[0]).name}, {format_string(value[1])});')
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ContainerFilesDestinationResourceOptions]) -> None:
         if publish_with_container_files := kwargs.pop("publish_with_container_files", None):
@@ -983,51 +735,26 @@ class CertificateAuthorityCollection(Resource):
     def package(self) -> Iterable[str]:
         return ["using System.Security.Cryptography.X509Certificates;"]
 
-    @property
-    def certificate(self) -> NoReturn:
-        raise TypeError("certificate is write-only")
-
-    @certificate.setter
-    def certificate(self, value: bytes | str) -> None:
+    def with_certificate(self, value: bytes | str) -> Self:
         self._builder: StringIO
         self.name: str
         if isinstance(value, bytes):
             self._builder.write(f'\n{self.name}.WithCertificate(X509CertificateLoader.LoadCertificate({format_byte_array(value)}));')
         else:
             self._builder.write(f'\n{self.name}.WithCertificate(X509CertificateLoader.LoadCertificateFromFile("{value}"));')
+        return self
 
-    @property
-    def certificates(self) -> NoReturn:
-        raise TypeError("certificates is write-only")
-
-    @certificates.setter
-    def certificates(self, value: Iterable[bytes | str]) -> None:
+    def with_certificates_from_store(self, store_name: StoreName, store_location: StoreLocation) -> Self:
         self._builder: StringIO
         self.name: str
-        for cert in value:
-            if isinstance(cert, bytes):
-                self._builder.write(f'\n{self.name}.WithCertificate(X509CertificateLoader.LoadCertificate({format_byte_array(cert)}));')
-            else:
-                self._builder.write(f'\n{self.name}.WithCertificate(X509CertificateLoader.LoadCertificateFromFile("{cert}"));')
-    @property
-    def certificates_from_store(self) -> NoReturn:
-        raise TypeError("certificates_from_store is write-only")
+        self._builder.write(f'\n{self.name}.WithCertificatesFromStore({format_enum(store_name)}, {format_enum(store_location)});')
+        return self
 
-    @certificates_from_store.setter
-    def certificates_from_store(self, value: tuple[StoreName, StoreLocation]) -> None:
-        self._builder: StringIO
-        self.name: str
-        self._builder.write(f'\n{self.name}.WithCertificatesFromStore({format_enum(value[0])}, {format_enum(value[1])});')
-
-    @property
-    def certificates_from_file(self) -> NoReturn:
-        raise TypeError("certificates_from_file is write-only")
-
-    @certificates_from_file.setter
-    def certificates_from_file(self, value: str) -> None:
+    def with_certificates_from_file(self, value: str) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithCertificatesFromFile("{value}");')
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[CertificateAuthorityCollectionOptions]) -> None:
         if certificate := kwargs.pop("certificate", None):
@@ -1049,7 +776,7 @@ class CertificateAuthorityCollection(Resource):
         super().__init__(name=name, builder=builder, **kwargs)
 
 
-class ConnectionStringResourceOptions(ResourceOptions, ResourceWithConnectionStringOptions, ResourceWithWaitSupportOptions, total=False):
+class ConnectionStringResourceOptions(ResourceOptions, ResourceWithConnectionStringOptions, total=False):
     ...
 
 
@@ -1064,18 +791,15 @@ class ParameterResourceOptions(ResourceOptions, total=False):
 
 
 class ParameterResource(Resource):
-    @property
-    def description(self) -> NoReturn:
-        raise TypeError("description is write-only")
-
-    @description.setter
-    def description(self, value: str | tuple[str, bool]) -> None:
+    # TODO: Fix up all method signatures
+    def with_description(self, value: str | tuple[str, bool]) -> Self:
         self._builder: StringIO
         self.name: str
         if isinstance(value, str):
             self._builder.write(f"\n{self.name}.WithDescription(\"{value}\");")
         else:
             self._builder.write(f"\n{self.name}.WithDescription(\"{value[0]}\", {str(value[1]).lower()});")
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ParameterResourceOptions]) -> None:
         if description := kwargs.pop("description", None):
@@ -1094,26 +818,18 @@ class ProjectResourceOptions(ResourceOptions, ResourceWithEnvironmentOptions, Re
 
 class ProjectResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWithServiceDiscovery, ResourceWithWaitSupport, ResourceWithProbes,
     ComputeResource, ContainerFilesDestinationResource, Resource):
-    @property
-    def disable_forwarded_headers(self) -> NoReturn:
-        raise TypeError("disable_forwarded_headers is write-only")
 
-    @disable_forwarded_headers.setter
-    def disable_forwarded_headers(self, value: Literal[True]) -> None:
+    def disable_forwarded_headers(self) -> Self:
         self._builder: StringIO
         self.name: str
-        if value is True:
-            self._builder.write(f"\n{self.name}.DisableForwardedHeaders();")
+        self._builder.write(f"\n{self.name}.DisableForwardedHeaders();")
+        return self
 
-    @property
-    def replicas(self) -> NoReturn:
-        raise TypeError("replicas is write-only")
-
-    @replicas.setter
-    def replicas(self, value: int) -> None:
+    def with_replicas(self, value: int) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f"\n{self.name}.WithReplicas({value});")
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ProjectResourceOptions]) -> None:
         if disable_forwarded_headers := kwargs.pop("disable_forwarded_headers", None):
@@ -1134,36 +850,24 @@ class ExecutableResourceOptions(ResourceOptions, ResourceWithEnvironmentOptions,
 
 
 class ExecutableResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWithEndpoints, ResourceWithWaitSupport, ResourceWithProbes, ComputeResource, Resource):
-    @property
-    def publish_as_dockerfile(self) -> NoReturn:
-        raise TypeError("publish_as_dockerfile is write-only")
 
-    @publish_as_dockerfile.setter
-    def publish_as_dockerfile(self, value: Literal[True]) -> None:
-        if value is True:
-            self._builder: StringIO
-            self.name: str
-            self._builder.write(f'\n{self.name}.PublishAsDockerFile();')
+    def publish_as_dockerfile(self) -> Self:
+        self._builder: StringIO
+        self.name: str
+        self._builder.write(f'\n{self.name}.PublishAsDockerFile();')
+        return self
 
-    @property
-    def command(self) -> NoReturn:
-        raise TypeError("command is write-only")
-
-    @command.setter
-    def command(self, value: str) -> None:
+    def with_command(self, value: str) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithCommand("{value}");')
+        return self
 
-    @property
-    def working_directory(self) -> NoReturn:
-        raise TypeError("working_directory is write-only")
-
-    @working_directory.setter
-    def working_directory(self, value: str) -> None:
+    def with_working_directory(self, value: str) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithWorkingDirectory("{value}");')
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ExecutableResourceOptions]) -> None:
         if command := kwargs.pop("command", None):
@@ -1231,92 +935,34 @@ class ContainerResourceOptions(ResourceOptions, ResourceWithEnvironmentOptions, 
 
 class ContainerResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWithEndpoints, ResourceWithWaitSupport, ResourceWithProbes,
     ComputeResource, Resource):
-    @property
-    def publish_as_container(self) -> NoReturn:
-        raise TypeError("publish_as_container is write-only")
+    def publish_as_container(self) -> Self:
+        self._builder: StringIO
+        self.name: str
+        self._builder.write(f'\n{self.name}.PublishAsContainer();')
+        return self
 
-    @publish_as_container.setter
-    def publish_as_container(self, value: Literal[True]) -> None:
-        if value is True:
-            self._builder: StringIO
-            self.name: str
-            self._builder.write(f'\n{self.name}.PublishAsContainer();')
-
-    @property
-    def bind_mount(self) -> NoReturn:
-        raise TypeError("bind_mount is write-only")
-
-    @bind_mount.setter
-    def bind_mount(self, value: tuple[str, str] | tuple[str, str, bool]) -> None:
+    def with_bind_mount(self, value: tuple[str, str] | tuple[str, str, bool]) -> Self:
         self._builder: StringIO
         self.name: str
         if len(value) == 2:
             self._builder.write(f'\n{self.name}.WithBindMount("{value[0]}", "{value[1]}");')
         else:
             self._builder.write(f'\n{self.name}.WithBindMount("{value[0]}", "{value[1]}", {str(value[2]).lower()});')
+        return self
 
-    @property
-    def bind_mounts(self) -> NoReturn:
-        raise TypeError("bind_mounts is write-only")
-
-    @bind_mounts.setter
-    def bind_mounts(self, value: Iterable[tuple[str, str] | tuple[str, str, bool]]) -> None:
-        self._builder: StringIO
-        self.name: str
-        for mount in value:
-            if len(mount) == 2:
-                self._builder.write(f'\n{self.name}.WithBindMount("{mount[0]}", "{mount[1]}");')
-            else:
-                self._builder.write(f'\n{self.name}.WithBindMount("{mount[0]}", "{mount[1]}", {str(mount[2]).lower()});')
-
-    @property
-    def build_arg(self) -> NoReturn:
-        raise TypeError("build_arg is write-only")
-
-    @build_arg.setter
-    def build_arg(self, value: tuple[str, ParameterResource]) -> None:
+    def with_build_arg(self, value: tuple[str, ParameterResource]) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithBuildArg("{value[0]}", {value[1].name});')
+        return self
 
-    @property
-    def build_args(self) -> NoReturn:
-        raise TypeError("build_args is write-only")
-
-    @build_args.setter
-    def build_args(self, value: Iterable[tuple[str, ParameterResource]]) -> None:
-        self._builder: StringIO
-        self.name: str
-        for arg in value:
-            self._builder.write(f'\n{self.name}.WithBuildArg("{arg[0]}", {arg[1].name});')
-
-    @property
-    def build_secret(self) -> NoReturn:
-        raise TypeError("build_secret is write-only")
-
-    @build_secret.setter
-    def build_secret(self, value: tuple[str, ParameterResource]) -> None:
+    def with_build_secret(self, value: tuple[str, ParameterResource]) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithBuildSecret("{value[0]}", {value[1].name});')
+        return self
 
-    @property
-    def build_secrets(self) -> NoReturn:
-        raise TypeError("build_secrets is write-only")
-
-    @build_secrets.setter
-    def build_secrets(self, value: Iterable[tuple[str, ParameterResource]]) -> None:
-        self._builder: StringIO
-        self.name: str
-        for secret in value:
-            self._builder.write(f'\n{self.name}.WithBuildSecret("{secret[0]}", {secret[1].name});')
-
-    @property
-    def container_files(self) -> NoReturn:
-        raise TypeError("container_files is write-only")
-
-    @container_files.setter
-    def container_files(self, value: ContainerFiles | ContainerFilesFromSource) -> None:
+    def with_container_files(self, value: ContainerFiles | ContainerFilesFromSource) -> Self:
         self._builder: StringIO
         self.name: str
         # TODO: Test this logic. Seesm suspect
@@ -1357,135 +1003,85 @@ class ContainerResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWithE
             if umask is not None:
                 self._builder.write(f', umask: (UnixFileMode){umask}')
             self._builder.write(');')
+        return self
 
-    @property
-    def container_runtime_args(self) -> NoReturn:
-        raise TypeError("container_runtime_args is write-only")
-
-    @container_runtime_args.setter
-    def container_runtime_args(self, value: Iterable[str]) -> None:
+    def with_container_runtime_args(self, value: Iterable[str]) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithContainerRuntimeArgs({format_string_array(value)});')
+        return self
 
-    @property
-    def dockerfile(self) -> NoReturn:
-        raise TypeError("dockerfile is write-only")
-
-    @dockerfile.setter
-    def dockerfile(self, value: str | tuple[str, Mapping[str, str]]) -> None:
+    def with_dockerfile(self, value: str | tuple[str, Mapping[str, str]]) -> Self:
         self._builder: StringIO
         self.name: str
         if isinstance(value, str):
             self._builder.write(f'\n{self.name}.WithDockerfile("{value}");')
         else:
             self._builder.write(f'\n{self.name}.WithDockerfile("{value[0]}", {get_nullable_from_map(value[1], "dockerfile_path")}, {get_nullable_from_map(value[1], "stage")});')
+        return self
 
-    @property
-    def container_name(self) -> NoReturn:
-        raise TypeError("container_name is write-only")
-
-    @container_name.setter
-    def container_name(self, value: str) -> None:
+    def with_container_name(self, value: str) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithContainerName({format_string(value)});')
+        return self
 
-    @property
-    def endpoint_proxy_support(self) -> NoReturn:
-        raise TypeError("endpoint_proxy_support is write-only")
-
-    @endpoint_proxy_support.setter
-    def endpoint_proxy_support(self, value: bool) -> None:
+    def with_endpoint_proxy_support(self, value: bool) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithEndpointProxySupport({format_bool(value)});')
+        return self
 
-    @property
-    def entrypoint(self) -> NoReturn:
-        raise TypeError("entrypoint is write-only")
-
-    @entrypoint.setter
-    def entrypoint(self, value: str) -> None:
+    def with_entrypoint(self, value: str) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithEntrypoint({format_string(value)});')
+        return self
 
-    @property
-    def image(self) -> NoReturn:
-        raise TypeError("image is write-only")
-
-    @image.setter
-    def image(self, value: str | tuple[str, str]) -> None:
+    def with_image(self, value: str | tuple[str, str]) -> Self:
         self._builder: StringIO
         self.name: str
         if isinstance(value, str):
             self._builder.write(f'\n{self.name}.WithImage({format_string(value)});')
         else:
             self._builder.write(f'\n{self.name}.WithImage({format_string(value[0])}, {format_string(value[1])});')
+        return self
 
-    @property
-    def image_pull_policy(self) -> NoReturn:
-        raise TypeError("image_pull_policy is write-only")
-
-    @image_pull_policy.setter
-    def image_pull_policy(self, value: ImagePullPolicy) -> None:
+    def with_image_pull_policy(self, value: ImagePullPolicy) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithImagePullPolicy({format_enum(value)});')
+        return self
 
-    @property
-    def image_registry(self) -> NoReturn:
-        raise TypeError("image_registry is write-only")
-
-    @image_registry.setter
-    def image_registry(self, value: Literal[True] | str) -> None:
+    def with_image_registry(self, value: str | None = None) -> Self:
         self._builder: StringIO
         self.name: str
-        if value is True:
-            self._builder.write(f'\n{self.name}.WithImageRegistry(null);')
-        else:
-            self._builder.write(f'\n{self.name}.WithImageRegistry("{value}");')
+        self._builder.write(f'\n{self.name}.WithImageRegistry({get_nullable_value(value)});')
+        return self
 
-    @property
-    def image_sha256(self) -> NoReturn:
-        raise TypeError("image_sha256 is write-only")
-
-    @image_sha256.setter
-    def image_sha256(self, value: str) -> None:
+    def with_image_sha256(self, value: str) -> Self:
         self._builder: StringIO
         self.name: str
-        self._builder.write(f'\n{self.name}.WithImageSHA256("{value}");')
+        self._builder.write(f'\n{self.name}.WithImageSHA256({format_string(value)});')
+        return self
 
-    @property
-    def image_tag(self) -> NoReturn:
-        raise TypeError("image_tag is write-only")
-
-    @image_tag.setter
-    def image_tag(self, value: str) -> None:
+    def with_image_tag(self, value: str) -> Self:
         self._builder: StringIO
         self.name: str
-        self._builder.write(f'\n{self.name}.WithImageTag("{value}");')
+        self._builder.write(f'\n{self.name}.WithImageTag({format_string(value)});')
+        return self
 
-    @property
-    def lifetime(self) -> NoReturn:
-        raise TypeError("lifetime is write-only")
-
-    @lifetime.setter
-    def lifetime(self, value: ContainerLifetime) -> None:
+    def with_lifetime(self, value: ContainerLifetime) -> Self:
         self._builder: StringIO
         self.name: str
-        self._builder.write(f'\n{self.name}.WithLifetime(ContainerLifetime.{value.value});')
+        self._builder.write(f'\n{self.name}.WithLifetime({format_enum(value)});')
+        return self
 
-    @property
-    def volume(self) -> NoReturn:
-        raise TypeError("volume is write-only")
-
-    @volume.setter
-    def volume(self, value: Volume) -> None:
+    def with_volume(self, value: Volume) -> Self:
         self._builder: StringIO
         self.name: str
         self._builder.write(f'\n{self.name}.WithVolume({get_nullable_from_map(value, "name")}, "{value["target"]}", {get_nullable_from_map(value, "is_read_only", False)});') # type: ignore
+        return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ContainerResourceOptions]) -> None:
         if publish_as_container := kwargs.pop("publish_as_container", None):

@@ -878,104 +878,40 @@ def test_container_with_wait_for_start(verify_dotnet_apphost):
 
 
 # Tests for property setters
-def test_container_publish_as_container_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    container.publish_as_container = True
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_bind_mount_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    container.bind_mount = ("/host/path", "/container/path")
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_container_name_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    container.container_name = "my-custom-name"
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_entrypoint_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "myapp")
-    container.entrypoint = "/app/start.sh"
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_image_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    container.image = "nginx:alpine"
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_environment_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "myapp")
-    container.environment = ("DEBUG", "true")
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_reference_setter(verify_dotnet_apphost):
+def test_container_with_multiple_property_setters(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     db = builder.add_connection_string("db")
-    container = builder.add_container("mycontainer", "myapp")
-    container.reference = db
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_http_endpoint_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
+    cache = builder.add_connection_string("cache")
     container = builder.add_container("mycontainer", "nginx")
-    container.http_endpoint = {"port": 8080}
+    container.publish_as_container().publish_as_container()
+    container.with_bind_mount(("/host/path", "/container/path")).with_bind_mount(("/host/path", "/container/path", True))
+    container.with_container_name("my-nginx-container").with_container_name("another-name")
+    container.with_entrypoint("/app/entrypoint.sh").with_entrypoint("/app/another-entrypoint.sh")
+    container.with_image("nginx:alpine").with_image(("nginx", "latest"))
+    container.with_environment(("PORT", "8080")).with_environment(("PORT", "9090"))
+    container.with_reference(db).with_reference(cache)
+    container.with_http_endpoint(
+        port=8080,
+        name="http",
+        target_port=80,
+        scheme="http",
+        env="env",
+        is_external=True,
+        is_proxied=False,
+        protocol=ProtocolType.ICMP
+    ).with_http_endpoint(
+        port=9090,
+        name="http-alt"
+    )
+    container.wait_for(db).wait_for(cache)
     builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_wait_for_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    db = builder.add_connection_string("db")
-    container = builder.add_container("mycontainer", "myapp")
-    container.wait_for = db
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_volume_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "postgres")
-    container.volume = {"target": "/var/lib/postgresql/data"}
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_lifetime_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "postgres")
-    container.lifetime = ContainerLifetime.PERSISTENT
-    builder.build(output_dir=export_path)
+    container.with_volume(
+        {"target": "/var/lib/postgresql/data", "is_read_only": False, "name": "pgdata"}
+    ).with_volume(
+        {"target": "/var/lib/postgresql/data"}
+    )
+    container.with_lifetime(ContainerLifetime.PERSISTENT).with_lifetime(ContainerLifetime.SESSION)
     verify()
 
 
@@ -1008,28 +944,6 @@ def test_container_with_comprehensive_options(verify_dotnet_apphost):
                                      http_probe={"type": ProbeType.READINESS, "path": "/ready"},
                                      wait_for=db,
                                      certificate_trust_scope=CertificateTrustScope.APPEND)
-
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_with_multiple_property_setters(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-
-    db = builder.add_connection_string("db")
-    api_key = builder.add_parameter("apikey", "key123")
-
-    container = builder.add_container("mycontainer", "myapp")
-    container.environment = ("API_KEY", api_key)
-    container.reference = db
-    container.http_endpoint = {"port": 8080}
-    container.bind_mount = ("/host/data", "/container/data")
-    container.entrypoint = "/app/start.sh"
-    container.container_name = "custom-container"
-    container.lifetime = ContainerLifetime.PERSISTENT
-    container.volume = {"target": "/app/data"}
-    container.wait_for = db
 
     builder.build(output_dir=export_path)
     verify()
@@ -1158,145 +1072,3 @@ def test_container_with_dockerfile_build(verify_dotnet_apphost):
 
     builder.build(output_dir=export_path)
     verify()
-
-
-# Tests for property getters (write-only properties should raise TypeError)
-def test_container_publish_as_container_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    with pytest.raises(TypeError, match="publish_as_container is write-only"):
-        _ = container.publish_as_container
-
-
-def test_container_bind_mount_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    with pytest.raises(TypeError, match="bind_mount is write-only"):
-        _ = container.bind_mount
-
-
-def test_container_bind_mounts_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    with pytest.raises(TypeError, match="bind_mounts is write-only"):
-        _ = container.bind_mounts
-
-
-def test_container_build_arg_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "myapp")
-    with pytest.raises(TypeError, match="build_arg is write-only"):
-        _ = container.build_arg
-
-
-def test_container_build_args_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "myapp")
-    with pytest.raises(TypeError, match="build_args is write-only"):
-        _ = container.build_args
-
-
-def test_container_build_secret_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "myapp")
-    with pytest.raises(TypeError, match="build_secret is write-only"):
-        _ = container.build_secret
-
-
-def test_container_build_secrets_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "myapp")
-    with pytest.raises(TypeError, match="build_secrets is write-only"):
-        _ = container.build_secrets
-
-
-def test_container_container_files_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    with pytest.raises(TypeError, match="container_files is write-only"):
-        _ = container.container_files
-
-
-def test_container_container_runtime_args_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    with pytest.raises(TypeError, match="container_runtime_args is write-only"):
-        _ = container.container_runtime_args
-
-
-def test_container_dockerfile_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "myapp")
-    with pytest.raises(TypeError, match="dockerfile is write-only"):
-        _ = container.dockerfile
-
-
-def test_container_container_name_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    with pytest.raises(TypeError, match="container_name is write-only"):
-        _ = container.container_name
-
-
-def test_container_endpoint_proxy_support_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    with pytest.raises(TypeError, match="endpoint_proxy_support is write-only"):
-        _ = container.endpoint_proxy_support
-
-
-def test_container_entrypoint_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "myapp")
-    with pytest.raises(TypeError, match="entrypoint is write-only"):
-        _ = container.entrypoint
-
-
-def test_container_image_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    with pytest.raises(TypeError, match="image is write-only"):
-        _ = container.image
-
-
-def test_container_image_pull_policy_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    with pytest.raises(TypeError, match="image_pull_policy is write-only"):
-        _ = container.image_pull_policy
-
-
-def test_container_image_registry_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    with pytest.raises(TypeError, match="image_registry is write-only"):
-        _ = container.image_registry
-
-
-def test_container_image_sha256_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    with pytest.raises(TypeError, match="image_sha256 is write-only"):
-        _ = container.image_sha256
-
-
-def test_container_image_tag_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    with pytest.raises(TypeError, match="image_tag is write-only"):
-        _ = container.image_tag
-
-
-def test_container_lifetime_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx")
-    with pytest.raises(TypeError, match="lifetime is write-only"):
-        _ = container.lifetime
-
-
-def test_container_volume_getter_raises():
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "postgres")
-    with pytest.raises(TypeError, match="volume is write-only"):
-        _ = container.volume
-

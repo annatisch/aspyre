@@ -254,63 +254,6 @@ def test_project_with_wait_for_start(verify_dotnet_apphost):
     verify()
 
 
-# Tests for property setters
-def test_project_disable_forwarded_headers_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    project = builder.add_project("myproject", "../MyProject/MyProject.csproj")
-    project.disable_forwarded_headers = True
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_project_replicas_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    project = builder.add_project("myproject", "../MyProject/MyProject.csproj")
-    project.replicas = 4
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_project_environment_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    project = builder.add_project("myproject", "../MyProject/MyProject.csproj")
-    project.environment = ("DEBUG", "true")
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_project_reference_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    conn = builder.add_connection_string("db")
-    project = builder.add_project("myproject", "../MyProject/MyProject.csproj")
-    project.reference = conn
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_project_http_endpoint_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    project = builder.add_project("myproject", "../MyProject/MyProject.csproj")
-    project.http_endpoint = {"port": 5000}
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_project_wait_for_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    db = builder.add_connection_string("db")
-    project = builder.add_project("myproject", "../MyProject/MyProject.csproj")
-    project.wait_for = db
-    builder.build(output_dir=export_path)
-    verify()
-
-
 # Tests combining multiple options
 def test_project_with_comprehensive_options(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
@@ -347,13 +290,13 @@ def test_project_with_multiple_property_setters(verify_dotnet_apphost):
     api_key = builder.add_parameter("apikey", "key123")
 
     project = builder.add_project("myproject", "../MyProject/MyProject.csproj")
-    project.replicas = 2
-    project.disable_forwarded_headers = True
-    project.environment = ("API_KEY", api_key)
-    project.reference = db
-    project.http_endpoint = {"port": 8080}
-    project.wait_for = db
-    project.icon_name = "application"
+    project.with_replicas(2).with_replicas(4)
+    project.disable_forwarded_headers().disable_forwarded_headers()
+    project.with_environment(("API_KEY", api_key)).with_environment(("API_KEY", api_key))
+    project.with_reference(db).with_reference(api_key)
+    project.with_http_endpoint(port=8080).with_http_endpoint(port=8081)
+    project.wait_for(db).wait_for(api_key)
+    project.with_icon_name("application").with_icon_name("application")
 
     builder.build(output_dir=export_path)
     verify()

@@ -104,23 +104,13 @@ def test_connection_string_with_multiple_options(verify_dotnet_apphost):
 def test_connection_string_connection_string_redirection_setter(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
-    conn1 = builder.add_connection_string("primary")
-    conn2 = builder.add_connection_string("secondary")
-    conn2.connection_string_redirection = conn1
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_connection_string_multiple_property_setters(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
     service = builder.add_external_service("myservice", "http://localhost:8080")
     conn1 = builder.add_connection_string("primary")
     conn2 = builder.add_connection_string("secondary")
-
-    conn2.connection_string_redirection = conn1
-    conn2.url = "http://localhost:5432"
-    conn2.icon_name = "database"
+    conn3 = builder.add_connection_string("myconnection")
+    conn3.with_connection_string_redirection(conn1).with_connection_string_redirection(conn2)
+    conn3.with_url("http://localhost:5432").with_url("http://localhost:5433")
+    conn3.with_icon_name("database").with_icon_name(("database2", IconVariant.FILLED))
 
     builder.build(output_dir=export_path)
     verify()

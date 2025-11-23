@@ -154,63 +154,6 @@ def test_add_certificate_authority_collection_with_icon_name(verify_dotnet_appho
     verify()
 
 
-# Tests for property setters
-def test_certificate_authority_collection_certificate_setter_string(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    ca_collection = builder.add_certificate_authority_collection("cacerts")
-    ca_collection.certificate = "./certs/ca.crt"
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_certificate_authority_collection_certificate_setter_bytes(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    ca_collection = builder.add_certificate_authority_collection("cacerts")
-    ca_collection.certificate = b"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t"
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_certificate_authority_collection_certificates_setter_strings(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    ca_collection = builder.add_certificate_authority_collection("cacerts")
-    ca_collection.certificates = ["./certs/ca1.crt", "./certs/ca2.crt", "./certs/ca3.crt"]
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_certificate_authority_collection_certificates_setter_bytes(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    ca_collection = builder.add_certificate_authority_collection("cacerts")
-    cert1 = b"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0xLS0tLQ=="
-    cert2 = b"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0yLS0tLQ=="
-    ca_collection.certificates = [cert1, cert2]
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_certificate_authority_collection_certificates_from_store_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    ca_collection = builder.add_certificate_authority_collection("cacerts")
-    ca_collection.certificates_from_store = (StoreName.ROOT, StoreLocation.LOCAL_MACHINE)
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_certificate_authority_collection_certificates_from_file_setter(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    ca_collection = builder.add_certificate_authority_collection("cacerts")
-    ca_collection.certificates_from_file = "./certs/bundle.pem"
-    builder.build(output_dir=export_path)
-    verify()
-
-
 # Tests for combining multiple options
 def test_certificate_authority_collection_with_multiple_sources(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
@@ -239,10 +182,9 @@ def test_certificate_authority_collection_with_multiple_property_setters(verify_
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     ca_collection = builder.add_certificate_authority_collection("cacerts")
-    ca_collection.certificate = "./certs/root-ca.crt"
-    ca_collection.certificates = ["./certs/intermediate1.crt", "./certs/intermediate2.crt"]
-    ca_collection.certificates_from_store = (StoreName.ROOT, StoreLocation.LOCAL_MACHINE)
-    ca_collection.certificates_from_file = "./certs/bundle.pem"
+    ca_collection.with_certificate("./certs/root-ca.crt").with_certificate("./certs/extra-ca.crt")
+    ca_collection.with_certificates_from_store(StoreName.ROOT, StoreLocation.LOCAL_MACHINE).with_certificates_from_store(StoreName.MY, StoreLocation.CURRENT_USER)
+    ca_collection.with_certificates_from_file("./certs/bundle.pem").with_certificates_from_file("./certs/extra-bundle.pem")
     builder.build(output_dir=export_path)
     verify()
 
@@ -281,35 +223,6 @@ def test_certificate_authority_collection_in_microservices_scenario(verify_dotne
 
     builder.build(output_dir=export_path)
     verify()
-
-
-# Tests for property getters (write-only properties should raise TypeError)
-def test_certificate_authority_collection_certificate_getter_raises():
-    builder = build_distributed_application()
-    ca_collection = builder.add_certificate_authority_collection("cacerts")
-    with pytest.raises(TypeError, match="certificate is write-only"):
-        _ = ca_collection.certificate
-
-
-def test_certificate_authority_collection_certificates_getter_raises():
-    builder = build_distributed_application()
-    ca_collection = builder.add_certificate_authority_collection("cacerts")
-    with pytest.raises(TypeError, match="certificates is write-only"):
-        _ = ca_collection.certificates
-
-
-def test_certificate_authority_collection_certificates_from_store_getter_raises():
-    builder = build_distributed_application()
-    ca_collection = builder.add_certificate_authority_collection("cacerts")
-    with pytest.raises(TypeError, match="certificates_from_store is write-only"):
-        _ = ca_collection.certificates_from_store
-
-
-def test_certificate_authority_collection_certificates_from_file_getter_raises():
-    builder = build_distributed_application()
-    ca_collection = builder.add_certificate_authority_collection("cacerts")
-    with pytest.raises(TypeError, match="certificates_from_file is write-only"):
-        _ = ca_collection.certificates_from_file
 
 
 # Tests for different store names and locations combinations

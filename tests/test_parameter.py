@@ -145,25 +145,7 @@ def test_parameter_description_setter_string(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     param = builder.add_parameter("myconfig")
-    param.description = "Configuration value"
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_parameter_description_setter_tuple(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    param = builder.add_parameter("myconfig")
-    param.description = ("Configuration value", False)
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_parameter_description_setter_with_secret(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    param = builder.add_parameter("mypassword", secret=True)
-    param.description = ("Secret password", True)
+    param.with_description("Configuration value").with_description(("Configuration value v2", False))
     builder.build(output_dir=export_path)
     verify()
 

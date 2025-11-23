@@ -10,6 +10,7 @@ var gateway = builder.AddExecutable("gateway", "node", "/app", new string[] { "g
     .WithHttpEndpoint(8080, null, "http", null, true)
     .WithHttpHealthCheck("/health", null, null)
     .WithIconName("web", IconVariant.Filled);
+#pragma warning disable ASPIREPROBES001
 var users = builder.AddExecutable("users", "python", "/app", new string[] { "user_service.py" })
     .WithEnvironment("DB_PASSWORD", dbpassword)
     .WithReference(db)
@@ -17,6 +18,7 @@ var users = builder.AddExecutable("users", "python", "/app", new string[] { "use
     .WithHttpEndpoint(8001, null, null, null, true)
     .WithHttpProbe(ProbeType.Liveness, "/alive", null, null, null, null, null, null)
     .WaitFor(db);
+#pragma warning restore ASPIREPROBES001
 var products = builder.AddExecutable("products", "python", "/app", new string[] { "product_service.py" })
     .WithEnvironment("DB_PASSWORD", dbpassword)
     .WithReference(db)

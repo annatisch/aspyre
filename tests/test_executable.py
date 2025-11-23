@@ -310,6 +310,7 @@ def test_executable_with_multiple_property_setters(verify_dotnet_apphost):
     executable.with_http_endpoint(port=8080, name="http").with_http_endpoint(port=8081, name="http-alt")
     executable.wait_for(db).wait_for(api_key)
     executable.with_icon_name("application").with_icon_name(("application", IconVariant.FILLED))
+    executable.with_http_probe(type=ProbeType.LIVENESS, path="/alive").with_http_probe(type=ProbeType.READINESS, path="/ready")
 
     builder.build(output_dir=export_path)
     verify()

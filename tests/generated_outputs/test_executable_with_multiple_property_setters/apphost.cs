@@ -20,5 +20,11 @@ myapp.WaitFor(db);
 myapp.WaitFor(apikey);
 myapp.WithIconName("application");
 myapp.WithIconName("application", IconVariant.Filled);
+#pragma warning disable ASPIREPROBES001
+myapp.WithHttpProbe(ProbeType.Liveness, "/alive", null, null, null, null, null, null);
+#pragma warning restore ASPIREPROBES001
+#pragma warning disable ASPIREPROBES001
+myapp.WithHttpProbe(ProbeType.Readiness, "/ready", null, null, null, null, null, null);
+#pragma warning restore ASPIREPROBES001
 
 builder.Build().Run();

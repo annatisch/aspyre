@@ -25,8 +25,14 @@ service3.ExcludeFromMcp();
 service3.ExcludeFromMcp();
 service3.WithExplicitStart();
 service3.WithExplicitStart();
+#pragma warning disable ASPIREDOCKERFILEBUILDER001
 service3.WithDockerfileBaseImage("mcr.microsoft.com/dotnet/sdk:8.0", null);
+#pragma warning restore ASPIREDOCKERFILEBUILDER001
+#pragma warning disable ASPIREDOCKERFILEBUILDER001
 service3.WithDockerfileBaseImage(null, "mcr.microsoft.com/dotnet/sdk:8.0");
+#pragma warning restore ASPIREDOCKERFILEBUILDER001
+#pragma warning disable ASPIREDOCKERFILEBUILDER001
 service3.WithDockerfileBaseImage();
+#pragma warning restore ASPIREDOCKERFILEBUILDER001
 
 builder.Build().Run();

@@ -9,19 +9,15 @@ from typing import (
     Any,
     Iterable,
     Literal,
-    NoReturn,
-    Optional,
     Required,
-    TypeAlias,
-    MutableSequence,
-    Union,
     Unpack,
     cast,
     Self,
+    Annotated
 )
 from typing_extensions import TypedDict
 
-from aspyre._utils import (
+from .._utils import (
     format_bool,
     format_byte_array,
     format_enum,
@@ -31,6 +27,7 @@ from aspyre._utils import (
     get_nullable_from_map,
     get_nullable_from_tuple,
 )
+from .._annotations import experimental, Warnings
 from ._models import (
     CertificateTrustScope,
     ContainerLifetime,
@@ -76,7 +73,7 @@ class ResourceOptions(TypedDict, total=False):
     icon_name: str | tuple[str, IconVariant]
     """Specifies the icon to use when displaying the resource in the dashboard. Either icon name string,
     or tuple of (icon_name, icon_variant). The default icon variant is Filled."""
-    dockerfile_base_image: Literal[True] | Mapping[str, str]
+    dockerfile_base_image: Annotated[Literal[True] | Mapping[str, str], Warnings(experimental="ASPIREDOCKERFILEBUILDER001")]
 
 
 class Resource:
@@ -132,10 +129,11 @@ class Resource:
         return self
 
     def with_dockerfile_base_image(self, *, build_image: str | None = None, runtime_image: str | None = None) -> Self:
-        if build_image is None and runtime_image is None:
-            self._builder.write(f'\n{self.name}.WithDockerfileBaseImage();')
-        else:
-            self._builder.write(f'\n{self.name}.WithDockerfileBaseImage({get_nullable_value(build_image)}, {get_nullable_value(runtime_image)});')
+        with experimental(self._builder, "with_dockerfile_base_image", self.__class__, "ASPIREDOCKERFILEBUILDER001"):
+            if build_image is None and runtime_image is None:
+                self._builder.write(f'\n{self.name}.WithDockerfileBaseImage();')
+            else:
+                self._builder.write(f'\n{self.name}.WithDockerfileBaseImage({get_nullable_value(build_image)}, {get_nullable_value(runtime_image)});')
         return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceOptions]) -> None:
@@ -260,7 +258,7 @@ class ResourceWithEndpointsOptions(TypedDict, total=False):
     http_endpoint: EndpointConfiguration
     https_endpoint: EndpointConfiguration
     http_health_check: HttpHealthCheckConfiguration
-    http_probe: HttpProbeConfiguration
+    http_probe: Annotated[HttpProbeConfiguration, Warnings(experimental="ASPIREPROBES001")]
 
 
 class ResourceWithEndpoints:
@@ -324,15 +322,16 @@ class ResourceWithEndpoints:
     def with_http_probe(self, **kwargs: Unpack[HttpProbeConfiguration]) -> Self:
         self._builder: StringIO
         self.name: str
-        path = get_nullable_from_map(kwargs, "path")
-        initial_delay_seconds = get_nullable_from_map(kwargs, "initial_delay_seconds")
-        period_seconds = get_nullable_from_map(kwargs, "period_seconds")
-        timeout_seconds = get_nullable_from_map(kwargs, "timeout_seconds")
-        failure_threshold = get_nullable_from_map(kwargs, "failure_threshold")
-        success_threshold = get_nullable_from_map(kwargs, "success_threshold")
-        endpoint_name = get_nullable_from_map(kwargs, "endpoint_name")
-        self._builder.write(f'\n{self.name}.WithHttpProbe({format_enum(kwargs["type"])}, {path}, {initial_delay_seconds}, {period_seconds}, {timeout_seconds}, {failure_threshold}, {success_threshold}, {endpoint_name});')
-        return self
+        with experimental(self._builder, "with_http_probe", self.__class__, "ASPIREPROBES001"):
+            path = get_nullable_from_map(kwargs, "path")
+            initial_delay_seconds = get_nullable_from_map(kwargs, "initial_delay_seconds")
+            period_seconds = get_nullable_from_map(kwargs, "period_seconds")
+            timeout_seconds = get_nullable_from_map(kwargs, "timeout_seconds")
+            failure_threshold = get_nullable_from_map(kwargs, "failure_threshold")
+            success_threshold = get_nullable_from_map(kwargs, "success_threshold")
+            endpoint_name = get_nullable_from_map(kwargs, "endpoint_name")
+            self._builder.write(f'\n{self.name}.WithHttpProbe({format_enum(kwargs["type"])}, {path}, {initial_delay_seconds}, {period_seconds}, {timeout_seconds}, {failure_threshold}, {success_threshold}, {endpoint_name});')
+            return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithEndpointsOptions]) -> None:
         if kwargs.pop("http2_service", None) is True:
@@ -381,21 +380,22 @@ class ResourceWithEndpoints:
 
 
 class ResourceWithProbesOptions(TypedDict, total=False):
-    http_probe: HttpProbeConfiguration
+    http_probe: Annotated[HttpProbeConfiguration, Warnings(experimental="ASPIREPROBES001")]
 
 
 class ResourceWithProbes:
     def with_http_probe(self, **kwargs: Unpack[HttpProbeConfiguration]) -> Self:
         self._builder: StringIO
         self.name: str
-        path = get_nullable_from_map(kwargs, "path")
-        initial_delay_seconds = get_nullable_from_map(kwargs, "initial_delay_seconds")
-        period_seconds = get_nullable_from_map(kwargs, "period_seconds")
-        timeout_seconds = get_nullable_from_map(kwargs, "timeout_seconds")
-        failure_threshold = get_nullable_from_map(kwargs, "failure_threshold")
-        success_threshold = get_nullable_from_map(kwargs, "success_threshold")
-        endpoint_name = get_nullable_from_map(kwargs, "endpoint_name")
-        self._builder.write(f'\n{self.name}.WithHttpProbe({format_enum(kwargs["type"])}, {path}, {initial_delay_seconds}, {period_seconds}, {timeout_seconds}, {failure_threshold}, {success_threshold}, {endpoint_name});')
+        with experimental(self._builder, "with_http_probe", self.__class__, "ASPIREPROBES001"):
+            path = get_nullable_from_map(kwargs, "path")
+            initial_delay_seconds = get_nullable_from_map(kwargs, "initial_delay_seconds")
+            period_seconds = get_nullable_from_map(kwargs, "period_seconds")
+            timeout_seconds = get_nullable_from_map(kwargs, "timeout_seconds")
+            failure_threshold = get_nullable_from_map(kwargs, "failure_threshold")
+            success_threshold = get_nullable_from_map(kwargs, "success_threshold")
+            endpoint_name = get_nullable_from_map(kwargs, "endpoint_name")
+            self._builder.write(f'\n{self.name}.WithHttpProbe({format_enum(kwargs["type"])}, {path}, {initial_delay_seconds}, {period_seconds}, {timeout_seconds}, {failure_threshold}, {success_threshold}, {endpoint_name});')
         return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithProbesOptions]) -> None:
@@ -922,7 +922,7 @@ class ContainerResourceOptions(ResourceOptions, ResourceWithEnvironmentOptions, 
     container_runtime_args: Iterable[str]
     container_name: str
     dockerfile: str | tuple[str, Mapping[str, str]]
-    endpoint_proxy_support: bool
+    endpoint_proxy_support: Annotated[bool, Warnings(experimental="ASPIREPROXYENDPOINTS001")]
     entrypoint: str
     image: str | tuple[str, str]
     image_pull_policy: ImagePullPolicy
@@ -1029,7 +1029,8 @@ class ContainerResource(ResourceWithEnvironment, ResourceWithArgs, ResourceWithE
     def with_endpoint_proxy_support(self, value: bool) -> Self:
         self._builder: StringIO
         self.name: str
-        self._builder.write(f'\n{self.name}.WithEndpointProxySupport({format_bool(value)});')
+        with experimental(self._builder, "with_endpoint_proxy_support", self.__class__, "ASPIREPROXYENDPOINTS001"):
+            self._builder.write(f'\n{self.name}.WithEndpointProxySupport({format_bool(value)});')
         return self
 
     def with_entrypoint(self, value: str) -> Self:

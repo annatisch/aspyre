@@ -6,6 +6,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var apikey = builder.AddParameter("apikey", "dev-key-123", false, true);
 var db = builder.AddConnectionString("db", "DATABASE_URL");
 var payments = builder.AddExternalService("payments", "https://payments.example.com");
+#pragma warning disable ASPIREPROBES001
 var api = builder.AddProject(name: "api", projectPath: "../API/API.csproj", launchProfileName: "Development")
     .DisableForwardedHeaders()
     .WithReplicas(3)
@@ -23,6 +24,7 @@ var api = builder.AddProject(name: "api", projectPath: "../API/API.csproj", laun
     .WithHealthCheck("https://localhost:5001/health")
     .WithReferenceRelationship(apikey)
     .WithIconName("web", IconVariant.Filled);
+#pragma warning restore ASPIREPROBES001
 var worker = builder.AddProject(name: "worker", projectPath: "../Worker/Worker.csproj", launchProfileName: "Development")
     .WithEnvironment("API_KEY", apikey)
     .WithReference(db)

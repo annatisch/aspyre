@@ -5,6 +5,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var apikey = builder.AddParameter("apikey", "secret-key", false, true);
 var db = builder.AddConnectionString("db", "DATABASE_URL");
+#pragma warning disable ASPIREPROBES001
 var mycontainer = builder.AddContainer("mycontainer", "myapp", "1.0.0")
     .PublishAsContainer()
     .WithBindMount(source: "/host/data", target: "/app/data", isReadOnly: true )
@@ -25,5 +26,6 @@ var mycontainer = builder.AddContainer("mycontainer", "myapp", "1.0.0")
     .WaitFor(db)
     .WithUrl("http://localhost:8080")
     .WithIconName("box", IconVariant.Filled);
+#pragma warning restore ASPIREPROBES001
 
 builder.Build().Run();

@@ -4,6 +4,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var db = builder.AddConnectionString("db");
+#pragma warning disable ASPIREDOCKERFILEBUILDER001
 var pythonapp = builder.AddExecutable("pythonapp", "python", "/app", new string[] { "main.py" })
     .PublishAsDockerFile()
     .WithEnvironment("PORT", "8080")
@@ -11,5 +12,6 @@ var pythonapp = builder.AddExecutable("pythonapp", "python", "/app", new string[
     .WithReference(db)
     .WithHttpEndpoint(8080, null, null, null, true)
     .WithDockerfileBaseImage("python:3.11", "python:3.11-slim");
+#pragma warning restore ASPIREDOCKERFILEBUILDER001
 
 builder.Build().Run();

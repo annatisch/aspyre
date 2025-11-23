@@ -20,6 +20,7 @@ var auth = builder.AddContainer("auth", "myapp-auth", "latest")
     .WithHttpEndpoint(8081, null, null, null, true)
     .WithHttpHealthCheck("/health", null, null)
     .WaitForStart(postgres);
+#pragma warning disable ASPIREPROBES001
 var api = builder.AddContainer("api", "myapp-api", "latest")
     .WithHttpEndpoint(8080, null, null, null, true)
     .WithHttpsEndpoint(8443, null, null, null, true)
@@ -28,6 +29,7 @@ var api = builder.AddContainer("api", "myapp-api", "latest")
     .WaitForStart(postgres)
     .WaitForStart(redis)
     .WaitForStart(auth);
+#pragma warning restore ASPIREPROBES001
 var worker = builder.AddContainer("worker", "myapp-worker", "latest")
     .WaitForStart(postgres)
     .WaitForStart(rabbitmq);

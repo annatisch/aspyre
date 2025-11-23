@@ -14,12 +14,7 @@ import functools
 import re
 
 
-SUPPRESS_WARNINGS = [
-    "ASPIREDOCKERFILEBUILDER001",
-    "ASPIREPROBES001",
-    "ASPIREPROXYENDPOINTS001",
-    "ASPIRECSHARPAPPS001",
-]
+SUPPRESS_WARNINGS = []
 DOTNET_ERRORS = re.compile(r"^(?P<file>.*)\((?P<line>\d+),(?P<column>\d+)\):\s+(?P<type>error|warning)\s+(?P<code>\w+):\s*(?P<message>.*)")
 
 def _generate_suffix(length: int = 5, /) -> str:
@@ -33,8 +28,10 @@ def _get_output_dir() -> pathlib.Path:
 
 def _build_outputs(record_dir: pathlib.Path):
     apphost = record_dir / "apphost.cs"
-    suppressions = ",".join(SUPPRESS_WARNINGS)
-    args = ["dotnet", "build", apphost, f"/p:NoWarn={suppressions}"]
+    args = ["dotnet", "build", apphost]
+    if SUPPRESS_WARNINGS:
+        suppressions = ",".join(SUPPRESS_WARNINGS)
+        args.append("/p:NoWarn=" + suppressions)
     output = subprocess.run(args, check=False, capture_output=True, text=True)
     if output.returncode != 0:
         errors = []

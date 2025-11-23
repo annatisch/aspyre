@@ -4,7 +4,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var db = builder.AddConnectionString("db");
-var apikey = builder.AddParameter("apikey", "key123", false, false);
+var apikey = builder.AddExternalService("apikey", "https://api.service.com/key");
 var myapp = builder.AddExecutable("myapp", "python", "/app", new string[] { "app.py" });
 myapp.WithCommand("python3");
 myapp.WithCommand("python3 -u");
@@ -14,6 +14,7 @@ myapp.PublishAsDockerFile();
 myapp.WithEnvironment("API_KEY", apikey);
 myapp.WithEnvironment("DEBUG", "true");
 myapp.WithReference(db);
+myapp.WithReference(apikey);
 myapp.WithHttpEndpoint(8080, null, "http", null, true);
 myapp.WithHttpEndpoint(8081, null, "http-alt", null, true);
 myapp.WaitFor(db);

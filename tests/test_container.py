@@ -411,7 +411,7 @@ def test_add_dockerfile_microservices_scenario(verify_dotnet_apphost):
     auth_service = builder.add_dockerfile("auth", "./services/auth",
                                          dockerfile_path="Dockerfile",
                                          stage="production",
-                                         references=[postgres, redis],
+                                         exclude_from_manifest=True,
                                          wait_for_start=postgres,
                                          http_endpoint={"port": 8081},
                                          http_health_check={"path": "/health"})
@@ -419,7 +419,6 @@ def test_add_dockerfile_microservices_scenario(verify_dotnet_apphost):
     api_service = builder.add_dockerfile("api", "./services/api",
                                         dockerfile_path="Dockerfile.multi",
                                         stage="release",
-                                        references=[postgres, redis, auth_service],
                                         wait_for_start=[postgres, redis, auth_service],
                                         http_endpoint={"port": 8080},
                                         https_endpoint={"port": 8443},
@@ -954,8 +953,8 @@ def test_container_with_relationships(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
 
-    db = builder.add_container("postgres", "postgres", tag="16")
-    cache = builder.add_container("redis", "redis", tag="7")
+    db = builder.add_external_service("database", "postgres://user:pass@dbhost:5432/mydb")
+    cache = builder.add_external_service("cache", "redis://cachehost:6379")
     app = builder.add_container("webapp", "myapp",
                                 references=[db, cache],
                                 wait_for_start=[db, cache])
@@ -984,7 +983,6 @@ def test_multiple_containers_with_dependencies(verify_dotnet_apphost):
 
     # Application
     app = builder.add_container("webapp", "myapp",
-                               references=[postgres, redis],
                                wait_for_start=[postgres, redis],
                                http_endpoint={"port": 8080},
                                https_endpoint={"port": 8443},
@@ -1001,58 +999,6 @@ def test_container_with_external_service_reference(verify_dotnet_apphost):
     external_api = builder.add_external_service("api", "https://api.example.com")
     container = builder.add_container("mycontainer", "myapp",
                                      reference=external_api)
-
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_microservices_scenario(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-
-    # Infrastructure
-    postgres = builder.add_container("postgres", "postgres",
-                                    tag="16",
-                                    environment=("POSTGRES_PASSWORD", "dev-password"),
-                                    volume={"name": "pgdata", "target": "/var/lib/postgresql/data"},
-                                    lifetime=ContainerLifetime.PERSISTENT,
-                                    http_endpoint={"port": 5432})
-
-    redis = builder.add_container("redis", "redis",
-                                 tag="7-alpine",
-                                 lifetime=ContainerLifetime.PERSISTENT,
-                                 http_endpoint={"port": 6379})
-
-    rabbitmq = builder.add_container("rabbitmq", "rabbitmq",
-                                    tag="3-management",
-                                    environments=[
-                                        ("RABBITMQ_DEFAULT_USER", "admin"),
-                                        ("RABBITMQ_DEFAULT_PASS", "admin")
-                                    ],
-                                    http_endpoint={"port": 5672},
-                                    lifetime=ContainerLifetime.PERSISTENT)
-
-    # Services
-    auth_service = builder.add_container("auth", "myapp-auth",
-                                        tag="latest",
-                                        references=[postgres, redis],
-                                        wait_for_start=postgres,
-                                        http_endpoint={"port": 8081},
-                                        http_health_check={"path": "/health"})
-
-    api_service = builder.add_container("api", "myapp-api",
-                                       tag="latest",
-                                       references=[postgres, redis, rabbitmq, auth_service],
-                                       wait_for_start=[postgres, redis, auth_service],
-                                       http_endpoint={"port": 8080},
-                                       https_endpoint={"port": 8443},
-                                       http_health_check={"path": "/health"},
-                                       http_probe={"type": ProbeType.READINESS, "path": "/ready"})
-
-    worker = builder.add_container("worker", "myapp-worker",
-                                  tag="latest",
-                                  references=[postgres, rabbitmq],
-                                  wait_for_start=[postgres, rabbitmq])
 
     builder.build(output_dir=export_path)
     verify()

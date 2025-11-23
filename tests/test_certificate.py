@@ -23,6 +23,16 @@ def test_add_certificate_authority_collection_basic(verify_dotnet_apphost):
     verify()
 
 
+def test_add_certificate_authority_collection_invalid_name(verify_dotnet_apphost):
+    export_path, verify = verify_dotnet_apphost
+    builder = build_distributed_application()
+    with pytest.raises(ValueError):
+        builder.add_certificate_authority_collection("ca-certs_invalid.name!")
+    builder.add_certificate_authority_collection("ca-certs-validname")
+    builder.build(output_dir=export_path)
+    verify()
+
+
 def test_add_certificate_authority_collection_with_certificate_string(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
@@ -196,7 +206,8 @@ def test_certificate_authority_collection_with_container_reference(verify_dotnet
     ca_collection = builder.add_certificate_authority_collection("cacerts",
                                                                  certificates_from_store=(StoreName.ROOT, StoreLocation.LOCAL_MACHINE))
     container = builder.add_container("webapp", "nginx",
-                                     reference=ca_collection)
+                                     certificate_authority_collection=ca_collection,
+                                     developer_certificate_trust=True)
     builder.build(output_dir=export_path)
     verify()
 
@@ -212,14 +223,16 @@ def test_certificate_authority_collection_in_microservices_scenario(verify_dotne
 
     # Services that need the CA certificates
     auth_service = builder.add_container("auth", "auth-service",
-                                        reference=ca_certs,
                                         http_endpoint={"port": 8081},
                                         https_endpoint={"port": 8444})
+    auth_service.with_certificate_authority_collection(ca_certs)
+    auth_service.with_developer_certificate_trust(False)
 
     api_service = builder.add_container("api", "api-service",
-                                       references=[ca_certs],
                                        http_endpoint={"port": 8080},
                                        https_endpoint={"port": 8443})
+    api_service.with_certificate_authority_collection(ca_certs)
+    api_service.with_developer_certificate_trust(True)
 
     builder.build(output_dir=export_path)
     verify()

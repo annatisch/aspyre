@@ -10,8 +10,12 @@ var cacerts = builder.AddCertificateAuthorityCollection("cacerts")
 var auth = builder.AddContainer("auth", "auth-service")
     .WithHttpEndpoint(8081, null, null, null, true)
     .WithHttpsEndpoint(8444, null, null, null, true);
+auth.WithCertificateAuthorityCollection(cacerts);
+auth.WithDeveloperCertificateTrust(false);
 var api = builder.AddContainer("api", "api-service")
     .WithHttpEndpoint(8080, null, null, null, true)
     .WithHttpsEndpoint(8443, null, null, null, true);
+api.WithCertificateAuthorityCollection(cacerts);
+api.WithDeveloperCertificateTrust(true);
 
 builder.Build().Run();

@@ -3,10 +3,12 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var postgres = builder.AddContainer("postgres", "postgres", "16");
-var redis = builder.AddContainer("redis", "redis", "7");
+var database = builder.AddExternalService("database", "postgres://user:pass@dbhost:5432/mydb");
+var cache = builder.AddExternalService("cache", "redis://cachehost:6379");
 var webapp = builder.AddContainer("webapp", "myapp")
-    .WaitForStart(postgres)
-    .WaitForStart(redis);
+    .WithReference(database)
+    .WithReference(cache)
+    .WaitForStart(database)
+    .WaitForStart(cache);
 
 builder.Build().Run();

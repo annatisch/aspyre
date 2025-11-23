@@ -12,7 +12,6 @@ myproject.DisableForwardedHeaders();
 myproject.DisableForwardedHeaders();
 myproject.WithEnvironment("API_KEY", apikey);
 myproject.WithEnvironment("API_KEY", apikey);
-myproject.WithReference(db);
 myproject.WithHttpEndpoint(8080, null, null, null, true);
 myproject.WithHttpEndpoint(8081, null, null, null, true);
 myproject.WaitFor(db);

@@ -14,7 +14,8 @@ var redis = builder.AddContainer("redis", "redis", "7-alpine")
 var auth = builder.AddDockerfile("auth", "./services/auth", "Dockerfile", "production")
     .WithHttpEndpoint(8081, null, null, null, true)
     .WithHttpHealthCheck("/health", null, null)
-    .WaitForStart(postgres);
+    .WaitForStart(postgres)
+    .ExcludeFromManifest();
 var api = builder.AddDockerfile("api", "./services/api", "Dockerfile.multi", "release")
     .WithHttpEndpoint(8080, null, null, null, true)
     .WithHttpsEndpoint(8443, null, null, null, true)

@@ -5,6 +5,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var cacerts = builder.AddCertificateAuthorityCollection("cacerts")
     .WithCertificatesFromStore(StoreName.Root, StoreLocation.LocalMachine);
-var webapp = builder.AddContainer("webapp", "nginx");
+var webapp = builder.AddContainer("webapp", "nginx")
+    .WithDeveloperCertificateTrust(true)
+    .WithCertificateAuthorityCollection(cacerts);
 
 builder.Build().Run();

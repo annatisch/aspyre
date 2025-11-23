@@ -299,7 +299,7 @@ def test_executable_with_multiple_property_setters(verify_dotnet_apphost):
     builder = build_distributed_application()
 
     db = builder.add_connection_string("db")
-    api_key = builder.add_parameter("apikey", "key123")
+    api_key = builder.add_external_service("apikey", "https://api.service.com/key")
 
     executable = builder.add_executable("myapp", "python", "/app", args=["app.py"])
     executable.with_command("python3").with_command("python3 -u")
@@ -335,6 +335,7 @@ def test_multiple_executables_with_dependencies(verify_dotnet_apphost):
 
     # Database
     db = builder.add_connection_string("db", env_var="DATABASE_URL")
+    telemetry = builder.add_connection_string("telemetry", env_var="TELEMETRY_URL")
 
     # API service
     api = builder.add_executable("api", "python", "/app",
@@ -346,7 +347,7 @@ def test_multiple_executables_with_dependencies(verify_dotnet_apphost):
     # Worker that depends on API
     worker = builder.add_executable("worker", "python", "/app",
                                     args=["worker.py"],
-                                    references=[db, api],
+                                    references=[db, telemetry],
                                     wait_for_start=api)
 
     builder.build(output_dir=export_path)
@@ -404,14 +405,13 @@ def test_executable_microservices_scenario(verify_dotnet_apphost):
     # Order service that depends on both
     order_service = builder.add_executable("orders", "python", "/app",
                                            args=["order_service.py"],
-                                           references=[db, user_service, product_service],
+                                           references=[db, redis, ("products", "http://localhost:8002"), ("users", "http://localhost:8001")],
                                            environment=("DB_PASSWORD", db_password),
                                            http_endpoint={"port": 8003},
                                            wait_for_start=[user_service, product_service],
                                            parent_relationships=[user_service, product_service])
 
     # Update gateway to reference all services
-    gateway.with_reference(user_service).with_reference(product_service).with_reference(order_service)
     gateway.wait_for_start(user_service).wait_for_start(product_service).wait_for_start(order_service)
 
     builder.build(output_dir=export_path)

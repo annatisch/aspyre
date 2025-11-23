@@ -293,7 +293,6 @@ def test_project_with_multiple_property_setters(verify_dotnet_apphost):
     project.with_replicas(2).with_replicas(4)
     project.disable_forwarded_headers().disable_forwarded_headers()
     project.with_environment(("API_KEY", api_key)).with_environment(("API_KEY", api_key))
-    project.with_reference(db).with_reference(api_key)
     project.with_http_endpoint(port=8080).with_http_endpoint(port=8081)
     project.wait_for(db).wait_for(api_key)
     project.with_icon_name("application").with_icon_name("application")

@@ -44,9 +44,6 @@ from ._models import (
 )
 
 
-EndpointReference = object  # TODO: implement EndpointReference
-
-
 class ResourceOptions(TypedDict, total=False):
     url: str | tuple[str, str]
     """Adds a URL to be displayed for the resource. Either url string, or tuple of (url, display_text)."""
@@ -437,10 +434,10 @@ class ResourceWithConnectionString:
 
 
 class ResourceWithEnvironmentOptions(TypedDict, total=False):
-    environment: tuple[str, EndpointReference | ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None]
-    environments: Iterable[tuple[str, EndpointReference | ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None]]
-    reference: EndpointReference | ExternalServiceResource | ResourceWithServiceDiscovery | tuple[str, str] | ResourceWithConnectionString
-    references: Iterable[EndpointReference | ExternalServiceResource | ResourceWithServiceDiscovery | tuple[str, str] | ResourceWithConnectionString]
+    environment: tuple[str, ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None]
+    environments: Iterable[tuple[str, ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None]]
+    reference: ExternalServiceResource | ResourceWithServiceDiscovery | tuple[str, str] | ResourceWithConnectionString
+    references: Iterable[ExternalServiceResource | ResourceWithServiceDiscovery | tuple[str, str] | ResourceWithConnectionString]
     otlp_exporter: Literal[True] | OtlpProtocol
     reference_environment: ReferenceEnvironment
     certificate_trust_scope: CertificateTrustScope
@@ -449,33 +446,33 @@ class ResourceWithEnvironmentOptions(TypedDict, total=False):
 
 
 class ResourceWithEnvironment:
-    def with_environment(self, value: tuple[str, EndpointReference | ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None]) -> Self:
+    def with_environment(self, value: tuple[str, ParameterResource | ResourceWithConnectionString | ExternalServiceResource | str | None]) -> Self:
         name, ref = value
         self._builder: StringIO
         self.name: str
-        # if isinstance(ref, EndpointReference):
-        #     self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {ref});')  # TODO: fix EndpointReference string representation
         if isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
             self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {cast(Resource, ref).name});')
         elif isinstance(ref, ExternalServiceResource):
             self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {cast(Resource, ref).name});')
-        else:
+        elif ref is None or isinstance(ref, str):
             self._builder.write(f'\n{self.name}.WithEnvironment({format_string(name)}, {get_nullable_value(ref)});')
+        else:
+            raise TypeError(f"Invalid environment type provided: {type(ref)}")
         return self
 
-    def with_reference(self, value: EndpointReference | ExternalServiceResource | ResourceWithServiceDiscovery | tuple[str, str] | ResourceWithConnectionString | Mapping[str, Any]) -> Self:
+    def with_reference(self, value: ExternalServiceResource | ResourceWithServiceDiscovery | tuple[str, str] | ResourceWithConnectionString | Mapping[str, Any]) -> Self:
         self._builder: StringIO
         self.name: str
-        # if isinstance(value, EndpointReference):  # TODO
-        #     self._builder.write(f'\n{self.name}.WithReference({value});')  # TODO: fix EndpointReference string representation
         if isinstance(value, ExternalServiceResource):
             self._builder.write(f'\n{self.name}.WithReference({cast(Resource, value).name});')
         elif isinstance(value, ResourceWithServiceDiscovery):
             self._builder.write(f'\n{self.name}.WithReference({cast(Resource, value).name});')
         elif isinstance(value, tuple):
-            self._builder.write(f'\n{self.name}.WithReference({format_string(value[0])}, {format_string(value[1])});')
+            self._builder.write(f'\n{self.name}.WithReference({format_string(value[0])}, new System.Uri({format_string(value[1])}));')
         elif isinstance(value, ResourceWithConnectionString):
             self._builder.write(f'\n{self.name}.WithReference({cast(Resource, value).name});')
+        else:
+            raise TypeError(f"Invalid reference type provided: {type(value)}")
         return self
 
     def with_otlp_exporter(self, value: OtlpProtocol | None = None) -> Self:
@@ -514,36 +511,36 @@ class ResourceWithEnvironment:
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithEnvironmentOptions]) -> None:
         if environment := kwargs.pop("environment", None):
             env_name, ref = environment
-            # if isinstance(ref, EndpointReference):
-            #     builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {ref})')
             if isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
                 builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {cast(Resource, ref).name})')
             elif isinstance(ref, ExternalServiceResource):
                 builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {cast(Resource, ref).name})')
-            else:
+            elif ref is None or isinstance(ref, str):
                 builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {get_nullable_value(ref)})')
+            else:
+                raise TypeError(f"Invalid environment type provided: {type(ref)}")
         if environments := kwargs.pop("environments", None):
             for env in environments:
                 env_name, ref = env
-                # if isinstance(ref, EndpointReference):
-                #     builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {ref})')
                 if isinstance(ref, ParameterResource) or isinstance(ref, ResourceWithConnectionString):
                     builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {cast(Resource, ref).name})')
                 elif isinstance(ref, ExternalServiceResource):
                     builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {cast(Resource, ref).name})')
-                else:
+                elif ref is None or isinstance(ref, str):
                     builder.write(f'\n    .WithEnvironment({format_string(env_name)}, {get_nullable_value(ref)})')
+                else:
+                    raise TypeError(f"Invalid environment type provided: {type(ref)}")
         if reference := kwargs.pop("reference", None):
-            # if isinstance(reference, EndpointReference):
-            #     builder.write(f'\n    .WithReference({reference})')
             if isinstance(reference, ExternalServiceResource):
                 builder.write(f'\n    .WithReference({cast(Resource, reference).name})')
             elif isinstance(reference, ResourceWithServiceDiscovery):
                 builder.write(f'\n    .WithReference({cast(Resource, reference).name})')
             elif isinstance(reference, tuple):
-                builder.write(f'\n    .WithReference({format_string(reference[0])}, {format_string(reference[1])})')
+                builder.write(f'\n    .WithReference({format_string(reference[0])}, new System.Uri({format_string(reference[1])}))')
             elif isinstance(reference, ResourceWithConnectionString):
                 builder.write(f'\n    .WithReference({cast(Resource, reference).name})')
+            else:
+                raise TypeError(f"Invalid reference type provided: {type(reference)}")
         if references := kwargs.pop("references", None):
             for ref in references:
                 if isinstance(ref, ExternalServiceResource):
@@ -551,11 +548,11 @@ class ResourceWithEnvironment:
                 elif isinstance(ref, ResourceWithServiceDiscovery):
                     builder.write(f'\n    .WithReference({cast(Resource, ref).name})')
                 elif isinstance(ref, tuple):
-                    builder.write(f'\n    .WithReference({format_string(ref[0])}, {format_string(ref[1])})')
+                    builder.write(f'\n    .WithReference({format_string(ref[0])}, new System.Uri({format_string(ref[1])}))')
                 elif isinstance(ref, ResourceWithConnectionString):
                     builder.write(f'\n    .WithReference({cast(Resource, ref).name})')
-                # elif isinstance(ref, EndpointReference):
-                #     builder.write(f'\n    .WithReference({ref})')
+                else:
+                    raise TypeError(f"Invalid reference type provided: {type(ref)}")
         if otlp_exporter := kwargs.pop("otlp_exporter", None):
             if otlp_exporter is True:
                 builder.write(f'\n    .WithOtlpExporter()')

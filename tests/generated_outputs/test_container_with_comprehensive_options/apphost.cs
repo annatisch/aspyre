@@ -1,5 +1,5 @@
-
 #:sdk Aspire.AppHost.Sdk@13.0.0
+
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -23,7 +23,6 @@ var mycontainer = builder.AddContainer("mycontainer", "myapp", "1.0.0")
     .WithHttpHealthCheck("/health", null, null)
     .WithHttpProbe(ProbeType.Readiness, "/ready", null, null, null, null, null, null)
     .WaitFor(db)
-    .WithHttpProbe(ProbeType.Readiness, "/ready", null, null, null, null, null, null)
     .WithUrl("http://localhost:8080")
     .WithIconName("box", IconVariant.Filled);
 

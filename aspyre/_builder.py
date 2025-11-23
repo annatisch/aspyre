@@ -3,14 +3,10 @@
 #   Licensed under the MIT License. See LICENSE in project root for information.
 #   -------------------------------------------------------------
 
-import os
-import shutil
-from typing import Any, Iterable, Mapping, TypedDict, overload
+from typing import Iterable, TypedDict, overload
 from typing_extensions import Unpack
 from io import StringIO
-import subprocess
 import pathlib
-import json
 
 from aspyre._utils import format_bool, format_string, format_string_array, get_nullable_value
 
@@ -23,7 +19,6 @@ from .resources._base import (
     ExecutableResource,
     ExecutableResourceOptions,
     ExternalServiceResource,
-    Resource,
     ResourceOptions,
     ConnectionStringResource,
     ConnectionStringResourceOptions,

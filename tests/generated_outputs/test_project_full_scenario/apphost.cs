@@ -1,5 +1,5 @@
-
 #:sdk Aspire.AppHost.Sdk@13.0.0
+
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -19,7 +19,6 @@ var api = builder.AddProject(name: "api", projectPath: "../API/API.csproj", laun
     .WithHttpHealthCheck("/health", 200, null)
     .WithHttpProbe(ProbeType.Liveness, "/alive", null, null, null, null, null, null)
     .WaitFor(db)
-    .WithHttpProbe(ProbeType.Liveness, "/alive", null, null, null, null, null, null)
     .WithUrl("http://localhost:5000", "API Service")
     .WithHealthCheck("https://localhost:5001/health")
     .WithReferenceRelationship(apikey)

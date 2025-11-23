@@ -1,5 +1,5 @@
-
 #:sdk Aspire.AppHost.Sdk@13.0.0
+
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -27,8 +27,7 @@ var api = builder.AddContainer("api", "myapp-api", "latest")
     .WithHttpProbe(ProbeType.Readiness, "/ready", null, null, null, null, null, null)
     .WaitForStart(postgres)
     .WaitForStart(redis)
-    .WaitForStart(auth)
-    .WithHttpProbe(ProbeType.Readiness, "/ready", null, null, null, null, null, null);
+    .WaitForStart(auth);
 var worker = builder.AddContainer("worker", "myapp-worker", "latest")
     .WaitForStart(postgres)
     .WaitForStart(rabbitmq);

@@ -216,11 +216,11 @@ class ResourceWithArgs:
         return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithArgsOptions]) -> None:
-        if args := kwargs.get("args", None):
+        if args := kwargs.pop("args", None):
             builder.write(f'\n    .WithArgs({format_string_array(args)})')
-        if certificate_trust_scope := kwargs.get("certificate_trust_scope", None):
+        if certificate_trust_scope := kwargs.pop("certificate_trust_scope", None):
             builder.write(f'\n    .WithCertificateTrustScope({format_enum(certificate_trust_scope)})')
-        if developer_certificate_trust := kwargs.get("developer_certificate_trust", None):
+        if developer_certificate_trust := kwargs.pop("developer_certificate_trust", None):
             builder.write(f'\n    .WithDeveloperCertificateTrust({format_bool(developer_certificate_trust)})')
         super().__init__(name=name, builder=builder, **kwargs) # type: ignore Assume Resource is a base class
 
@@ -335,9 +335,9 @@ class ResourceWithEndpoints:
         return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithEndpointsOptions]) -> None:
-        if kwargs.get("http2_service", None) is True:
+        if kwargs.pop("http2_service", None) is True:
             builder.write(f'\n    .AsHttp2Service()')
-        if endpoint := kwargs.get("endpoint", None):
+        if endpoint := kwargs.pop("endpoint", None):
             port = get_nullable_from_map(endpoint, "port")
             target_port = get_nullable_from_map(endpoint, "target_port")
             scheme = get_nullable_from_map(endpoint, "scheme")
@@ -347,28 +347,28 @@ class ResourceWithEndpoints:
             is_external = get_nullable_from_map(endpoint, "is_external", False)
             protocol = get_nullable_from_map(endpoint, "protocol")
             builder.write(f'\n    .WithEndpoint({port}, {target_port}, {scheme}, {name_}, {env}, {is_proxied}, {is_external}, {protocol})')
-        if kwargs.get("external_http_endpoints", None) is True:
+        if kwargs.pop("external_http_endpoints", None) is True:
             builder.write(f'\n    .WithExternalHttpEndpoints()')
-        if http_endpoint := kwargs.get("http_endpoint", None):
+        if http_endpoint := kwargs.pop("http_endpoint", None):
             port = get_nullable_from_map(http_endpoint, "port")
             target_port = get_nullable_from_map(http_endpoint, "target_port")
             name_ = get_nullable_from_map(http_endpoint, "name")
             env = get_nullable_from_map(http_endpoint, "env")
             is_proxied = get_nullable_from_map(http_endpoint, "is_proxied", True)
             builder.write(f'\n    .WithHttpEndpoint({port}, {target_port}, {name_}, {env}, {is_proxied})')
-        if https_endpoint := kwargs.get("https_endpoint", None):
+        if https_endpoint := kwargs.pop("https_endpoint", None):
             port = get_nullable_from_map(https_endpoint, "port")
             target_port = get_nullable_from_map(https_endpoint, "target_port")
             name_ = get_nullable_from_map(https_endpoint, "name")
             env = get_nullable_from_map(https_endpoint, "env")
             is_proxied = get_nullable_from_map(https_endpoint, "is_proxied", True)
             builder.write(f'\n    .WithHttpsEndpoint({port}, {target_port}, {name_}, {env}, {is_proxied})')
-        if http_health_check := kwargs.get("http_health_check", None):
+        if http_health_check := kwargs.pop("http_health_check", None):
             path = get_nullable_from_map(http_health_check, "path")
             status_code = get_nullable_from_map(http_health_check, "status_code")
             endpoint_name = get_nullable_from_map(http_health_check, "endpoint_name")
             builder.write(f'\n    .WithHttpHealthCheck({path}, {status_code}, {endpoint_name})')
-        if http_probe := kwargs.get("http_probe", None):
+        if http_probe := kwargs.pop("http_probe", None):
             path = get_nullable_from_map(http_probe, "path")
             initial_delay_seconds = get_nullable_from_map(http_probe, "initial_delay_seconds")
             period_seconds = get_nullable_from_map(http_probe, "period_seconds")
@@ -431,7 +431,7 @@ class ResourceWithConnectionString:
         return self
 
     def __init__(self, name: str, builder: StringIO, **kwargs: Unpack[ResourceWithConnectionStringOptions]) -> None:
-        if connection_string_redirection := kwargs.get("connection_string_redirection", None):
+        if connection_string_redirection := kwargs.pop("connection_string_redirection", None):
             builder.write(f'\n    .WithConnectionStringRedirection({connection_string_redirection.name}.Resource)')
         super().__init__(name=name, builder=builder, **kwargs) # type: ignore Assuming multiple inheritance with Resource
 

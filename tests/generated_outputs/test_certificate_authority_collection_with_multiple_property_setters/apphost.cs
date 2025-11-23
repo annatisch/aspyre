@@ -5,9 +5,10 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var cacerts = builder.AddCertificateAuthorityCollection("cacerts");
 cacerts.WithCertificate(X509CertificateLoader.LoadCertificateFromFile("./certs/root-ca.crt"));
-cacerts.WithCertificate(X509CertificateLoader.LoadCertificateFromFile("./certs/intermediate1.crt"));
-cacerts.WithCertificate(X509CertificateLoader.LoadCertificateFromFile("./certs/intermediate2.crt"));
+cacerts.WithCertificate(X509CertificateLoader.LoadCertificateFromFile("./certs/extra-ca.crt"));
 cacerts.WithCertificatesFromStore(StoreName.Root, StoreLocation.LocalMachine);
+cacerts.WithCertificatesFromStore(StoreName.My, StoreLocation.CurrentUser);
 cacerts.WithCertificatesFromFile("./certs/bundle.pem");
+cacerts.WithCertificatesFromFile("./certs/extra-bundle.pem");
 
 builder.Build().Run();

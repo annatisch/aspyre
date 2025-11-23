@@ -1,5 +1,5 @@
-
 #:sdk Aspire.AppHost.Sdk@13.0.0
+
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -18,7 +18,6 @@ var myapp = builder.AddExecutable("myapp", "python", "/app", new string[] { "app
     .WithHttpHealthCheck("/health", null, null)
     .WithHttpProbe(ProbeType.Readiness, "/ready", null, null, null, null, null, null)
     .WaitFor(db)
-    .WithHttpProbe(ProbeType.Readiness, "/ready", null, null, null, null, null, null)
     .WithUrl("http://localhost:8080")
     .WithIconName("terminal", IconVariant.Filled);
 

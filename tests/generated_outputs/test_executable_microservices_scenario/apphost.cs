@@ -1,5 +1,5 @@
-
 #:sdk Aspire.AppHost.Sdk@13.0.0
+
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -16,8 +16,7 @@ var users = builder.AddExecutable("users", "python", "/app", new string[] { "use
     .WithReference(redis)
     .WithHttpEndpoint(8001, null, null, null, true)
     .WithHttpProbe(ProbeType.Liveness, "/alive", null, null, null, null, null, null)
-    .WaitFor(db)
-    .WithHttpProbe(ProbeType.Liveness, "/alive", null, null, null, null, null, null);
+    .WaitFor(db);
 var products = builder.AddExecutable("products", "python", "/app", new string[] { "product_service.py" })
     .WithEnvironment("DB_PASSWORD", dbpassword)
     .WithReference(db)

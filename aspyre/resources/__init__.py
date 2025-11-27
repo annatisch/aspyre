@@ -27,6 +27,11 @@ from ._models import (
 
 )
 
+try:
+    from aspyre_extensions.resources import __all__ as _extension_resources
+    from aspyre_extensions.resources import *
+except ImportError:
+    _extension_resources = []
 
 __all__ = [
     "Resource",
@@ -48,3 +53,5 @@ __all__ = [
     "ImagePullPolicy",
     "UnixFileMode",
 ]
+
+__all__.extend([e for e in _extension_resources if e not in __all__])  # pyright: ignore

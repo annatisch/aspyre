@@ -48,7 +48,7 @@ class DistributedApplicationOptions(TypedDict, total=False):
     """Whether to attempt to implicitly add trust for developer certificates (currently the ASP.NET developer certificate) by default at runtime."""
 
 
-class DistributedApplicationBuilder:
+class _DistributedApplicationBuilder:
     version: str = "13.0.0"
 
     def __init__(self, *args) -> None:
@@ -66,6 +66,12 @@ class DistributedApplicationBuilder:
         )
         if output_dir:
             output_path = pathlib.Path(output_dir)
+            output_path.mkdir(parents=True, exist_ok=True)
+            with open(output_path / "apphost.cs", "w", encoding="utf-8") as f:
+                f.write(csharp)
+        else:
+            cwd = pathlib.Path.cwd()
+            output_path = cwd / ".aspire" / "aspyre_apphost"
             output_path.mkdir(parents=True, exist_ok=True)
             with open(output_path / "apphost.cs", "w", encoding="utf-8") as f:
                 f.write(csharp)
@@ -180,7 +186,3 @@ class DistributedApplicationBuilder:
             result = ContainerResource(var_name, builder=self._builder, **kwargs)
         self._dependencies.append(result.package)
         return result
-
-
-def build_distributed_application(*args) -> DistributedApplicationBuilder:
-    return DistributedApplicationBuilder(*args)

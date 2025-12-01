@@ -6,6 +6,6 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var db = builder.AddConnectionString(name: "db", environmentVariableName: "DATABASE_URL");
 var myapp = builder.AddExecutable(name: "myapp", command: "python", workingDirectory: "/app", args: new string[] { "app.py" })
-    .WithReference(source: db, connectionName: null, optional: false);
+    .WithReference(source: db, connectionName: (string?)null, optional: false);
 
 builder.Build().Run();

@@ -5,10 +5,10 @@ using System.Security.Cryptography.X509Certificates;
 var builder = DistributedApplication.CreateBuilder(args);
 
 var myservice = builder.AddExternalService(name: "myservice", url: "http://localhost:8080");
-var primary = builder.AddConnectionString(name: "primary", environmentVariableName: null);
+var primary = builder.AddConnectionString(name: "primary", environmentVariableName: (string?)null);
 var myconnection = builder.AddConnectionString(name: "myconnection", environmentVariableName: "DB_CONNECTION")
     .WithConnectionStringRedirection(resource: primary.Resource)
-    .WithUrl(url: "http://localhost:5432", displayText: null)
+    .WithUrl(url: "http://localhost:5432", displayText: (string?)null)
     .WithHealthCheck(key: "https://db.example.com/health")
     .WithIconName(iconName: "database", iconVariant: IconVariant.Regular);
 

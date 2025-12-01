@@ -8,19 +8,19 @@ var dbpassword = builder.AddParameter(name: "dbpassword", value: "supersecret", 
 var db = builder.AddConnectionString(name: "db", environmentVariableName: "DATABASE_URL");
 var redis = builder.AddConnectionString(name: "redis", environmentVariableName: "REDIS_URL");
 var gateway = builder.AddExecutable(name: "gateway", command: "node", workingDirectory: "/app", args: new string[] { "gateway.js" })
-    .WithHttpEndpoint(port: 8080, targetPort: null, name: "http", env: null, isProxied: true)
-    .WithHttpHealthCheck(path: "/health", statusCode: null, endpointName: null)
+    .WithHttpEndpoint(port: 8080, targetPort: null, name: "http", env: (string?)null, isProxied: true)
+    .WithHttpHealthCheck(path: "/health", statusCode: null, endpointName: (string?)null)
     .WithIconName(iconName: "web", iconVariant: IconVariant.Filled);
 var userservice = builder.AddContainer(name: "userservice", image: "python", tag: "/app");
 var products = builder.AddExecutable(name: "products", command: "python", workingDirectory: "/app", args: new string[] { "product_service.py" })
     .WithEnvironment(name: "DB_PASSWORD", parameter: dbpassword)
-    .WithReference(source: db, connectionName: null, optional: false)
-    .WithHttpEndpoint(port: 8002, targetPort: null, name: null, env: null, isProxied: true)
+    .WithReference(source: db, connectionName: (string?)null, optional: false)
+    .WithHttpEndpoint(port: 8002, targetPort: null, name: (string?)null, env: (string?)null, isProxied: true)
     .WaitFor(dependency: db);
 var orders = builder.AddExecutable(name: "orders", command: "python", workingDirectory: "/app", args: new string[] { "order_service.py" })
     .WithEnvironment(name: "DB_PASSWORD", parameter: dbpassword)
-    .WithReference(source: redis, connectionName: null, optional: false)
-    .WithHttpEndpoint(port: 8003, targetPort: null, name: null, env: null, isProxied: true)
+    .WithReference(source: redis, connectionName: (string?)null, optional: false)
+    .WithHttpEndpoint(port: 8003, targetPort: null, name: (string?)null, env: (string?)null, isProxied: true)
     .WaitForStart(dependency: userservice)
     .WithParentRelationship(parent: userservice);
 gateway.WaitForStart(dependency: userservice);

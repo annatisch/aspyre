@@ -6,6 +6,6 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var config1 = builder.AddParameter(name: "config1", secret: false);
 var config2 = builder.AddParameter(name: "config2", secret: false)
-    .WithReferenceRelationship(resourceBuilder: config1);
+    .WithReferenceRelationship(resource: config1.Resource);
 
 builder.Build().Run();

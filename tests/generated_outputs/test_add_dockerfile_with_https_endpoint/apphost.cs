@@ -4,7 +4,7 @@ using System.Security.Cryptography.X509Certificates;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var myapp = builder.AddDockerfile(name: "myapp", contextPath: "./app", dockerfilePath: null, stage: null)
-    .WithHttpsEndpoint(port: 8443, targetPort: null, name: "https", env: null, isProxied: true);
+var myapp = builder.AddDockerfile(name: "myapp", contextPath: "./app", dockerfilePath: (string?)null, stage: (string?)null)
+    .WithHttpsEndpoint(port: 8443, targetPort: null, name: "https", env: (string?)null, isProxied: true);
 
 builder.Build().Run();

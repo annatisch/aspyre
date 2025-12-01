@@ -5,6 +5,6 @@ using System.Security.Cryptography.X509Certificates;
 var builder = DistributedApplication.CreateBuilder(args);
 
 var mycontainer = builder.AddContainer(name: "mycontainer", image: "nginx")
-    .WithImage(image: "nginx:alpine", tag: null);
+    .WithImage(image: "nginx:alpine", tag: (string?)null);
 
 builder.Build().Run();

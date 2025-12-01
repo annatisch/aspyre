@@ -1,9 +1,10 @@
-#:sdk Aspire.AppHost.Sdk@13.0.0
-
+#:sdk Aspire.AppHost.Sdk@13.0.1.0
+#:package Aspire.Hosting@13.0.1.0
+using System.Security.Cryptography.X509Certificates;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var myservice = builder.AddExternalService("myservice", "http://localhost:8080")
-    .WithHealthCheck("https://localhost:8080/health");
+var myservice = builder.AddExternalService(name: "myservice", url: "http://localhost:8080")
+    .WithHealthCheck(key: "https://localhost:8080/health");
 
 builder.Build().Run();

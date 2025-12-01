@@ -19,12 +19,12 @@ var myapp = builder.AddDockerfile(name: "myapp", contextPath: "./app", dockerfil
     .WithBuildSecret(name: "API_KEY", value: apikey)
     .WithEnvironment(name: "DEBUG", value: "true")
     .WithArgs(args: new string[] { "--verbose" })
-    .WithReference(source: db, connectionName: null, optional: false)
-    .WithHttpEndpoint(port: 8080, targetPort: null, name: "http", env: null, isProxied: true)
-    .WithHttpsEndpoint(port: 8443, targetPort: null, name: "https", env: null, isProxied: true)
+    .WithReference(source: db, connectionName: (string?)null, optional: false)
+    .WithHttpEndpoint(port: 8080, targetPort: null, name: "http", env: (string?)null, isProxied: true)
+    .WithHttpsEndpoint(port: 8443, targetPort: null, name: "https", env: (string?)null, isProxied: true)
     .WaitFor(dependency: db)
-    .WithHttpHealthCheck(path: "/health", statusCode: null, endpointName: null)
-    .WithUrl(url: "http://localhost:8080", displayText: null)
+    .WithHttpHealthCheck(path: "/health", statusCode: null, endpointName: (string?)null)
+    .WithUrl(url: "http://localhost:8080", displayText: (string?)null)
     .WithIconName(iconName: "box", iconVariant: IconVariant.Filled);
 
 builder.Build().Run();

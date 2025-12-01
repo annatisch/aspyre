@@ -6,7 +6,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 #pragma warning disable ASPIREPROBES001
 var mycontainer = builder.AddContainer(name: "mycontainer", image: "nginx")
-    .WithHttpProbe(type: ProbeType.Liveness, path: "/alive", initialDelaySeconds: null, periodSeconds: null, timeoutSeconds: null, failureThreshold: null, successThreshold: null, endpointName: null);
+    .WithHttpProbe(type: ProbeType.Liveness, path: "/alive", initialDelaySeconds: null, periodSeconds: null, timeoutSeconds: null, failureThreshold: null, successThreshold: null, endpointName: (string?)null);
 #pragma warning restore ASPIREPROBES001
 
 builder.Build().Run();

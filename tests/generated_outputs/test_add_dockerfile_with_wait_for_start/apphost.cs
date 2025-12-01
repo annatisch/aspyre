@@ -5,7 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 var builder = DistributedApplication.CreateBuilder(args);
 
 var service1 = builder.AddContainer(name: "service1", image: "postgres");
-var myapp = builder.AddDockerfile(name: "myapp", contextPath: "./app", dockerfilePath: null, stage: null)
+var myapp = builder.AddDockerfile(name: "myapp", contextPath: "./app", dockerfilePath: (string?)null, stage: (string?)null)
     .WaitForStart(dependency: service1);
 
 builder.Build().Run();

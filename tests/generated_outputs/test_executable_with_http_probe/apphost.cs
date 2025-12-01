@@ -6,7 +6,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 #pragma warning disable ASPIREPROBES001
 var myapp = builder.AddExecutable(name: "myapp", command: "python", workingDirectory: "/app", args: new string[] { "app.py" })
-    .WithHttpProbe(type: ProbeType.Liveness, path: "/alive", initialDelaySeconds: null, periodSeconds: null, timeoutSeconds: null, failureThreshold: null, successThreshold: null, endpointName: null);
+    .WithHttpProbe(type: ProbeType.Liveness, path: "/alive", initialDelaySeconds: null, periodSeconds: null, timeoutSeconds: null, failureThreshold: null, successThreshold: null, endpointName: (string?)null);
 #pragma warning restore ASPIREPROBES001
 
 builder.Build().Run();

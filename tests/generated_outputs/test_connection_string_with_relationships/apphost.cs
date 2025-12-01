@@ -5,8 +5,8 @@ using System.Security.Cryptography.X509Certificates;
 var builder = DistributedApplication.CreateBuilder(args);
 
 var dbconfig = builder.AddParameter(name: "dbconfig", secret: false);
-var myconnection = builder.AddConnectionString(name: "myconnection", environmentVariableName: null)
-    .WithReferenceRelationship(resourceBuilder: dbconfig)
+var myconnection = builder.AddConnectionString(name: "myconnection", environmentVariableName: (string?)null)
+    .WithReferenceRelationship(resource: dbconfig.Resource)
     .WithIconName(iconName: "database", iconVariant: IconVariant.Filled);
 
 builder.Build().Run();

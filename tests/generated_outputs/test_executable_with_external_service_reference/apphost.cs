@@ -7,6 +7,6 @@ var builder = DistributedApplication.CreateBuilder(args);
 var external = builder.AddExternalService(name: "external", url: "https://api.external.com");
 var myapp = builder.AddExecutable(name: "myapp", command: "python", workingDirectory: "/app", args: new string[] { "app.py" })
     .WithReference(externalService: external)
-    .WithHttpEndpoint(port: 8080, targetPort: null, name: null, env: null, isProxied: true);
+    .WithHttpEndpoint(port: 8080, targetPort: null, name: (string?)null, env: (string?)null, isProxied: true);
 
 builder.Build().Run();

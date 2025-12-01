@@ -9,7 +9,7 @@ var primary = builder.AddConnectionString(name: "primary", environmentVariableNa
 var replica = builder.AddConnectionString(name: "replica", environmentVariableName: "REPLICA_DB")
     .WithConnectionStringRedirection(resource: primary.Resource);
 var api = builder.AddExecutable(name: "api", command: "python", workingDirectory: "/app", args: new string[] { "api.py" })
-    .WithReference(source: primary, connectionName: null, optional: false)
+    .WithReference(source: primary, connectionName: (string?)null, optional: false)
     .WaitForStart(dependency: replica);
 
 builder.Build().Run();

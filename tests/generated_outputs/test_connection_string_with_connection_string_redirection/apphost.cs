@@ -4,8 +4,8 @@ using System.Security.Cryptography.X509Certificates;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var primary = builder.AddConnectionString(name: "primary", environmentVariableName: null);
-var secondary = builder.AddConnectionString(name: "secondary", environmentVariableName: null)
+var primary = builder.AddConnectionString(name: "primary", environmentVariableName: (string?)null);
+var secondary = builder.AddConnectionString(name: "secondary", environmentVariableName: (string?)null)
     .WithConnectionStringRedirection(resource: primary.Resource);
 
 builder.Build().Run();

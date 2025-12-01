@@ -5,6 +5,6 @@ using System.Security.Cryptography.X509Certificates;
 var builder = DistributedApplication.CreateBuilder(args);
 
 var mycontainer = builder.AddContainer(name: "mycontainer", image: "nginx")
-    .WithHttpsEndpoint(port: 8443, targetPort: null, name: "https", env: null, isProxied: true);
+    .WithHttpsEndpoint(port: 8443, targetPort: null, name: "https", env: (string?)null, isProxied: true);
 
 builder.Build().Run();

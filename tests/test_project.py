@@ -5,7 +5,6 @@
 import os
 
 from aspyre import build_distributed_application
-from aspyre.resources._models import IconVariant, WaitBehavior, ProbeType, ProtocolType
 
 
 # Tests for add_project (basic)
@@ -28,7 +27,7 @@ def test_add_csharp_app_basic(verify_dotnet_apphost):
 def test_add_project_with_launch_profile(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
-    project = builder.add_project("myproject", "../MyProject/MyProject.csproj", launch_profile_name="Development")
+    project = builder.add_project("myproject", "../MyProject/MyProject.csproj", "Development")
     builder.build(output_dir=export_path)
     verify()
 
@@ -83,7 +82,7 @@ def test_project_with_icon_name(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     project = builder.add_project("myproject", "../MyProject/MyProject.csproj",
-                                  icon_name=("code", IconVariant.FILLED))
+                                  icon_name=("code", "Regular"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -93,7 +92,7 @@ def test_project_with_environment_string(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     project = builder.add_project("myproject", "../MyProject/MyProject.csproj",
-                                  environment=("API_KEY", "test-key-123"))
+                                  env=("API_KEY", "test-key-123"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -103,17 +102,7 @@ def test_project_with_environment_parameter(verify_dotnet_apphost):
     builder = build_distributed_application()
     api_key = builder.add_parameter("apikey", "default-key", secret=True)
     project = builder.add_project("myproject", "../MyProject/MyProject.csproj",
-                                  environment=("API_KEY", api_key))
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_project_with_multiple_environments(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    api_key = builder.add_parameter("apikey", "key123")
-    project = builder.add_project("myproject", "../MyProject/MyProject.csproj",
-                                  environments=[("API_KEY", api_key), ("ENV", "production")])
+                                  env=("API_KEY", api_key))
     builder.build(output_dir=export_path)
     verify()
 
@@ -121,20 +110,9 @@ def test_project_with_multiple_environments(verify_dotnet_apphost):
 def test_project_with_reference_connection_string(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
-    conn = builder.add_connection_string("db", env_var="DATABASE_URL")
+    conn = builder.add_connection_string("db", env_var_name="DATABASE_URL")
     project = builder.add_project("myproject", "../MyProject/MyProject.csproj",
                                   reference=conn)
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_project_with_multiple_references(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    conn1 = builder.add_connection_string("db1")
-    conn2 = builder.add_connection_string("db2")
-    project = builder.add_project("myproject", "../MyProject/MyProject.csproj",
-                                  references=[conn1, conn2])
     builder.build(output_dir=export_path)
     verify()
 
@@ -154,7 +132,7 @@ def test_project_with_http2_service(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     project = builder.add_project("myproject", "../MyProject/MyProject.csproj",
-                                  http2_service=True)
+                                  as_http2_service=True)
     builder.build(output_dir=export_path)
     verify()
 
@@ -208,7 +186,7 @@ def test_project_with_http_probe(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     project = builder.add_project("myproject", "../MyProject/MyProject.csproj",
-                                  http_probe={"type": ProbeType.READINESS, "path": "/ready", "period_seconds": 10})
+                                  http_probe={"type": "Readiness", "path": "/ready", "period_seconds": 10})
     builder.build(output_dir=export_path)
     verify()
 
@@ -229,7 +207,7 @@ def test_project_with_wait_for_behavior(verify_dotnet_apphost):
     builder = build_distributed_application()
     db = builder.add_connection_string("db")
     project = builder.add_project("myproject", "../MyProject/MyProject.csproj",
-                                  wait_for=(db, WaitBehavior.STOP_ON_RESOURCE_UNAVAILABLE))
+                                  wait_for=(db, "StopOnResourceUnavailable"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -247,7 +225,7 @@ def test_project_with_wait_for_completion(verify_dotnet_apphost):
 def test_project_with_wait_for_start(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
-    service = builder.add_executable("myservice", "python", "/app", args=["app.py"])
+    service = builder.add_executable("myservice", "python", "/app", ["app.py"])
     project = builder.add_project("myproject", "../MyProject/MyProject.csproj",
                                   wait_for_start=service)
     builder.build(output_dir=export_path)
@@ -261,16 +239,16 @@ def test_project_with_comprehensive_options(verify_dotnet_apphost):
 
     # Create dependencies
     api_key = builder.add_parameter("apikey", "secret-key", secret=True)
-    db = builder.add_connection_string("db", env_var="DATABASE_URL")
+    db = builder.add_connection_string("db", env_var_name="DATABASE_URL")
 
     # Create project with many options
     project = builder.add_project("myproject", "../MyProject/MyProject.csproj",
-                                  launch_profile_name="Production",
+                                  "Production",
                                   replicas=3,
                                   disable_forwarded_headers=True,
                                   url="http://localhost:5000",
-                                  icon_name=("web", IconVariant.FILLED),
-                                  environments=[("API_KEY", api_key), ("ENV", "production")],
+                                  icon_name=("web", "Filled"),
+                                  env=("API_KEY", api_key),
                                   reference=db,
                                   args=["--verbose"],
                                   http_endpoint={"port": 5000, "name": "http"},
@@ -292,7 +270,7 @@ def test_project_with_multiple_property_setters(verify_dotnet_apphost):
     project = builder.add_project("myproject", "../MyProject/MyProject.csproj")
     project.with_replicas(2).with_replicas(4)
     project.disable_forwarded_headers().disable_forwarded_headers()
-    project.with_environment(("API_KEY", api_key)).with_environment(("API_KEY", api_key))
+    project.with_env("API_KEY", api_key).with_env("API_KEY", None)
     project.with_http_endpoint(port=8080).with_http_endpoint(port=8081)
     project.wait_for(db).wait_for(api_key)
     project.with_icon_name("application").with_icon_name("application")
@@ -320,19 +298,19 @@ def test_multiple_projects_with_dependencies(verify_dotnet_apphost):
     builder = build_distributed_application()
 
     # Shared database
-    db = builder.add_connection_string("db", env_var="DATABASE_URL")
+    db = builder.add_connection_string("db", env_var_name="DATABASE_URL")
 
     # API project
     api = builder.add_project("api", "../API/API.csproj",
-                             launch_profile_name="Development",
+                             "Development",
                              reference=db,
                              http_endpoint={"port": 5000},
                              replicas=2)
 
     # Worker project that depends on API
     worker = builder.add_project("worker", "../Worker/Worker.csproj",
-                                launch_profile_name="Development",
-                                references=[db, api],
+                                "Development",
+                                reference=db,
                                 wait_for_start=api)
 
     builder.build(output_dir=export_path)
@@ -361,37 +339,32 @@ def test_project_full_scenario(verify_dotnet_apphost):
     api_key = builder.add_parameter("apikey", "dev-key-123", secret=True)
 
     # Database connection
-    db = builder.add_connection_string("db", env_var="DATABASE_URL")
+    db = builder.add_connection_string("db", env_var_name="DATABASE_URL")
 
     # External service
     payment_service = builder.add_external_service("payments", "https://payments.example.com")
 
     # Main API project
     api = builder.add_project("api", "../API/API.csproj",
-                             launch_profile_name="Development",
+                             "Development",
                              replicas=3,
                              disable_forwarded_headers=True,
                              url=("http://localhost:5000", "API Service"),
-                             icon_name=("web", IconVariant.FILLED),
-                             environments=[
-                                 ("API_KEY", api_key),
-                                 ("ENV", "development")
-                             ],
-                             references=[db, payment_service],
+                             icon_name=("web", "Filled"),
                              args=["--verbose", "--enable-swagger"],
                              http_endpoint={"port": 5000, "name": "http"},
                              https_endpoint={"port": 5001, "name": "https"},
                              http_health_check={"path": "/health", "status_code": 200},
-                             http_probe={"type": ProbeType.LIVENESS, "path": "/alive"},
+                             http_probe={"type": "Liveness", "path": "/alive"},
                              wait_for=db,
-                             reference_relationships=[api_key],
+                             reference_relationship=api_key,
                              health_check="https://localhost:5001/health")
 
     # Background worker
     worker = builder.add_project("worker", "../Worker/Worker.csproj",
-                                launch_profile_name="Development",
+                                "Development",
                                 reference=db,
-                                environments=[("API_KEY", api_key)],
+                                env=("API_KEY", api_key),
                                 wait_for_start=api,
                                 parent_relationship=api)
 

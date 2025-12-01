@@ -4,7 +4,7 @@ using System.Security.Cryptography.X509Certificates;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var db = builder.AddConnectionString(name: "db", environmentVariableName: null);
+var db = builder.AddConnectionString(name: "db", environmentVariableName: (string?)null);
 var mycontainer = builder.AddContainer(name: "mycontainer", image: "myapp")
     .WaitFor(dependency: db, waitBehavior: WaitBehavior.StopOnResourceUnavailable);
 

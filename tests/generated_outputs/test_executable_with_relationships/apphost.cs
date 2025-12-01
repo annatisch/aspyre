@@ -6,6 +6,6 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var config = builder.AddParameter(name: "config", secret: false);
 var myapp = builder.AddExecutable(name: "myapp", command: "python", workingDirectory: "/app", args: new string[] { "app.py" })
-    .WithReferenceRelationship(resourceBuilder: config);
+    .WithReferenceRelationship(resource: config.Resource);
 
 builder.Build().Run();

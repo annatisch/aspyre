@@ -5,6 +5,6 @@ using System.Security.Cryptography.X509Certificates;
 var builder = DistributedApplication.CreateBuilder(args);
 
 var mycontainer = builder.AddContainer(name: "mycontainer", image: "nginx")
-    .WithHttpHealthCheck(path: "/health", statusCode: 200, endpointName: null);
+    .WithHttpHealthCheck(path: "/health", statusCode: 200, endpointName: (string?)null);
 
 builder.Build().Run();

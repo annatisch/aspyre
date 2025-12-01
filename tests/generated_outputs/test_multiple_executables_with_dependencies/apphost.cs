@@ -7,11 +7,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 var db = builder.AddConnectionString(name: "db", environmentVariableName: "DATABASE_URL");
 var telemetry = builder.AddConnectionString(name: "telemetry", environmentVariableName: "TELEMETRY_URL");
 var api = builder.AddExecutable(name: "api", command: "python", workingDirectory: "/app", args: new string[] { "api.py", "--port", "8000" })
-    .WithReference(source: db, connectionName: null, optional: false)
-    .WithHttpEndpoint(port: 8000, targetPort: null, name: null, env: null, isProxied: true)
+    .WithReference(source: db, connectionName: (string?)null, optional: false)
+    .WithHttpEndpoint(port: 8000, targetPort: null, name: (string?)null, env: (string?)null, isProxied: true)
     .WaitFor(dependency: db);
 var worker = builder.AddExecutable(name: "worker", command: "python", workingDirectory: "/app", args: new string[] { "worker.py" })
-    .WithReference(source: telemetry, connectionName: null, optional: false)
+    .WithReference(source: telemetry, connectionName: (string?)null, optional: false)
     .WaitForStart(dependency: api);
 
 builder.Build().Run();

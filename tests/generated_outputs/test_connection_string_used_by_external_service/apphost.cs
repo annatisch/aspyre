@@ -6,6 +6,6 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var dbconnection = builder.AddConnectionString(name: "dbconnection", environmentVariableName: "DB_CONNECTION_STRING");
 var api = builder.AddExternalService(name: "api", url: "http://localhost:8080")
-    .WithReferenceRelationship(resourceBuilder: dbconnection);
+    .WithReferenceRelationship(resource: dbconnection.Resource);
 
 builder.Build().Run();

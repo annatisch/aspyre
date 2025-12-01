@@ -6,8 +6,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var dbhost = builder.AddParameter(name: "dbhost", secret: false);
 var dbservice = builder.AddExternalService(name: "dbservice", url: "http://localhost:5432");
-var myconnection = builder.AddConnectionString(name: "myconnection", environmentVariableName: null)
-    .WithReferenceRelationship(resourceBuilder: dbhost)
+var myconnection = builder.AddConnectionString(name: "myconnection", environmentVariableName: (string?)null)
+    .WithReferenceRelationship(resource: dbhost.Resource)
     .WithParentRelationship(parent: dbservice);
 
 builder.Build().Run();

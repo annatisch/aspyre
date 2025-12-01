@@ -5,6 +5,6 @@ using System.Security.Cryptography.X509Certificates;
 var builder = DistributedApplication.CreateBuilder(args);
 
 var mycontainer = builder.AddContainer(name: "mycontainer", image: "myapp")
-    .WithDockerfile(contextPath: "Dockerfile.production", dockerfilePath: null, stage: null);
+    .WithDockerfile(contextPath: "Dockerfile.production", dockerfilePath: (string?)null, stage: (string?)null);
 
 builder.Build().Run();

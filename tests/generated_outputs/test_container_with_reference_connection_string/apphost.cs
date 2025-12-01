@@ -6,6 +6,6 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var db = builder.AddConnectionString(name: "db", environmentVariableName: "DATABASE_URL");
 var mycontainer = builder.AddContainer(name: "mycontainer", image: "myapp")
-    .WithReference(source: db, connectionName: null, optional: false);
+    .WithReference(source: db, connectionName: (string?)null, optional: false);
 
 builder.Build().Run();

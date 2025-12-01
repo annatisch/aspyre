@@ -7,7 +7,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var cacerts = builder.AddCertificateAuthorityCollection(name: "cacerts")
     .WithCertificates(certificates: new List<X509Certificate2> { X509CertificateLoader.LoadCertificateFromFile("./certs/ca1.crt"), X509CertificateLoader.LoadCertificateFromFile("./certs/ca2.crt") })
     .WithCertificatesFromStore(storeName: StoreName.Root, storeLocation: StoreLocation.LocalMachine)
-    .WithUrl(url: "https://ca.example.com", displayText: null)
+    .WithUrl(url: "https://ca.example.com", displayText: (string?)null)
     .WithIconName(iconName: "shield", iconVariant: IconVariant.Filled);
 
 builder.Build().Run();

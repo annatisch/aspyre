@@ -361,7 +361,10 @@ class Resource(Protocol):
     def with_health_check(self, key: str, /) -> Self:
         ...
 
-    def with_reference_relationship(self, resource_builder: Resource, /) -> Self:
+    def with_relationship(self, resource: Resource, type: str, /) -> Self:
+        ...
+
+    def with_reference_relationship(self, resource: Resource, /) -> Self:
         ...
 
     def with_parent_relationship(self, parent: Resource, /) -> Self:
@@ -571,6 +574,7 @@ class _BaseResourceOptions(TypedDict, total=False):
     exclude_from_manifest: Literal[True]
     explicit_start: Literal[True]
     health_check: str
+    relationship: tuple[Resource, str]
     reference_relationship: Resource
     parent_relationship: Resource
     child_relationship: Resource
@@ -615,10 +619,16 @@ class _BaseResource:
                 __builder.write(f'\n    .WithHealthCheck(key: {_format_string(key, None)})')
             else:
                 raise TypeError("Invalid type for option 'health_check'")
+        if _relationship := kwargs.pop("relationship", None):
+            if _validate_tuple_types(_relationship, (Resource, str)):
+                resource, type, = cast(tuple[Resource, str], _relationship)
+                __builder.write(f'\n    .WithRelationship(resource: {_format_value(resource, None)}, type: {_format_string(type, None)})')
+            else:
+                raise TypeError("Invalid type for option 'relationship'")
         if _reference_relationship := kwargs.pop("reference_relationship", None):
             if _validate_type(_reference_relationship, Resource):
-                resource_builder = cast(Resource, _reference_relationship)
-                __builder.write(f'\n    .WithReferenceRelationship(resourceBuilder: {resource_builder.name})')
+                resource = cast(Resource, _reference_relationship)
+                __builder.write(f'\n    .WithReferenceRelationship(resource: {_format_value(resource, None)})')
             else:
                 raise TypeError("Invalid type for option 'reference_relationship'")
         if _parent_relationship := kwargs.pop("parent_relationship", None):
@@ -685,9 +695,16 @@ class _BaseResource:
         else:
             raise TypeError("No matching overload found.")
 
-    def with_reference_relationship(self, resource_builder: Resource, /) -> Self:
-        if _validate_type(resource_builder, Resource):
-            self._builder.write(f'\n{self.name}.WithReferenceRelationship(resourceBuilder: {resource_builder.name});')
+    def with_relationship(self, resource: Resource, type: str, /) -> Self:
+        if _validate_tuple_types((resource, type, ), (Resource, str)):
+            self._builder.write(f'\n{self.name}.WithRelationship(resource: {_format_value(resource, None)}, type: {_format_string(type, None)});')
+            return self
+        else:
+            raise TypeError("No matching overload found.")
+
+    def with_reference_relationship(self, resource: Resource, /) -> Self:
+        if _validate_type(resource, Resource):
+            self._builder.write(f'\n{self.name}.WithReferenceRelationship(resource: {_format_value(resource, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")

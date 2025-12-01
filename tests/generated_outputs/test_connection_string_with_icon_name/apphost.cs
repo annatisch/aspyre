@@ -4,7 +4,7 @@ using System.Security.Cryptography.X509Certificates;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var myconnection = builder.AddConnectionString(name: "myconnection", environmentVariableName: null)
+var myconnection = builder.AddConnectionString(name: "myconnection", environmentVariableName: (string?)null)
     .WithIconName(iconName: "database", iconVariant: IconVariant.Filled);
 
 builder.Build().Run();

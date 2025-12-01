@@ -17,14 +17,14 @@ var mycontainer = builder.AddContainer(name: "mycontainer", image: "myapp", tag:
     .WithContainerName(name: "my-app-container")
     .WithEnvironment(name: "API_KEY", parameter: apikey)
     .WithArgs(args: new string[] { "--verbose" })
-    .WithReference(source: db, connectionName: null, optional: false)
-    .WithHttpEndpoint(port: 8080, targetPort: null, name: "http", env: null, isProxied: true)
-    .WithHttpsEndpoint(port: 8443, targetPort: null, name: "https", env: null, isProxied: true)
+    .WithReference(source: db, connectionName: (string?)null, optional: false)
+    .WithHttpEndpoint(port: 8080, targetPort: null, name: "http", env: (string?)null, isProxied: true)
+    .WithHttpsEndpoint(port: 8443, targetPort: null, name: "https", env: (string?)null, isProxied: true)
     .WaitFor(dependency: db)
-    .WithHttpHealthCheck(path: "/health", statusCode: null, endpointName: null)
+    .WithHttpHealthCheck(path: "/health", statusCode: null, endpointName: (string?)null)
     .WithCertificateTrustScope(scope: CertificateTrustScope.Append)
-    .WithHttpProbe(type: ProbeType.Readiness, path: "/ready", initialDelaySeconds: null, periodSeconds: null, timeoutSeconds: null, failureThreshold: null, successThreshold: null, endpointName: null)
-    .WithUrl(url: "http://localhost:8080", displayText: null)
+    .WithHttpProbe(type: ProbeType.Readiness, path: "/ready", initialDelaySeconds: null, periodSeconds: null, timeoutSeconds: null, failureThreshold: null, successThreshold: null, endpointName: (string?)null)
+    .WithUrl(url: "http://localhost:8080", displayText: (string?)null)
     .WithIconName(iconName: "box", iconVariant: IconVariant.Filled);
 #pragma warning restore ASPIREPROBES001
 mycontainer.WithEnvironment(name: "DEBUG", value: "true");

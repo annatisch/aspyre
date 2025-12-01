@@ -5,8 +5,9 @@
 #   This is a generated file. Any modifications may be overwritten.
 #   -------------------------------------------------------------
 from __future__ import annotations
-from typing import Any, Unpack, Self, Iterable, Mapping, Protocol, Literal, Annotated, get_origin, get_args, get_type_hints, cast, overload, runtime_checkable, Required
+from typing import Any, Unpack, Self, Protocol, Literal, Annotated, get_origin, get_args, get_type_hints, cast, overload, runtime_checkable, Required
 from typing_extensions import TypedDict
+from collections.abc import Iterable, Mapping
 from types import UnionType
 from io import StringIO
 from pathlib import Path
@@ -29,9 +30,25 @@ def _valid_var_name(name: str) -> str:
 
 
 def _validate_type(arg: Any, expected_type: Any) -> bool:
-    if isinstance(arg, (tuple, Mapping)):
+    if get_origin(expected_type) is Iterable:
+        item_type = get_args(expected_type)[0]
+        if not isinstance(arg, Iterable):
+            return False
+        for item in arg:
+            if not _validate_type(item, item_type):
+                return False
+    elif get_origin(expected_type) is Mapping:
+        key_type, value_type = get_args(expected_type)
+        if not isinstance(arg, Mapping):
+            return False
+        for key, value in arg.items():
+            if not _validate_type(key, key_type):
+                return False
+            if not _validate_type(value, value_type):
+                return False
+    elif isinstance(arg, (tuple, Mapping)):
         return False
-    if get_origin(expected_type) is Literal:
+    elif get_origin(expected_type) is Literal:
         if arg not in get_args(expected_type):
             return False
     elif expected_type is None:
@@ -61,9 +78,8 @@ def _validate_dict_types(args: Any, arg_types: Any) -> bool:
         return False
     type_hints = get_type_hints(arg_types, include_extras=True)
     for key, expected_type in type_hints.items():
-        if required := get_args(expected_type):
-            # This is probably an Required type
-            expected_type = required[0]
+        if get_origin(expected_type) is Required:
+            expected_type = get_args(expected_type)[0]
             if key not in args:
                 return False
         if key not in args:
@@ -72,6 +88,16 @@ def _validate_dict_types(args: Any, arg_types: Any) -> bool:
         if not _validate_type(value, expected_type):
             return False
     return True
+
+
+def _format_value(value: Any, default: Any = None) -> str:
+    if value is None:
+        if default is not None:
+            return str(default)
+        return "null"
+    if isinstance(value, Resource):
+        return f"{value.name}.Resource"
+    return str(value)
 
 
 def _format_string(value: Any, default: Any = None) -> str:
@@ -554,69 +580,69 @@ class _BaseResourceOptions(TypedDict, total=False):
 
 class _BaseResource:
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[_BaseResourceOptions]) -> None:
-        if _with_dockerfile_base_image := kwargs.pop("with_dockerfile_base_image", None):
-            if _validate_dict_types(_with_dockerfile_base_image, DockerfileBaseImageParameters):
-                build_image = cast(DockerfileBaseImageParameters, _with_dockerfile_base_image).get("build_image")
-                runtime_image = cast(DockerfileBaseImageParameters, _with_dockerfile_base_image).get("runtime_image")
+        if _dockerfile_base_image := kwargs.pop("dockerfile_base_image", None):
+            if _validate_dict_types(_dockerfile_base_image, DockerfileBaseImageParameters):
+                build_image = cast(DockerfileBaseImageParameters, _dockerfile_base_image).get("build_image")
+                runtime_image = cast(DockerfileBaseImageParameters, _dockerfile_base_image).get("runtime_image")
                 __builder.write(f'\n    .WithDockerfileBaseImage(buildImage: {_format_string(build_image, None)}, runtimeImage: {_format_string(runtime_image, None)})')
-            elif _with_dockerfile_base_image is True:
+            elif _dockerfile_base_image is True:
                 __builder.write(f'\n    .WithDockerfileBaseImage()')
             else:
-                raise TypeError("Invalid type for option 'with_dockerfile_base_image'")
-        if _with_url := kwargs.pop("with_url", None):
-            if _validate_type(_with_url, str):
-                url = cast(str, _with_url)
+                raise TypeError("Invalid type for option 'dockerfile_base_image'")
+        if _url := kwargs.pop("url", None):
+            if _validate_type(_url, str):
+                url = cast(str, _url)
                 display_text = None
                 __builder.write(f'\n    .WithUrl(url: {_format_string(url, None)}, displayText: {_format_string(display_text, None)})')
-            elif _validate_tuple_types(_with_url, (str, str)):
-                url, display_text = cast(tuple[str, str], _with_url)
+            elif _validate_tuple_types(_url, (str, str)):
+                url, display_text = cast(tuple[str, str], _url)
                 __builder.write(f'\n    .WithUrl(url: {_format_string(url, None)}, displayText: {_format_string(display_text, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_url'")
+                raise TypeError("Invalid type for option 'url'")
         if _exclude_from_manifest := kwargs.pop("exclude_from_manifest", None):
             if _exclude_from_manifest is True:
                 __builder.write(f'\n    .ExcludeFromManifest()')
             else:
                 raise TypeError("Invalid type for option 'exclude_from_manifest'")
-        if _with_explicit_start := kwargs.pop("with_explicit_start", None):
-            if _with_explicit_start is True:
+        if _explicit_start := kwargs.pop("explicit_start", None):
+            if _explicit_start is True:
                 __builder.write(f'\n    .WithExplicitStart()')
             else:
-                raise TypeError("Invalid type for option 'with_explicit_start'")
-        if _with_health_check := kwargs.pop("with_health_check", None):
-            if _validate_type(_with_health_check, str):
-                key = cast(str, _with_health_check)
+                raise TypeError("Invalid type for option 'explicit_start'")
+        if _health_check := kwargs.pop("health_check", None):
+            if _validate_type(_health_check, str):
+                key = cast(str, _health_check)
                 __builder.write(f'\n    .WithHealthCheck(key: {_format_string(key, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_health_check'")
-        if _with_reference_relationship := kwargs.pop("with_reference_relationship", None):
-            if _validate_type(_with_reference_relationship, Resource):
-                resource_builder = cast(Resource, _with_reference_relationship)
-                __builder.write(f'\n    .WithReferenceRelationship(resourceBuilder: {resource_builder.name})')
+                raise TypeError("Invalid type for option 'health_check'")
+        if _reference_relationship := kwargs.pop("reference_relationship", None):
+            if _validate_type(_reference_relationship, Resource):
+                resource_builder = cast(Resource, _reference_relationship)
+                __builder.write(f'\n    .WithReferenceRelationship(resourceBuilder: {_format_value(resource_builder.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_reference_relationship'")
-        if _with_parent_relationship := kwargs.pop("with_parent_relationship", None):
-            if _validate_type(_with_parent_relationship, Resource):
-                parent = cast(Resource, _with_parent_relationship)
-                __builder.write(f'\n    .WithParentRelationship(parent: {parent.name})')
+                raise TypeError("Invalid type for option 'reference_relationship'")
+        if _parent_relationship := kwargs.pop("parent_relationship", None):
+            if _validate_type(_parent_relationship, Resource):
+                parent = cast(Resource, _parent_relationship)
+                __builder.write(f'\n    .WithParentRelationship(parent: {_format_value(parent.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_parent_relationship'")
-        if _with_child_relationship := kwargs.pop("with_child_relationship", None):
-            if _validate_type(_with_child_relationship, Resource):
-                child = cast(Resource, _with_child_relationship)
-                __builder.write(f'\n    .WithChildRelationship(child: {child.name})')
+                raise TypeError("Invalid type for option 'parent_relationship'")
+        if _child_relationship := kwargs.pop("child_relationship", None):
+            if _validate_type(_child_relationship, Resource):
+                child = cast(Resource, _child_relationship)
+                __builder.write(f'\n    .WithChildRelationship(child: {_format_value(child.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_child_relationship'")
-        if _with_icon_name := kwargs.pop("with_icon_name", None):
-            if _validate_type(_with_icon_name, str):
-                icon_name = cast(str, _with_icon_name)
+                raise TypeError("Invalid type for option 'child_relationship'")
+        if _icon_name := kwargs.pop("icon_name", None):
+            if _validate_type(_icon_name, str):
+                icon_name = cast(str, _icon_name)
                 icon_variant = None
                 __builder.write(f'\n    .WithIconName(iconName: {_format_string(icon_name, None)}, iconVariant: {_format_enum("IconVariant", icon_variant, "Filled")})')
-            elif _validate_tuple_types(_with_icon_name, (str, IconVariant)):
-                icon_name, icon_variant = cast(tuple[str, IconVariant], _with_icon_name)
+            elif _validate_tuple_types(_icon_name, (str, IconVariant)):
+                icon_name, icon_variant = cast(tuple[str, IconVariant], _icon_name)
                 __builder.write(f'\n    .WithIconName(iconName: {_format_string(icon_name, None)}, iconVariant: {_format_enum("IconVariant", icon_variant, "Filled")})')
             else:
-                raise TypeError("Invalid type for option 'with_icon_name'")
+                raise TypeError("Invalid type for option 'icon_name'")
         if _exclude_from_mcp := kwargs.pop("exclude_from_mcp", None):
             if _exclude_from_mcp is True:
                 __builder.write(f'\n    .ExcludeFromMcp()')
@@ -661,21 +687,21 @@ class _BaseResource:
 
     def with_reference_relationship(self, resource_builder: Resource, /) -> Self:
         if _validate_type(resource_builder, Resource):
-            self._builder.write(f'\n{self.name}.WithReferenceRelationship(resourceBuilder: {resource_builder.name});')
+            self._builder.write(f'\n{self.name}.WithReferenceRelationship(resourceBuilder: {_format_value(resource_builder.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_parent_relationship(self, parent: Resource, /) -> Self:
         if _validate_type(parent, Resource):
-            self._builder.write(f'\n{self.name}.WithParentRelationship(parent: {parent.name});')
+            self._builder.write(f'\n{self.name}.WithParentRelationship(parent: {_format_value(parent.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_child_relationship(self, child: Resource, /) -> Self:
         if _validate_type(child, Resource):
-            self._builder.write(f'\n{self.name}.WithChildRelationship(child: {child.name});')
+            self._builder.write(f'\n{self.name}.WithChildRelationship(child: {_format_value(child.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -706,45 +732,45 @@ class ConnectionStringResource(_BaseResource):
         return "#:package Aspire.Hosting@13.0.1.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[ConnectionStringResourceOptions]) -> None:
-        if _with_connection_string_redirection := kwargs.pop("with_connection_string_redirection", None):
-            if _validate_type(_with_connection_string_redirection, ResourceWithConnectionString):
-                resource = cast(ResourceWithConnectionString, _with_connection_string_redirection)
-                __builder.write(f'\n    .WithConnectionStringRedirection(resource: {resource})')
+        if _connection_string_redirection := kwargs.pop("connection_string_redirection", None):
+            if _validate_type(_connection_string_redirection, ResourceWithConnectionString):
+                resource = cast(ResourceWithConnectionString, _connection_string_redirection)
+                __builder.write(f'\n    .WithConnectionStringRedirection(resource: {_format_value(resource, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_connection_string_redirection'")
+                raise TypeError("Invalid type for option 'connection_string_redirection'")
         if _wait_for := kwargs.pop("wait_for", None):
             if _validate_type(_wait_for, Resource):
                 dependency = cast(Resource, _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {dependency.name})')
+                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)})')
             elif _validate_tuple_types(_wait_for, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for'")
         if _wait_for_start := kwargs.pop("wait_for_start", None):
             if _validate_type(_wait_for_start, Resource):
                 dependency = cast(Resource, _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name})')
+                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)})')
             elif _validate_tuple_types(_wait_for_start, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_start'")
         if _wait_for_completion := kwargs.pop("wait_for_completion", None):
             if _validate_type(_wait_for_completion, Resource):
                 dependency = cast(Resource, _wait_for_completion)
                 exit_code = None
-                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {exit_code})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
             elif _validate_tuple_types(_wait_for_completion, (Resource, int)):
                 dependency, exit_code = cast(tuple[Resource, int], _wait_for_completion)
-                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {exit_code})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_completion'")
         super().__init__(__name, __builder, **kwargs)
 
     def with_connection_string_redirection(self, resource: ResourceWithConnectionString, /) -> Self:
         if _validate_type(resource, ResourceWithConnectionString):
-            self._builder.write(f'\n{self.name}.WithConnectionStringRedirection(resource: {resource});')
+            self._builder.write(f'\n{self.name}.WithConnectionStringRedirection(resource: {_format_value(resource, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -760,11 +786,11 @@ class ConnectionStringResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -780,18 +806,18 @@ class ConnectionStringResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def wait_for_completion(self, dependency: Resource, /, *, exit_code: int = 0) -> Self:
         if _validate_tuple_types((dependency, exit_code), (Resource, int | Literal[0])):
-            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {dependency.name}, exitCode: {exit_code});')
+            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -808,20 +834,20 @@ class ExternalServiceResource(_BaseResource):
         return "#:package Aspire.Hosting@13.0.1.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[ExternalServiceResourceOptions]) -> None:
-        if _with_http_health_check := kwargs.pop("with_http_health_check", None):
-            if _validate_dict_types(_with_http_health_check, HttpHealthCheckParameters):
-                path = cast(HttpHealthCheckParameters, _with_http_health_check).get("path")
-                status_code = cast(HttpHealthCheckParameters, _with_http_health_check).get("status_code")
-                __builder.write(f'\n    .WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {status_code})')
-            elif _with_http_health_check is True:
+        if _http_health_check := kwargs.pop("http_health_check", None):
+            if _validate_dict_types(_http_health_check, HttpHealthCheckParameters):
+                path = cast(HttpHealthCheckParameters, _http_health_check).get("path")
+                status_code = cast(HttpHealthCheckParameters, _http_health_check).get("status_code")
+                __builder.write(f'\n    .WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {_format_value(status_code, None)})')
+            elif _http_health_check is True:
                 __builder.write(f'\n    .WithHttpHealthCheck()')
             else:
-                raise TypeError("Invalid type for option 'with_http_health_check'")
+                raise TypeError("Invalid type for option 'http_health_check'")
         super().__init__(__name, __builder, **kwargs)
 
     def with_http_health_check(self, *, path: str | None = None, status_code: int | None = None) -> Self:
         if _validate_tuple_types((path, status_code), (str | None, int | None)):
-            self._builder.write(f'\n{self.name}.WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {status_code});')
+            self._builder.write(f'\n{self.name}.WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {_format_value(status_code, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -841,30 +867,30 @@ class CertificateAuthorityCollection(_BaseResource):
         return "#:package Aspire.Hosting@13.0.1.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[CertificateAuthorityCollectionOptions]) -> None:
-        if _with_certificate := kwargs.pop("with_certificate", None):
-            if _validate_type(_with_certificate, str | bytes):
-                certificate = cast(str | bytes, _with_certificate)
+        if _certificate := kwargs.pop("certificate", None):
+            if _validate_type(_certificate, str | bytes):
+                certificate = cast(str | bytes, _certificate)
                 __builder.write(f'\n    .WithCertificate(certificate: {_format_cert(certificate)})')
             else:
-                raise TypeError("Invalid type for option 'with_certificate'")
-        if _with_certificates := kwargs.pop("with_certificates", None):
-            if _validate_type(_with_certificates, Iterable[str | bytes]):
-                certificates = cast(Iterable[str | bytes], _with_certificates)
+                raise TypeError("Invalid type for option 'certificate'")
+        if _certificates := kwargs.pop("certificates", None):
+            if _validate_type(_certificates, Iterable[str | bytes]):
+                certificates = cast(Iterable[str | bytes], _certificates)
                 __builder.write(f'\n    .WithCertificates(certificates: {_format_cert(certificates)})')
             else:
-                raise TypeError("Invalid type for option 'with_certificates'")
-        if _with_certificates_from_store := kwargs.pop("with_certificates_from_store", None):
-            if _validate_tuple_types(_with_certificates_from_store, (StoreName, StoreLocation)):
-                store_name, store_location, = cast(tuple[StoreName, StoreLocation], _with_certificates_from_store)
+                raise TypeError("Invalid type for option 'certificates'")
+        if _certificates_from_store := kwargs.pop("certificates_from_store", None):
+            if _validate_tuple_types(_certificates_from_store, (StoreName, StoreLocation)):
+                store_name, store_location, = cast(tuple[StoreName, StoreLocation], _certificates_from_store)
                 __builder.write(f'\n    .WithCertificatesFromStore(storeName: {_format_enum("StoreName", store_name, None)}, storeLocation: {_format_enum("StoreLocation", store_location, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_certificates_from_store'")
-        if _with_certificates_from_file := kwargs.pop("with_certificates_from_file", None):
-            if _validate_type(_with_certificates_from_file, str):
-                pem_file_path = cast(str, _with_certificates_from_file)
+                raise TypeError("Invalid type for option 'certificates_from_store'")
+        if _certificates_from_file := kwargs.pop("certificates_from_file", None):
+            if _validate_type(_certificates_from_file, str):
+                pem_file_path = cast(str, _certificates_from_file)
                 __builder.write(f'\n    .WithCertificatesFromFile(pemFilePath: {_format_string(pem_file_path, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_certificates_from_file'")
+                raise TypeError("Invalid type for option 'certificates_from_file'")
         super().__init__(__name, __builder, **kwargs)
 
     def with_certificate(self, certificate: str | bytes, /) -> Self:
@@ -944,254 +970,254 @@ class ContainerResource(_BaseResource):
         return "#:package Aspire.Hosting@13.0.1.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[ContainerResourceOptions]) -> None:
-        if _with_volume := kwargs.pop("with_volume", None):
-            if _validate_type(_with_volume, str):
-                target = cast(str, _with_volume)
+        if _volume := kwargs.pop("volume", None):
+            if _validate_type(_volume, str):
+                target = cast(str, _volume)
                 __builder.write(f'\n    .WithVolume(target: {_format_string(target, None)})')
-            elif _validate_tuple_types(_with_volume, (str, str)):
-                name, target, = cast(tuple[str, str], _with_volume)
+            elif _validate_tuple_types(_volume, (str, str)):
+                name, target, = cast(tuple[str, str], _volume)
                 is_read_only = None
                 __builder.write(f'\n    .WithVolume(name: {_format_string(name, None)}, target: {_format_string(target, None)}, isReadOnly: {_format_bool(is_read_only, False)})')
-            elif _validate_dict_types(_with_volume, Volume2Parameters):
-                name = cast(Volume2Parameters, _with_volume)["name"]
-                target = cast(Volume2Parameters, _with_volume)["target"]
-                is_read_only = cast(Volume2Parameters, _with_volume).get("is_read_only")
+            elif _validate_dict_types(_volume, Volume2Parameters):
+                name = cast(Volume2Parameters, _volume)["name"]
+                target = cast(Volume2Parameters, _volume)["target"]
+                is_read_only = cast(Volume2Parameters, _volume).get("is_read_only")
                 __builder.write(f'\n    .WithVolume(name: {_format_string(name, None)}, target: {_format_string(target, None)}, isReadOnly: {_format_bool(is_read_only, False)})')
             else:
-                raise TypeError("Invalid type for option 'with_volume'")
-        if _with_bind_mount := kwargs.pop("with_bind_mount", None):
-            if _validate_tuple_types(_with_bind_mount, (str, str)):
-                source, target, = cast(tuple[str, str], _with_bind_mount)
+                raise TypeError("Invalid type for option 'volume'")
+        if _bind_mount := kwargs.pop("bind_mount", None):
+            if _validate_tuple_types(_bind_mount, (str, str)):
+                source, target, = cast(tuple[str, str], _bind_mount)
                 is_read_only = None
                 __builder.write(f'\n    .WithBindMount(source: {_format_string(source, None)}, target: {_format_string(target, None)}, isReadOnly: {_format_bool(is_read_only, False)})')
-            elif _validate_dict_types(_with_bind_mount, BindMountParameters):
-                source = cast(BindMountParameters, _with_bind_mount)["source"]
-                target = cast(BindMountParameters, _with_bind_mount)["target"]
-                is_read_only = cast(BindMountParameters, _with_bind_mount).get("is_read_only")
+            elif _validate_dict_types(_bind_mount, BindMountParameters):
+                source = cast(BindMountParameters, _bind_mount)["source"]
+                target = cast(BindMountParameters, _bind_mount)["target"]
+                is_read_only = cast(BindMountParameters, _bind_mount).get("is_read_only")
                 __builder.write(f'\n    .WithBindMount(source: {_format_string(source, None)}, target: {_format_string(target, None)}, isReadOnly: {_format_bool(is_read_only, False)})')
             else:
-                raise TypeError("Invalid type for option 'with_bind_mount'")
-        if _with_entrypoint := kwargs.pop("with_entrypoint", None):
-            if _validate_type(_with_entrypoint, str):
-                entrypoint = cast(str, _with_entrypoint)
+                raise TypeError("Invalid type for option 'bind_mount'")
+        if _entrypoint := kwargs.pop("entrypoint", None):
+            if _validate_type(_entrypoint, str):
+                entrypoint = cast(str, _entrypoint)
                 __builder.write(f'\n    .WithEntrypoint(entrypoint: {_format_string(entrypoint, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_entrypoint'")
-        if _with_image_tag := kwargs.pop("with_image_tag", None):
-            if _validate_type(_with_image_tag, str):
-                tag = cast(str, _with_image_tag)
+                raise TypeError("Invalid type for option 'entrypoint'")
+        if _image_tag := kwargs.pop("image_tag", None):
+            if _validate_type(_image_tag, str):
+                tag = cast(str, _image_tag)
                 __builder.write(f'\n    .WithImageTag(tag: {_format_string(tag, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_image_tag'")
-        if _with_image_registry := kwargs.pop("with_image_registry", None):
-            if _validate_type(_with_image_registry, str):
-                registry = cast(str, _with_image_registry)
+                raise TypeError("Invalid type for option 'image_tag'")
+        if _image_registry := kwargs.pop("image_registry", None):
+            if _validate_type(_image_registry, str):
+                registry = cast(str, _image_registry)
                 __builder.write(f'\n    .WithImageRegistry(registry: {_format_string(registry, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_image_registry'")
-        if _with_image := kwargs.pop("with_image", None):
-            if _validate_type(_with_image, str):
-                image = cast(str, _with_image)
+                raise TypeError("Invalid type for option 'image_registry'")
+        if _image := kwargs.pop("image", None):
+            if _validate_type(_image, str):
+                image = cast(str, _image)
                 tag = None
                 __builder.write(f'\n    .WithImage(image: {_format_string(image, None)}, tag: {_format_string(tag, None)})')
-            elif _validate_tuple_types(_with_image, (str, str)):
-                image, tag = cast(tuple[str, str], _with_image)
+            elif _validate_tuple_types(_image, (str, str)):
+                image, tag = cast(tuple[str, str], _image)
                 __builder.write(f'\n    .WithImage(image: {_format_string(image, None)}, tag: {_format_string(tag, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_image'")
-        if _with_image_sha256 := kwargs.pop("with_image_sha256", None):
-            if _validate_type(_with_image_sha256, str):
-                sha256 = cast(str, _with_image_sha256)
+                raise TypeError("Invalid type for option 'image'")
+        if _image_sha256 := kwargs.pop("image_sha256", None):
+            if _validate_type(_image_sha256, str):
+                sha256 = cast(str, _image_sha256)
                 __builder.write(f'\n    .WithImageSHA256(sha256: {_format_string(sha256, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_image_sha256'")
-        if _with_container_runtime_args := kwargs.pop("with_container_runtime_args", None):
-            if _validate_type(_with_container_runtime_args, Iterable[str]):
-                args = cast(Iterable[str], _with_container_runtime_args)
+                raise TypeError("Invalid type for option 'image_sha256'")
+        if _container_runtime_args := kwargs.pop("container_runtime_args", None):
+            if _validate_type(_container_runtime_args, Iterable[str]):
+                args = cast(Iterable[str], _container_runtime_args)
                 __builder.write(f'\n    .WithContainerRuntimeArgs(args: {_format_string_array(args)})')
             else:
-                raise TypeError("Invalid type for option 'with_container_runtime_args'")
-        if _with_lifetime := kwargs.pop("with_lifetime", None):
-            if _validate_type(_with_lifetime, ContainerLifetime):
-                lifetime = cast(ContainerLifetime, _with_lifetime)
+                raise TypeError("Invalid type for option 'container_runtime_args'")
+        if _lifetime := kwargs.pop("lifetime", None):
+            if _validate_type(_lifetime, ContainerLifetime):
+                lifetime = cast(ContainerLifetime, _lifetime)
                 __builder.write(f'\n    .WithLifetime(lifetime: {_format_enum("ContainerLifetime", lifetime, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_lifetime'")
-        if _with_image_pull_policy := kwargs.pop("with_image_pull_policy", None):
-            if _validate_type(_with_image_pull_policy, ImagePullPolicy):
-                pull_policy = cast(ImagePullPolicy, _with_image_pull_policy)
+                raise TypeError("Invalid type for option 'lifetime'")
+        if _image_pull_policy := kwargs.pop("image_pull_policy", None):
+            if _validate_type(_image_pull_policy, ImagePullPolicy):
+                pull_policy = cast(ImagePullPolicy, _image_pull_policy)
                 __builder.write(f'\n    .WithImagePullPolicy(pullPolicy: {_format_enum("ImagePullPolicy", pull_policy, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_image_pull_policy'")
+                raise TypeError("Invalid type for option 'image_pull_policy'")
         if _publish_as_container := kwargs.pop("publish_as_container", None):
             if _publish_as_container is True:
                 __builder.write(f'\n    .PublishAsContainer()')
             else:
                 raise TypeError("Invalid type for option 'publish_as_container'")
-        if _with_dockerfile := kwargs.pop("with_dockerfile", None):
-            if _validate_type(_with_dockerfile, str):
-                context_path = cast(str, _with_dockerfile)
+        if _dockerfile := kwargs.pop("dockerfile", None):
+            if _validate_type(_dockerfile, str):
+                context_path = cast(str, _dockerfile)
                 dockerfile_path = None
                 stage = None
                 __builder.write(f'\n    .WithDockerfile(contextPath: {_format_string(context_path, None)}, dockerfilePath: {_format_string(dockerfile_path, None)}, stage: {_format_string(stage, None)})')
-            elif _validate_dict_types(_with_dockerfile, DockerfileParameters):
-                context_path = cast(DockerfileParameters, _with_dockerfile)["context_path"]
-                dockerfile_path = cast(DockerfileParameters, _with_dockerfile).get("dockerfile_path")
-                stage = cast(DockerfileParameters, _with_dockerfile).get("stage")
+            elif _validate_dict_types(_dockerfile, DockerfileParameters):
+                context_path = cast(DockerfileParameters, _dockerfile)["context_path"]
+                dockerfile_path = cast(DockerfileParameters, _dockerfile).get("dockerfile_path")
+                stage = cast(DockerfileParameters, _dockerfile).get("stage")
                 __builder.write(f'\n    .WithDockerfile(contextPath: {_format_string(context_path, None)}, dockerfilePath: {_format_string(dockerfile_path, None)}, stage: {_format_string(stage, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_dockerfile'")
-        if _with_container_name := kwargs.pop("with_container_name", None):
-            if _validate_type(_with_container_name, str):
-                name = cast(str, _with_container_name)
+                raise TypeError("Invalid type for option 'dockerfile'")
+        if _container_name := kwargs.pop("container_name", None):
+            if _validate_type(_container_name, str):
+                name = cast(str, _container_name)
                 __builder.write(f'\n    .WithContainerName(name: {_format_string(name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_container_name'")
-        if _with_build_arg := kwargs.pop("with_build_arg", None):
-            if _validate_tuple_types(_with_build_arg, (str, ParameterResource)):
-                name, value, = cast(tuple[str, ParameterResource], _with_build_arg)
-                __builder.write(f'\n    .WithBuildArg(name: {_format_string(name, None)}, value: {value.name})')
+                raise TypeError("Invalid type for option 'container_name'")
+        if _build_arg := kwargs.pop("build_arg", None):
+            if _validate_tuple_types(_build_arg, (str, ParameterResource)):
+                name, value, = cast(tuple[str, ParameterResource], _build_arg)
+                __builder.write(f'\n    .WithBuildArg(name: {_format_string(name, None)}, value: {_format_value(value.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_build_arg'")
-        if _with_build_secret := kwargs.pop("with_build_secret", None):
-            if _validate_tuple_types(_with_build_secret, (str, ParameterResource)):
-                name, value, = cast(tuple[str, ParameterResource], _with_build_secret)
-                __builder.write(f'\n    .WithBuildSecret(name: {_format_string(name, None)}, value: {value.name})')
+                raise TypeError("Invalid type for option 'build_arg'")
+        if _build_secret := kwargs.pop("build_secret", None):
+            if _validate_tuple_types(_build_secret, (str, ParameterResource)):
+                name, value, = cast(tuple[str, ParameterResource], _build_secret)
+                __builder.write(f'\n    .WithBuildSecret(name: {_format_string(name, None)}, value: {_format_value(value.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_build_secret'")
-        if _with_container_certificate_paths := kwargs.pop("with_container_certificate_paths", None):
-            if _validate_dict_types(_with_container_certificate_paths, ContainerCertificatePathsParameters):
-                custom_certificates_destination = cast(ContainerCertificatePathsParameters, _with_container_certificate_paths).get("custom_certificates_destination")
-                default_certificate_bundle_paths = cast(ContainerCertificatePathsParameters, _with_container_certificate_paths).get("default_certificate_bundle_paths")
-                default_certificate_dir_paths = cast(ContainerCertificatePathsParameters, _with_container_certificate_paths).get("default_certificate_dir_paths")
-                __builder.write(f'\n    .WithContainerCertificatePaths(customCertificatesDestination: {_format_string(custom_certificates_destination, None)}, defaultCertificateBundlePaths: {default_certificate_bundle_paths}, defaultCertificateDirectoryPaths: {default_certificate_dir_paths})')
-            elif _with_container_certificate_paths is True:
+                raise TypeError("Invalid type for option 'build_secret'")
+        if _container_certificate_paths := kwargs.pop("container_certificate_paths", None):
+            if _validate_dict_types(_container_certificate_paths, ContainerCertificatePathsParameters):
+                custom_certificates_destination = cast(ContainerCertificatePathsParameters, _container_certificate_paths).get("custom_certificates_destination")
+                default_certificate_bundle_paths = cast(ContainerCertificatePathsParameters, _container_certificate_paths).get("default_certificate_bundle_paths")
+                default_certificate_dir_paths = cast(ContainerCertificatePathsParameters, _container_certificate_paths).get("default_certificate_dir_paths")
+                __builder.write(f'\n    .WithContainerCertificatePaths(customCertificatesDestination: {_format_string(custom_certificates_destination, None)}, defaultCertificateBundlePaths: {_format_value(default_certificate_bundle_paths, None)}, defaultCertificateDirectoryPaths: {_format_value(default_certificate_dir_paths, None)})')
+            elif _container_certificate_paths is True:
                 __builder.write(f'\n    .WithContainerCertificatePaths()')
             else:
-                raise TypeError("Invalid type for option 'with_container_certificate_paths'")
-        if _with_container_files := kwargs.pop("with_container_files", None):
-            if _validate_tuple_types(_with_container_files, (str, str)):
-                destination_path, source_path, = cast(tuple[str, str], _with_container_files)
+                raise TypeError("Invalid type for option 'container_certificate_paths'")
+        if _container_files := kwargs.pop("container_files", None):
+            if _validate_tuple_types(_container_files, (str, str)):
+                destination_path, source_path, = cast(tuple[str, str], _container_files)
                 default_owner = None
                 default_group = None
                 umask = None
-                __builder.write(f'\n    .WithContainerFiles(destinationPath: {_format_string(destination_path, None)}, sourcePath: {_format_string(source_path, None)}, defaultOwner: {default_owner}, defaultGroup: {default_group}, umask: {umask})')
-            elif _validate_dict_types(_with_container_files, ContainerFilesParameters):
-                destination_path = cast(ContainerFilesParameters, _with_container_files)["destination_path"]
-                source_path = cast(ContainerFilesParameters, _with_container_files)["source_path"]
-                default_owner = cast(ContainerFilesParameters, _with_container_files).get("default_owner")
-                default_group = cast(ContainerFilesParameters, _with_container_files).get("default_group")
-                umask = cast(ContainerFilesParameters, _with_container_files).get("umask")
-                __builder.write(f'\n    .WithContainerFiles(destinationPath: {_format_string(destination_path, None)}, sourcePath: {_format_string(source_path, None)}, defaultOwner: {default_owner}, defaultGroup: {default_group}, umask: {umask})')
+                __builder.write(f'\n    .WithContainerFiles(destinationPath: {_format_string(destination_path, None)}, sourcePath: {_format_string(source_path, None)}, defaultOwner: {_format_value(default_owner, None)}, defaultGroup: {_format_value(default_group, None)}, umask: {_format_value(umask, None)})')
+            elif _validate_dict_types(_container_files, ContainerFilesParameters):
+                destination_path = cast(ContainerFilesParameters, _container_files)["destination_path"]
+                source_path = cast(ContainerFilesParameters, _container_files)["source_path"]
+                default_owner = cast(ContainerFilesParameters, _container_files).get("default_owner")
+                default_group = cast(ContainerFilesParameters, _container_files).get("default_group")
+                umask = cast(ContainerFilesParameters, _container_files).get("umask")
+                __builder.write(f'\n    .WithContainerFiles(destinationPath: {_format_string(destination_path, None)}, sourcePath: {_format_string(source_path, None)}, defaultOwner: {_format_value(default_owner, None)}, defaultGroup: {_format_value(default_group, None)}, umask: {_format_value(umask, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_container_files'")
-        if _with_endpoint_proxy_support := kwargs.pop("with_endpoint_proxy_support", None):
-            if _validate_type(_with_endpoint_proxy_support, bool):
-                proxy_enabled = cast(bool, _with_endpoint_proxy_support)
+                raise TypeError("Invalid type for option 'container_files'")
+        if _endpoint_proxy_support := kwargs.pop("endpoint_proxy_support", None):
+            if _validate_type(_endpoint_proxy_support, bool):
+                proxy_enabled = cast(bool, _endpoint_proxy_support)
                 __builder.write(f'\n    .WithEndpointProxySupport(proxyEnabled: {_format_bool(proxy_enabled, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_endpoint_proxy_support'")
-        if _with_otlp_exporter := kwargs.pop("with_otlp_exporter", None):
-            if _with_otlp_exporter is True:
+                raise TypeError("Invalid type for option 'endpoint_proxy_support'")
+        if _otlp_exporter := kwargs.pop("otlp_exporter", None):
+            if _otlp_exporter is True:
                 __builder.write(f'\n    .WithOtlpExporter()')
-            elif _validate_type(_with_otlp_exporter, OtlpProtocol):
-                protocol = cast(OtlpProtocol, _with_otlp_exporter)
+            elif _validate_type(_otlp_exporter, OtlpProtocol):
+                protocol = cast(OtlpProtocol, _otlp_exporter)
                 __builder.write(f'\n    .WithOtlpExporter(protocol: {_format_enum("OtlpProtocol", protocol, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_otlp_exporter'")
-        if _with_env := kwargs.pop("with_env", None):
-            if _validate_tuple_types(_with_env, (str, str)):
-                name, value, = cast(tuple[str, str], _with_env)
+                raise TypeError("Invalid type for option 'otlp_exporter'")
+        if _env := kwargs.pop("env", None):
+            if _validate_tuple_types(_env, (str, str)):
+                name, value, = cast(tuple[str, str], _env)
                 __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, value: {_format_string(value, None)})')
-            elif _validate_tuple_types(_with_env, (str, ExternalServiceResource)):
-                name, external_service, = cast(tuple[str, ExternalServiceResource], _with_env)
-                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, externalService: {external_service.name})')
-            elif _validate_tuple_types(_with_env, (str, ParameterResource)):
-                name, parameter, = cast(tuple[str, ParameterResource], _with_env)
-                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, parameter: {parameter.name})')
-            elif _validate_tuple_types(_with_env, (str, ResourceWithConnectionString)):
-                env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], _with_env)
-                __builder.write(f'\n    .WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {resource.name})')
+            elif _validate_tuple_types(_env, (str, ExternalServiceResource)):
+                name, external_service, = cast(tuple[str, ExternalServiceResource], _env)
+                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, externalService: {_format_value(external_service.name, None)})')
+            elif _validate_tuple_types(_env, (str, ParameterResource)):
+                name, parameter, = cast(tuple[str, ParameterResource], _env)
+                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, parameter: {_format_value(parameter.name, None)})')
+            elif _validate_tuple_types(_env, (str, ResourceWithConnectionString)):
+                env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], _env)
+                __builder.write(f'\n    .WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {_format_value(resource.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_env'")
-        if _with_args := kwargs.pop("with_args", None):
-            if _validate_type(_with_args, Iterable[str]):
-                args = cast(Iterable[str], _with_args)
+                raise TypeError("Invalid type for option 'env'")
+        if _args := kwargs.pop("args", None):
+            if _validate_type(_args, Iterable[str]):
+                args = cast(Iterable[str], _args)
                 __builder.write(f'\n    .WithArgs(args: {_format_string_array(args)})')
             else:
-                raise TypeError("Invalid type for option 'with_args'")
-        if _with_reference_env := kwargs.pop("with_reference_env", None):
-            if _validate_type(_with_reference_env, ReferenceEnvironmentInjectionFlags):
-                flags = cast(ReferenceEnvironmentInjectionFlags, _with_reference_env)
+                raise TypeError("Invalid type for option 'args'")
+        if _reference_env := kwargs.pop("reference_env", None):
+            if _validate_type(_reference_env, ReferenceEnvironmentInjectionFlags):
+                flags = cast(ReferenceEnvironmentInjectionFlags, _reference_env)
                 __builder.write(f'\n    .WithReferenceEnvironment(flags: {_format_enum("ReferenceEnvironmentInjectionFlags", flags, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_reference_env'")
-        if _with_reference := kwargs.pop("with_reference", None):
-            if _validate_type(_with_reference, ResourceWithConnectionString):
-                source = cast(ResourceWithConnectionString, _with_reference)
+                raise TypeError("Invalid type for option 'reference_env'")
+        if _reference := kwargs.pop("reference", None):
+            if _validate_type(_reference, ResourceWithConnectionString):
+                source = cast(ResourceWithConnectionString, _reference)
                 connection_name = None
                 optional = None
-                __builder.write(f'\n    .WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
-            elif _validate_dict_types(_with_reference, Reference1Parameters):
-                source = cast(Reference1Parameters, _with_reference)["source"]
-                connection_name = cast(Reference1Parameters, _with_reference).get("connection_name")
-                optional = cast(Reference1Parameters, _with_reference).get("optional")
-                __builder.write(f'\n    .WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
-            elif _validate_type(_with_reference, ResourceWithServiceDiscovery):
-                source = cast(ResourceWithServiceDiscovery, _with_reference)
-                __builder.write(f'\n    .WithReference(source: {source.name})')
-            elif _validate_type(_with_reference, ExternalServiceResource):
-                external_service = cast(ExternalServiceResource, _with_reference)
-                __builder.write(f'\n    .WithReference(externalService: {external_service.name})')
-            elif _validate_tuple_types(_with_reference, (ResourceWithServiceDiscovery, str)):
-                source, name, = cast(tuple[ResourceWithServiceDiscovery, str], _with_reference)
-                __builder.write(f'\n    .WithReference(source: {source.name}, name: {_format_string(name, None)})')
+                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
+            elif _validate_dict_types(_reference, Reference1Parameters):
+                source = cast(Reference1Parameters, _reference)["source"]
+                connection_name = cast(Reference1Parameters, _reference).get("connection_name")
+                optional = cast(Reference1Parameters, _reference).get("optional")
+                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
+            elif _validate_type(_reference, ResourceWithServiceDiscovery):
+                source = cast(ResourceWithServiceDiscovery, _reference)
+                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)})')
+            elif _validate_type(_reference, ExternalServiceResource):
+                external_service = cast(ExternalServiceResource, _reference)
+                __builder.write(f'\n    .WithReference(externalService: {_format_value(external_service.name, None)})')
+            elif _validate_tuple_types(_reference, (ResourceWithServiceDiscovery, str)):
+                source, name, = cast(tuple[ResourceWithServiceDiscovery, str], _reference)
+                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, name: {_format_string(name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_reference'")
-        if _with_endpoint := kwargs.pop("with_endpoint", None):
-            if _validate_dict_types(_with_endpoint, EndpointParameters):
-                port = cast(EndpointParameters, _with_endpoint).get("port")
-                target_port = cast(EndpointParameters, _with_endpoint).get("target_port")
-                scheme = cast(EndpointParameters, _with_endpoint).get("scheme")
-                name = cast(EndpointParameters, _with_endpoint).get("name")
-                env = cast(EndpointParameters, _with_endpoint).get("env")
-                is_proxied = cast(EndpointParameters, _with_endpoint).get("is_proxied")
-                is_external = cast(EndpointParameters, _with_endpoint).get("is_external")
-                protocol = cast(EndpointParameters, _with_endpoint).get("protocol")
-                __builder.write(f'\n    .WithEndpoint(port: {port}, targetPort: {target_port}, scheme: {_format_string(scheme, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)}, isExternal: {is_external}, protocol: {protocol})')
-            elif _with_endpoint is True:
+                raise TypeError("Invalid type for option 'reference'")
+        if _endpoint := kwargs.pop("endpoint", None):
+            if _validate_dict_types(_endpoint, EndpointParameters):
+                port = cast(EndpointParameters, _endpoint).get("port")
+                target_port = cast(EndpointParameters, _endpoint).get("target_port")
+                scheme = cast(EndpointParameters, _endpoint).get("scheme")
+                name = cast(EndpointParameters, _endpoint).get("name")
+                env = cast(EndpointParameters, _endpoint).get("env")
+                is_proxied = cast(EndpointParameters, _endpoint).get("is_proxied")
+                is_external = cast(EndpointParameters, _endpoint).get("is_external")
+                protocol = cast(EndpointParameters, _endpoint).get("protocol")
+                __builder.write(f'\n    .WithEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, scheme: {_format_string(scheme, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)}, isExternal: {_format_value(is_external, None)}, protocol: {_format_value(protocol, None)})')
+            elif _endpoint is True:
                 __builder.write(f'\n    .WithEndpoint()')
             else:
-                raise TypeError("Invalid type for option 'with_endpoint'")
-        if _with_http_endpoint := kwargs.pop("with_http_endpoint", None):
-            if _validate_dict_types(_with_http_endpoint, HttpEndpointParameters):
-                port = cast(HttpEndpointParameters, _with_http_endpoint).get("port")
-                target_port = cast(HttpEndpointParameters, _with_http_endpoint).get("target_port")
-                name = cast(HttpEndpointParameters, _with_http_endpoint).get("name")
-                env = cast(HttpEndpointParameters, _with_http_endpoint).get("env")
-                is_proxied = cast(HttpEndpointParameters, _with_http_endpoint).get("is_proxied")
-                __builder.write(f'\n    .WithHttpEndpoint(port: {port}, targetPort: {target_port}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)})')
-            elif _with_http_endpoint is True:
+                raise TypeError("Invalid type for option 'endpoint'")
+        if _http_endpoint := kwargs.pop("http_endpoint", None):
+            if _validate_dict_types(_http_endpoint, HttpEndpointParameters):
+                port = cast(HttpEndpointParameters, _http_endpoint).get("port")
+                target_port = cast(HttpEndpointParameters, _http_endpoint).get("target_port")
+                name = cast(HttpEndpointParameters, _http_endpoint).get("name")
+                env = cast(HttpEndpointParameters, _http_endpoint).get("env")
+                is_proxied = cast(HttpEndpointParameters, _http_endpoint).get("is_proxied")
+                __builder.write(f'\n    .WithHttpEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)})')
+            elif _http_endpoint is True:
                 __builder.write(f'\n    .WithHttpEndpoint()')
             else:
-                raise TypeError("Invalid type for option 'with_http_endpoint'")
-        if _with_https_endpoint := kwargs.pop("with_https_endpoint", None):
-            if _validate_dict_types(_with_https_endpoint, HttpsEndpointParameters):
-                port = cast(HttpsEndpointParameters, _with_https_endpoint).get("port")
-                target_port = cast(HttpsEndpointParameters, _with_https_endpoint).get("target_port")
-                name = cast(HttpsEndpointParameters, _with_https_endpoint).get("name")
-                env = cast(HttpsEndpointParameters, _with_https_endpoint).get("env")
-                is_proxied = cast(HttpsEndpointParameters, _with_https_endpoint).get("is_proxied")
-                __builder.write(f'\n    .WithHttpsEndpoint(port: {port}, targetPort: {target_port}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)})')
-            elif _with_https_endpoint is True:
+                raise TypeError("Invalid type for option 'http_endpoint'")
+        if _https_endpoint := kwargs.pop("https_endpoint", None):
+            if _validate_dict_types(_https_endpoint, HttpsEndpointParameters):
+                port = cast(HttpsEndpointParameters, _https_endpoint).get("port")
+                target_port = cast(HttpsEndpointParameters, _https_endpoint).get("target_port")
+                name = cast(HttpsEndpointParameters, _https_endpoint).get("name")
+                env = cast(HttpsEndpointParameters, _https_endpoint).get("env")
+                is_proxied = cast(HttpsEndpointParameters, _https_endpoint).get("is_proxied")
+                __builder.write(f'\n    .WithHttpsEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)})')
+            elif _https_endpoint is True:
                 __builder.write(f'\n    .WithHttpsEndpoint()')
             else:
-                raise TypeError("Invalid type for option 'with_https_endpoint'")
-        if _with_external_http_endpoints := kwargs.pop("with_external_http_endpoints", None):
-            if _with_external_http_endpoints is True:
+                raise TypeError("Invalid type for option 'https_endpoint'")
+        if _external_http_endpoints := kwargs.pop("external_http_endpoints", None):
+            if _external_http_endpoints is True:
                 __builder.write(f'\n    .WithExternalHttpEndpoints()')
             else:
-                raise TypeError("Invalid type for option 'with_external_http_endpoints'")
+                raise TypeError("Invalid type for option 'external_http_endpoints'")
         if _as_http2_service := kwargs.pop("as_http2_service", None):
             if _as_http2_service is True:
                 __builder.write(f'\n    .AsHttp2Service()')
@@ -1200,82 +1226,82 @@ class ContainerResource(_BaseResource):
         if _wait_for := kwargs.pop("wait_for", None):
             if _validate_type(_wait_for, Resource):
                 dependency = cast(Resource, _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {dependency.name})')
+                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)})')
             elif _validate_tuple_types(_wait_for, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for'")
         if _wait_for_start := kwargs.pop("wait_for_start", None):
             if _validate_type(_wait_for_start, Resource):
                 dependency = cast(Resource, _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name})')
+                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)})')
             elif _validate_tuple_types(_wait_for_start, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_start'")
         if _wait_for_completion := kwargs.pop("wait_for_completion", None):
             if _validate_type(_wait_for_completion, Resource):
                 dependency = cast(Resource, _wait_for_completion)
                 exit_code = None
-                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {exit_code})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
             elif _validate_tuple_types(_wait_for_completion, (Resource, int)):
                 dependency, exit_code = cast(tuple[Resource, int], _wait_for_completion)
-                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {exit_code})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_completion'")
-        if _with_http_health_check := kwargs.pop("with_http_health_check", None):
-            if _validate_dict_types(_with_http_health_check, HttpHealthCheckParameters):
-                path = cast(HttpHealthCheckParameters, _with_http_health_check).get("path")
-                status_code = cast(HttpHealthCheckParameters, _with_http_health_check).get("status_code")
-                endpoint_name = cast(HttpHealthCheckParameters, _with_http_health_check).get("endpoint_name")
-                __builder.write(f'\n    .WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {status_code}, endpointName: {_format_string(endpoint_name, None)})')
-            elif _with_http_health_check is True:
+        if _http_health_check := kwargs.pop("http_health_check", None):
+            if _validate_dict_types(_http_health_check, HttpHealthCheckParameters):
+                path = cast(HttpHealthCheckParameters, _http_health_check).get("path")
+                status_code = cast(HttpHealthCheckParameters, _http_health_check).get("status_code")
+                endpoint_name = cast(HttpHealthCheckParameters, _http_health_check).get("endpoint_name")
+                __builder.write(f'\n    .WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {_format_value(status_code, None)}, endpointName: {_format_string(endpoint_name, None)})')
+            elif _http_health_check is True:
                 __builder.write(f'\n    .WithHttpHealthCheck()')
             else:
-                raise TypeError("Invalid type for option 'with_http_health_check'")
-        if _with_http_command := kwargs.pop("with_http_command", None):
-            if _validate_tuple_types(_with_http_command, (str, str)):
-                path, display_name, = cast(tuple[str, str], _with_http_command)
+                raise TypeError("Invalid type for option 'http_health_check'")
+        if _http_command := kwargs.pop("http_command", None):
+            if _validate_tuple_types(_http_command, (str, str)):
+                path, display_name, = cast(tuple[str, str], _http_command)
                 endpoint_name = None
                 command_name = None
                 __builder.write(f'\n    .WithHttpCommand(path: {_format_string(path, None)}, displayName: {_format_string(display_name, None)}, endpointName: {_format_string(endpoint_name, None)}, commandName: {_format_string(command_name, None)})')
-            elif _validate_dict_types(_with_http_command, HttpCommandParameters):
-                path = cast(HttpCommandParameters, _with_http_command)["path"]
-                display_name = cast(HttpCommandParameters, _with_http_command)["display_name"]
-                endpoint_name = cast(HttpCommandParameters, _with_http_command).get("endpoint_name")
-                command_name = cast(HttpCommandParameters, _with_http_command).get("command_name")
+            elif _validate_dict_types(_http_command, HttpCommandParameters):
+                path = cast(HttpCommandParameters, _http_command)["path"]
+                display_name = cast(HttpCommandParameters, _http_command)["display_name"]
+                endpoint_name = cast(HttpCommandParameters, _http_command).get("endpoint_name")
+                command_name = cast(HttpCommandParameters, _http_command).get("command_name")
                 __builder.write(f'\n    .WithHttpCommand(path: {_format_string(path, None)}, displayName: {_format_string(display_name, None)}, endpointName: {_format_string(endpoint_name, None)}, commandName: {_format_string(command_name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_http_command'")
-        if _with_certificate_authority_collection := kwargs.pop("with_certificate_authority_collection", None):
-            if _validate_type(_with_certificate_authority_collection, CertificateAuthorityCollection):
-                certificate_authority_collection = cast(CertificateAuthorityCollection, _with_certificate_authority_collection)
-                __builder.write(f'\n    .WithCertificateAuthorityCollection(certificateAuthorityCollection: {certificate_authority_collection.name})')
+                raise TypeError("Invalid type for option 'http_command'")
+        if _certificate_authority_collection := kwargs.pop("certificate_authority_collection", None):
+            if _validate_type(_certificate_authority_collection, CertificateAuthorityCollection):
+                certificate_authority_collection = cast(CertificateAuthorityCollection, _certificate_authority_collection)
+                __builder.write(f'\n    .WithCertificateAuthorityCollection(certificateAuthorityCollection: {_format_value(certificate_authority_collection.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_certificate_authority_collection'")
-        if _with_developer_certificate_trust := kwargs.pop("with_developer_certificate_trust", None):
-            if _validate_type(_with_developer_certificate_trust, bool):
-                trust = cast(bool, _with_developer_certificate_trust)
+                raise TypeError("Invalid type for option 'certificate_authority_collection'")
+        if _developer_certificate_trust := kwargs.pop("developer_certificate_trust", None):
+            if _validate_type(_developer_certificate_trust, bool):
+                trust = cast(bool, _developer_certificate_trust)
                 __builder.write(f'\n    .WithDeveloperCertificateTrust(trust: {_format_bool(trust, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_developer_certificate_trust'")
-        if _with_certificate_trust_scope := kwargs.pop("with_certificate_trust_scope", None):
-            if _validate_type(_with_certificate_trust_scope, CertificateTrustScope):
-                scope = cast(CertificateTrustScope, _with_certificate_trust_scope)
+                raise TypeError("Invalid type for option 'developer_certificate_trust'")
+        if _certificate_trust_scope := kwargs.pop("certificate_trust_scope", None):
+            if _validate_type(_certificate_trust_scope, CertificateTrustScope):
+                scope = cast(CertificateTrustScope, _certificate_trust_scope)
                 __builder.write(f'\n    .WithCertificateTrustScope(scope: {_format_enum("CertificateTrustScope", scope, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_certificate_trust_scope'")
-        if _with_compute_env := kwargs.pop("with_compute_env", None):
-            if _validate_type(_with_compute_env, ComputeEnvironmentResource):
-                compute_env_resource = cast(ComputeEnvironmentResource, _with_compute_env)
-                __builder.write(f'\n    .WithComputeEnvironment(computeEnvironmentResource: {compute_env_resource.name})')
+                raise TypeError("Invalid type for option 'certificate_trust_scope'")
+        if _compute_env := kwargs.pop("compute_env", None):
+            if _validate_type(_compute_env, ComputeEnvironmentResource):
+                compute_env_resource = cast(ComputeEnvironmentResource, _compute_env)
+                __builder.write(f'\n    .WithComputeEnvironment(computeEnvironmentResource: {_format_value(compute_env_resource.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_compute_env'")
-        if _with_http_probe := kwargs.pop("with_http_probe", None):
-            if _validate_type(_with_http_probe, ProbeType):
-                type = cast(ProbeType, _with_http_probe)
+                raise TypeError("Invalid type for option 'compute_env'")
+        if _http_probe := kwargs.pop("http_probe", None):
+            if _validate_type(_http_probe, ProbeType):
+                type = cast(ProbeType, _http_probe)
                 path = None
                 initial_delay_seconds = None
                 period_seconds = None
@@ -1283,19 +1309,19 @@ class ContainerResource(_BaseResource):
                 failure_threshold = None
                 success_threshold = None
                 endpoint_name = None
-                __builder.write(f'\n    .WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {initial_delay_seconds}, periodSeconds: {period_seconds}, timeoutSeconds: {timeout_seconds}, failureThreshold: {failure_threshold}, successThreshold: {success_threshold}, endpointName: {_format_string(endpoint_name, None)})')
-            elif _validate_dict_types(_with_http_probe, HttpProbeParameters):
-                type = cast(HttpProbeParameters, _with_http_probe)["type"]
-                path = cast(HttpProbeParameters, _with_http_probe).get("path")
-                initial_delay_seconds = cast(HttpProbeParameters, _with_http_probe).get("initial_delay_seconds")
-                period_seconds = cast(HttpProbeParameters, _with_http_probe).get("period_seconds")
-                timeout_seconds = cast(HttpProbeParameters, _with_http_probe).get("timeout_seconds")
-                failure_threshold = cast(HttpProbeParameters, _with_http_probe).get("failure_threshold")
-                success_threshold = cast(HttpProbeParameters, _with_http_probe).get("success_threshold")
-                endpoint_name = cast(HttpProbeParameters, _with_http_probe).get("endpoint_name")
-                __builder.write(f'\n    .WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {initial_delay_seconds}, periodSeconds: {period_seconds}, timeoutSeconds: {timeout_seconds}, failureThreshold: {failure_threshold}, successThreshold: {success_threshold}, endpointName: {_format_string(endpoint_name, None)})')
+                __builder.write(f'\n    .WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {_format_value(initial_delay_seconds, None)}, periodSeconds: {_format_value(period_seconds, None)}, timeoutSeconds: {_format_value(timeout_seconds, None)}, failureThreshold: {_format_value(failure_threshold, None)}, successThreshold: {_format_value(success_threshold, None)}, endpointName: {_format_string(endpoint_name, None)})')
+            elif _validate_dict_types(_http_probe, HttpProbeParameters):
+                type = cast(HttpProbeParameters, _http_probe)["type"]
+                path = cast(HttpProbeParameters, _http_probe).get("path")
+                initial_delay_seconds = cast(HttpProbeParameters, _http_probe).get("initial_delay_seconds")
+                period_seconds = cast(HttpProbeParameters, _http_probe).get("period_seconds")
+                timeout_seconds = cast(HttpProbeParameters, _http_probe).get("timeout_seconds")
+                failure_threshold = cast(HttpProbeParameters, _http_probe).get("failure_threshold")
+                success_threshold = cast(HttpProbeParameters, _http_probe).get("success_threshold")
+                endpoint_name = cast(HttpProbeParameters, _http_probe).get("endpoint_name")
+                __builder.write(f'\n    .WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {_format_value(initial_delay_seconds, None)}, periodSeconds: {_format_value(period_seconds, None)}, timeoutSeconds: {_format_value(timeout_seconds, None)}, failureThreshold: {_format_value(failure_threshold, None)}, successThreshold: {_format_value(success_threshold, None)}, endpointName: {_format_string(endpoint_name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_http_probe'")
+                raise TypeError("Invalid type for option 'http_probe'")
         super().__init__(__name, __builder, **kwargs)
 
     @overload
@@ -1311,7 +1337,7 @@ class ContainerResource(_BaseResource):
                 raise TypeError(f"Keyword arguments not supported with target")
             self._builder.write(f'\n{self.name}.WithVolume(target: {_format_string(target, None)});')
             return self
-        elif _validate_tuple_types(args + (_is_read_only := kwargs.get("is_read_only"),), (str, str, bool | Literal[False])):
+        elif _validate_tuple_types(args + (_is_read_only := kwargs.get("is_read_only", False),), (str, str, bool | Literal[False])):
             name, target, = cast(tuple[str, str], args)
             is_read_only = _is_read_only
             self._builder.write(f'\n{self.name}.WithVolume(name: {_format_string(name, None)}, target: {_format_string(target, None)}, isReadOnly: {_format_bool(is_read_only, False)});')
@@ -1402,28 +1428,28 @@ class ContainerResource(_BaseResource):
 
     def with_build_arg(self, name: str, value: ParameterResource, /) -> Self:
         if _validate_tuple_types((name, value, ), (str, ParameterResource)):
-            self._builder.write(f'\n{self.name}.WithBuildArg(name: {_format_string(name, None)}, value: {value.name});')
+            self._builder.write(f'\n{self.name}.WithBuildArg(name: {_format_string(name, None)}, value: {_format_value(value.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_build_secret(self, name: str, value: ParameterResource, /) -> Self:
         if _validate_tuple_types((name, value, ), (str, ParameterResource)):
-            self._builder.write(f'\n{self.name}.WithBuildSecret(name: {_format_string(name, None)}, value: {value.name});')
+            self._builder.write(f'\n{self.name}.WithBuildSecret(name: {_format_string(name, None)}, value: {_format_value(value.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_container_certificate_paths(self, *, custom_certificates_destination: str | None = None, default_certificate_bundle_paths: Iterable[str] | None = None, default_certificate_dir_paths: Iterable[str] | None = None) -> Self:
         if _validate_tuple_types((custom_certificates_destination, default_certificate_bundle_paths, default_certificate_dir_paths), (str | None, Iterable[str] | None, Iterable[str] | None)):
-            self._builder.write(f'\n{self.name}.WithContainerCertificatePaths(customCertificatesDestination: {_format_string(custom_certificates_destination, None)}, defaultCertificateBundlePaths: {default_certificate_bundle_paths}, defaultCertificateDirectoryPaths: {default_certificate_dir_paths});')
+            self._builder.write(f'\n{self.name}.WithContainerCertificatePaths(customCertificatesDestination: {_format_string(custom_certificates_destination, None)}, defaultCertificateBundlePaths: {_format_value(default_certificate_bundle_paths, None)}, defaultCertificateDirectoryPaths: {_format_value(default_certificate_dir_paths, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_container_files(self, destination_path: str, source_path: str, /, *, default_owner: int | None = None, default_group: int | None = None, umask: UnixFileMode | None = None) -> Self:
         if _validate_tuple_types((destination_path, source_path, default_owner, default_group, umask), (str, str, int | None, int | None, UnixFileMode | None)):
-            self._builder.write(f'\n{self.name}.WithContainerFiles(destinationPath: {_format_string(destination_path, None)}, sourcePath: {_format_string(source_path, None)}, defaultOwner: {default_owner}, defaultGroup: {default_group}, umask: {umask});')
+            self._builder.write(f'\n{self.name}.WithContainerFiles(destinationPath: {_format_string(destination_path, None)}, sourcePath: {_format_string(source_path, None)}, defaultOwner: {_format_value(default_owner, None)}, defaultGroup: {_format_value(default_group, None)}, umask: {_format_value(umask, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1474,15 +1500,15 @@ class ContainerResource(_BaseResource):
             return self
         elif _validate_tuple_types(args + (), (str, ExternalServiceResource)):
             name, external_service, = cast(tuple[str, ExternalServiceResource], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, externalService: {external_service.name});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, externalService: {_format_value(external_service.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (str, ParameterResource)):
             name, parameter, = cast(tuple[str, ParameterResource], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, parameter: {parameter.name});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, parameter: {_format_value(parameter.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (str, ResourceWithConnectionString)):
             env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {resource.name});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {_format_value(resource.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1514,48 +1540,48 @@ class ContainerResource(_BaseResource):
     def with_reference(self, source: ResourceWithServiceDiscovery, name: str, /) -> Self:
         ...
     def with_reference(self, *args, **kwargs) -> Self:
-        if _validate_tuple_types(args + (_connection_name := kwargs.get("connection_name"), _optional := kwargs.get("optional"),), (ResourceWithConnectionString, str | None, bool | Literal[False])):
+        if _validate_tuple_types(args + (_connection_name := kwargs.get("connection_name", None), _optional := kwargs.get("optional", False),), (ResourceWithConnectionString, str | None, bool | Literal[False])):
             source, = cast(tuple[ResourceWithConnectionString], args)
             connection_name = _connection_name
             optional = _optional
-            self._builder.write(f'\n{self.name}.WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)});')
             return self
         elif len(args) == 1 and _validate_type(args[0], ResourceWithServiceDiscovery):
             source = cast(ResourceWithServiceDiscovery, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with source")
-            self._builder.write(f'\n{self.name}.WithReference(source: {source.name});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)});')
             return self
         elif len(args) == 1 and _validate_type(args[0], ExternalServiceResource):
             external_service = cast(ExternalServiceResource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with external_service")
-            self._builder.write(f'\n{self.name}.WithReference(externalService: {external_service.name});')
+            self._builder.write(f'\n{self.name}.WithReference(externalService: {_format_value(external_service.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (ResourceWithServiceDiscovery, str)):
             source, name, = cast(tuple[ResourceWithServiceDiscovery, str], args)
-            self._builder.write(f'\n{self.name}.WithReference(source: {source.name}, name: {_format_string(name, None)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)}, name: {_format_string(name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_endpoint(self, *, port: int | None = None, target_port: int | None = None, scheme: str | None = None, name: str | None = None, env: str | None = None, is_proxied: bool = True, is_external: bool | None = None, protocol: ProtocolType | None = None) -> Self:
         if _validate_tuple_types((port, target_port, scheme, name, env, is_proxied, is_external, protocol), (int | None, int | None, str | None, str | None, str | None, bool | Literal[True], bool | None, ProtocolType | None)):
-            self._builder.write(f'\n{self.name}.WithEndpoint(port: {port}, targetPort: {target_port}, scheme: {_format_string(scheme, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)}, isExternal: {is_external}, protocol: {protocol});')
+            self._builder.write(f'\n{self.name}.WithEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, scheme: {_format_string(scheme, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)}, isExternal: {_format_value(is_external, None)}, protocol: {_format_value(protocol, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_http_endpoint(self, *, port: int | None = None, target_port: int | None = None, name: str | None = None, env: str | None = None, is_proxied: bool = True) -> Self:
         if _validate_tuple_types((port, target_port, name, env, is_proxied), (int | None, int | None, str | None, str | None, bool | Literal[True])):
-            self._builder.write(f'\n{self.name}.WithHttpEndpoint(port: {port}, targetPort: {target_port}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)});')
+            self._builder.write(f'\n{self.name}.WithHttpEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_https_endpoint(self, *, port: int | None = None, target_port: int | None = None, name: str | None = None, env: str | None = None, is_proxied: bool = True) -> Self:
         if _validate_tuple_types((port, target_port, name, env, is_proxied), (int | None, int | None, str | None, str | None, bool | Literal[True])):
-            self._builder.write(f'\n{self.name}.WithHttpsEndpoint(port: {port}, targetPort: {target_port}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)});')
+            self._builder.write(f'\n{self.name}.WithHttpsEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1579,11 +1605,11 @@ class ContainerResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1599,25 +1625,25 @@ class ContainerResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def wait_for_completion(self, dependency: Resource, /, *, exit_code: int = 0) -> Self:
         if _validate_tuple_types((dependency, exit_code), (Resource, int | Literal[0])):
-            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {dependency.name}, exitCode: {exit_code});')
+            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_http_health_check(self, *, path: str | None = None, status_code: int | None = None, endpoint_name: str | None = None) -> Self:
         if _validate_tuple_types((path, status_code, endpoint_name), (str | None, int | None, str | None)):
-            self._builder.write(f'\n{self.name}.WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {status_code}, endpointName: {_format_string(endpoint_name, None)});')
+            self._builder.write(f'\n{self.name}.WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {_format_value(status_code, None)}, endpointName: {_format_string(endpoint_name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1631,7 +1657,7 @@ class ContainerResource(_BaseResource):
 
     def with_certificate_authority_collection(self, certificate_authority_collection: CertificateAuthorityCollection, /) -> Self:
         if _validate_type(certificate_authority_collection, CertificateAuthorityCollection):
-            self._builder.write(f'\n{self.name}.WithCertificateAuthorityCollection(certificateAuthorityCollection: {certificate_authority_collection.name});')
+            self._builder.write(f'\n{self.name}.WithCertificateAuthorityCollection(certificateAuthorityCollection: {_format_value(certificate_authority_collection.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1652,7 +1678,7 @@ class ContainerResource(_BaseResource):
 
     def with_compute_env(self, compute_env_resource: ComputeEnvironmentResource, /) -> Self:
         if _validate_type(compute_env_resource, ComputeEnvironmentResource):
-            self._builder.write(f'\n{self.name}.WithComputeEnvironment(computeEnvironmentResource: {compute_env_resource.name});')
+            self._builder.write(f'\n{self.name}.WithComputeEnvironment(computeEnvironmentResource: {_format_value(compute_env_resource.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1660,7 +1686,7 @@ class ContainerResource(_BaseResource):
     def with_http_probe(self, type: ProbeType, /, *, path: str | None = None, initial_delay_seconds: int | None = None, period_seconds: int | None = None, timeout_seconds: int | None = None, failure_threshold: int | None = None, success_threshold: int | None = None, endpoint_name: str | None = None) -> Self:
         if _validate_tuple_types((type, path, initial_delay_seconds, period_seconds, timeout_seconds, failure_threshold, success_threshold, endpoint_name), (ProbeType, str | None, int | None, int | None, int | None, int | None, int | None, str | None)):
             with _experimental(self._builder, "with_http_probe", self.__class__, "ASPIREPROBES001"):
-                self._builder.write(f'\n{self.name}.WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {initial_delay_seconds}, periodSeconds: {period_seconds}, timeoutSeconds: {timeout_seconds}, failureThreshold: {failure_threshold}, successThreshold: {success_threshold}, endpointName: {_format_string(endpoint_name, None)});')
+                self._builder.write(f'\n{self.name}.WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {_format_value(initial_delay_seconds, None)}, periodSeconds: {_format_value(period_seconds, None)}, timeoutSeconds: {_format_value(timeout_seconds, None)}, failureThreshold: {_format_value(failure_threshold, None)}, successThreshold: {_format_value(success_threshold, None)}, endpointName: {_format_string(endpoint_name, None)});')
                 return self
         else:
             raise TypeError("No matching overload found.")
@@ -1700,123 +1726,123 @@ class ProjectResource(_BaseResource):
         return "#:package Aspire.Hosting@13.0.1.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[ProjectResourceOptions]) -> None:
-        if _with_replicas := kwargs.pop("with_replicas", None):
-            if _validate_type(_with_replicas, int):
-                replicas = cast(int, _with_replicas)
-                __builder.write(f'\n    .WithReplicas(replicas: {replicas})')
+        if _replicas := kwargs.pop("replicas", None):
+            if _validate_type(_replicas, int):
+                replicas = cast(int, _replicas)
+                __builder.write(f'\n    .WithReplicas(replicas: {_format_value(replicas, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_replicas'")
+                raise TypeError("Invalid type for option 'replicas'")
         if _disable_forwarded_headers := kwargs.pop("disable_forwarded_headers", None):
             if _disable_forwarded_headers is True:
                 __builder.write(f'\n    .DisableForwardedHeaders()')
             else:
                 raise TypeError("Invalid type for option 'disable_forwarded_headers'")
-        if _with_otlp_exporter := kwargs.pop("with_otlp_exporter", None):
-            if _with_otlp_exporter is True:
+        if _otlp_exporter := kwargs.pop("otlp_exporter", None):
+            if _otlp_exporter is True:
                 __builder.write(f'\n    .WithOtlpExporter()')
-            elif _validate_type(_with_otlp_exporter, OtlpProtocol):
-                protocol = cast(OtlpProtocol, _with_otlp_exporter)
+            elif _validate_type(_otlp_exporter, OtlpProtocol):
+                protocol = cast(OtlpProtocol, _otlp_exporter)
                 __builder.write(f'\n    .WithOtlpExporter(protocol: {_format_enum("OtlpProtocol", protocol, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_otlp_exporter'")
+                raise TypeError("Invalid type for option 'otlp_exporter'")
         if _publish_as_docker_file := kwargs.pop("publish_as_docker_file", None):
             if _publish_as_docker_file is True:
                 __builder.write(f'\n    .PublishAsDockerFile()')
             else:
                 raise TypeError("Invalid type for option 'publish_as_docker_file'")
-        if _with_env := kwargs.pop("with_env", None):
-            if _validate_tuple_types(_with_env, (str, str)):
-                name, value, = cast(tuple[str, str], _with_env)
+        if _env := kwargs.pop("env", None):
+            if _validate_tuple_types(_env, (str, str)):
+                name, value, = cast(tuple[str, str], _env)
                 __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, value: {_format_string(value, None)})')
-            elif _validate_tuple_types(_with_env, (str, ExternalServiceResource)):
-                name, external_service, = cast(tuple[str, ExternalServiceResource], _with_env)
-                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, externalService: {external_service.name})')
-            elif _validate_tuple_types(_with_env, (str, ParameterResource)):
-                name, parameter, = cast(tuple[str, ParameterResource], _with_env)
-                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, parameter: {parameter.name})')
-            elif _validate_tuple_types(_with_env, (str, ResourceWithConnectionString)):
-                env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], _with_env)
-                __builder.write(f'\n    .WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {resource.name})')
+            elif _validate_tuple_types(_env, (str, ExternalServiceResource)):
+                name, external_service, = cast(tuple[str, ExternalServiceResource], _env)
+                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, externalService: {_format_value(external_service.name, None)})')
+            elif _validate_tuple_types(_env, (str, ParameterResource)):
+                name, parameter, = cast(tuple[str, ParameterResource], _env)
+                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, parameter: {_format_value(parameter.name, None)})')
+            elif _validate_tuple_types(_env, (str, ResourceWithConnectionString)):
+                env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], _env)
+                __builder.write(f'\n    .WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {_format_value(resource.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_env'")
-        if _with_args := kwargs.pop("with_args", None):
-            if _validate_type(_with_args, Iterable[str]):
-                args = cast(Iterable[str], _with_args)
+                raise TypeError("Invalid type for option 'env'")
+        if _args := kwargs.pop("args", None):
+            if _validate_type(_args, Iterable[str]):
+                args = cast(Iterable[str], _args)
                 __builder.write(f'\n    .WithArgs(args: {_format_string_array(args)})')
             else:
-                raise TypeError("Invalid type for option 'with_args'")
-        if _with_reference_env := kwargs.pop("with_reference_env", None):
-            if _validate_type(_with_reference_env, ReferenceEnvironmentInjectionFlags):
-                flags = cast(ReferenceEnvironmentInjectionFlags, _with_reference_env)
+                raise TypeError("Invalid type for option 'args'")
+        if _reference_env := kwargs.pop("reference_env", None):
+            if _validate_type(_reference_env, ReferenceEnvironmentInjectionFlags):
+                flags = cast(ReferenceEnvironmentInjectionFlags, _reference_env)
                 __builder.write(f'\n    .WithReferenceEnvironment(flags: {_format_enum("ReferenceEnvironmentInjectionFlags", flags, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_reference_env'")
-        if _with_reference := kwargs.pop("with_reference", None):
-            if _validate_type(_with_reference, ResourceWithConnectionString):
-                source = cast(ResourceWithConnectionString, _with_reference)
+                raise TypeError("Invalid type for option 'reference_env'")
+        if _reference := kwargs.pop("reference", None):
+            if _validate_type(_reference, ResourceWithConnectionString):
+                source = cast(ResourceWithConnectionString, _reference)
                 connection_name = None
                 optional = None
-                __builder.write(f'\n    .WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
-            elif _validate_dict_types(_with_reference, Reference1Parameters):
-                source = cast(Reference1Parameters, _with_reference)["source"]
-                connection_name = cast(Reference1Parameters, _with_reference).get("connection_name")
-                optional = cast(Reference1Parameters, _with_reference).get("optional")
-                __builder.write(f'\n    .WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
-            elif _validate_type(_with_reference, ResourceWithServiceDiscovery):
-                source = cast(ResourceWithServiceDiscovery, _with_reference)
-                __builder.write(f'\n    .WithReference(source: {source.name})')
-            elif _validate_type(_with_reference, ExternalServiceResource):
-                external_service = cast(ExternalServiceResource, _with_reference)
-                __builder.write(f'\n    .WithReference(externalService: {external_service.name})')
-            elif _validate_tuple_types(_with_reference, (ResourceWithServiceDiscovery, str)):
-                source, name, = cast(tuple[ResourceWithServiceDiscovery, str], _with_reference)
-                __builder.write(f'\n    .WithReference(source: {source.name}, name: {_format_string(name, None)})')
+                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
+            elif _validate_dict_types(_reference, Reference1Parameters):
+                source = cast(Reference1Parameters, _reference)["source"]
+                connection_name = cast(Reference1Parameters, _reference).get("connection_name")
+                optional = cast(Reference1Parameters, _reference).get("optional")
+                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
+            elif _validate_type(_reference, ResourceWithServiceDiscovery):
+                source = cast(ResourceWithServiceDiscovery, _reference)
+                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)})')
+            elif _validate_type(_reference, ExternalServiceResource):
+                external_service = cast(ExternalServiceResource, _reference)
+                __builder.write(f'\n    .WithReference(externalService: {_format_value(external_service.name, None)})')
+            elif _validate_tuple_types(_reference, (ResourceWithServiceDiscovery, str)):
+                source, name, = cast(tuple[ResourceWithServiceDiscovery, str], _reference)
+                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, name: {_format_string(name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_reference'")
-        if _with_endpoint := kwargs.pop("with_endpoint", None):
-            if _validate_dict_types(_with_endpoint, EndpointParameters):
-                port = cast(EndpointParameters, _with_endpoint).get("port")
-                target_port = cast(EndpointParameters, _with_endpoint).get("target_port")
-                scheme = cast(EndpointParameters, _with_endpoint).get("scheme")
-                name = cast(EndpointParameters, _with_endpoint).get("name")
-                env = cast(EndpointParameters, _with_endpoint).get("env")
-                is_proxied = cast(EndpointParameters, _with_endpoint).get("is_proxied")
-                is_external = cast(EndpointParameters, _with_endpoint).get("is_external")
-                protocol = cast(EndpointParameters, _with_endpoint).get("protocol")
-                __builder.write(f'\n    .WithEndpoint(port: {port}, targetPort: {target_port}, scheme: {_format_string(scheme, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)}, isExternal: {is_external}, protocol: {protocol})')
-            elif _with_endpoint is True:
+                raise TypeError("Invalid type for option 'reference'")
+        if _endpoint := kwargs.pop("endpoint", None):
+            if _validate_dict_types(_endpoint, EndpointParameters):
+                port = cast(EndpointParameters, _endpoint).get("port")
+                target_port = cast(EndpointParameters, _endpoint).get("target_port")
+                scheme = cast(EndpointParameters, _endpoint).get("scheme")
+                name = cast(EndpointParameters, _endpoint).get("name")
+                env = cast(EndpointParameters, _endpoint).get("env")
+                is_proxied = cast(EndpointParameters, _endpoint).get("is_proxied")
+                is_external = cast(EndpointParameters, _endpoint).get("is_external")
+                protocol = cast(EndpointParameters, _endpoint).get("protocol")
+                __builder.write(f'\n    .WithEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, scheme: {_format_string(scheme, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)}, isExternal: {_format_value(is_external, None)}, protocol: {_format_value(protocol, None)})')
+            elif _endpoint is True:
                 __builder.write(f'\n    .WithEndpoint()')
             else:
-                raise TypeError("Invalid type for option 'with_endpoint'")
-        if _with_http_endpoint := kwargs.pop("with_http_endpoint", None):
-            if _validate_dict_types(_with_http_endpoint, HttpEndpointParameters):
-                port = cast(HttpEndpointParameters, _with_http_endpoint).get("port")
-                target_port = cast(HttpEndpointParameters, _with_http_endpoint).get("target_port")
-                name = cast(HttpEndpointParameters, _with_http_endpoint).get("name")
-                env = cast(HttpEndpointParameters, _with_http_endpoint).get("env")
-                is_proxied = cast(HttpEndpointParameters, _with_http_endpoint).get("is_proxied")
-                __builder.write(f'\n    .WithHttpEndpoint(port: {port}, targetPort: {target_port}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)})')
-            elif _with_http_endpoint is True:
+                raise TypeError("Invalid type for option 'endpoint'")
+        if _http_endpoint := kwargs.pop("http_endpoint", None):
+            if _validate_dict_types(_http_endpoint, HttpEndpointParameters):
+                port = cast(HttpEndpointParameters, _http_endpoint).get("port")
+                target_port = cast(HttpEndpointParameters, _http_endpoint).get("target_port")
+                name = cast(HttpEndpointParameters, _http_endpoint).get("name")
+                env = cast(HttpEndpointParameters, _http_endpoint).get("env")
+                is_proxied = cast(HttpEndpointParameters, _http_endpoint).get("is_proxied")
+                __builder.write(f'\n    .WithHttpEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)})')
+            elif _http_endpoint is True:
                 __builder.write(f'\n    .WithHttpEndpoint()')
             else:
-                raise TypeError("Invalid type for option 'with_http_endpoint'")
-        if _with_https_endpoint := kwargs.pop("with_https_endpoint", None):
-            if _validate_dict_types(_with_https_endpoint, HttpsEndpointParameters):
-                port = cast(HttpsEndpointParameters, _with_https_endpoint).get("port")
-                target_port = cast(HttpsEndpointParameters, _with_https_endpoint).get("target_port")
-                name = cast(HttpsEndpointParameters, _with_https_endpoint).get("name")
-                env = cast(HttpsEndpointParameters, _with_https_endpoint).get("env")
-                is_proxied = cast(HttpsEndpointParameters, _with_https_endpoint).get("is_proxied")
-                __builder.write(f'\n    .WithHttpsEndpoint(port: {port}, targetPort: {target_port}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)})')
-            elif _with_https_endpoint is True:
+                raise TypeError("Invalid type for option 'http_endpoint'")
+        if _https_endpoint := kwargs.pop("https_endpoint", None):
+            if _validate_dict_types(_https_endpoint, HttpsEndpointParameters):
+                port = cast(HttpsEndpointParameters, _https_endpoint).get("port")
+                target_port = cast(HttpsEndpointParameters, _https_endpoint).get("target_port")
+                name = cast(HttpsEndpointParameters, _https_endpoint).get("name")
+                env = cast(HttpsEndpointParameters, _https_endpoint).get("env")
+                is_proxied = cast(HttpsEndpointParameters, _https_endpoint).get("is_proxied")
+                __builder.write(f'\n    .WithHttpsEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)})')
+            elif _https_endpoint is True:
                 __builder.write(f'\n    .WithHttpsEndpoint()')
             else:
-                raise TypeError("Invalid type for option 'with_https_endpoint'")
-        if _with_external_http_endpoints := kwargs.pop("with_external_http_endpoints", None):
-            if _with_external_http_endpoints is True:
+                raise TypeError("Invalid type for option 'https_endpoint'")
+        if _external_http_endpoints := kwargs.pop("external_http_endpoints", None):
+            if _external_http_endpoints is True:
                 __builder.write(f'\n    .WithExternalHttpEndpoints()')
             else:
-                raise TypeError("Invalid type for option 'with_external_http_endpoints'")
+                raise TypeError("Invalid type for option 'external_http_endpoints'")
         if _as_http2_service := kwargs.pop("as_http2_service", None):
             if _as_http2_service is True:
                 __builder.write(f'\n    .AsHttp2Service()')
@@ -1825,88 +1851,88 @@ class ProjectResource(_BaseResource):
         if _publish_with_container_files := kwargs.pop("publish_with_container_files", None):
             if _validate_tuple_types(_publish_with_container_files, (ResourceWithContainerFiles, str)):
                 source, destination_path, = cast(tuple[ResourceWithContainerFiles, str], _publish_with_container_files)
-                __builder.write(f'\n    .PublishWithContainerFiles(source: {source.name}, destinationPath: {_format_string(destination_path, None)})')
+                __builder.write(f'\n    .PublishWithContainerFiles(source: {_format_value(source.name, None)}, destinationPath: {_format_string(destination_path, None)})')
             else:
                 raise TypeError("Invalid type for option 'publish_with_container_files'")
         if _wait_for := kwargs.pop("wait_for", None):
             if _validate_type(_wait_for, Resource):
                 dependency = cast(Resource, _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {dependency.name})')
+                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)})')
             elif _validate_tuple_types(_wait_for, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for'")
         if _wait_for_start := kwargs.pop("wait_for_start", None):
             if _validate_type(_wait_for_start, Resource):
                 dependency = cast(Resource, _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name})')
+                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)})')
             elif _validate_tuple_types(_wait_for_start, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_start'")
         if _wait_for_completion := kwargs.pop("wait_for_completion", None):
             if _validate_type(_wait_for_completion, Resource):
                 dependency = cast(Resource, _wait_for_completion)
                 exit_code = None
-                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {exit_code})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
             elif _validate_tuple_types(_wait_for_completion, (Resource, int)):
                 dependency, exit_code = cast(tuple[Resource, int], _wait_for_completion)
-                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {exit_code})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_completion'")
-        if _with_http_health_check := kwargs.pop("with_http_health_check", None):
-            if _validate_dict_types(_with_http_health_check, HttpHealthCheckParameters):
-                path = cast(HttpHealthCheckParameters, _with_http_health_check).get("path")
-                status_code = cast(HttpHealthCheckParameters, _with_http_health_check).get("status_code")
-                endpoint_name = cast(HttpHealthCheckParameters, _with_http_health_check).get("endpoint_name")
-                __builder.write(f'\n    .WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {status_code}, endpointName: {_format_string(endpoint_name, None)})')
-            elif _with_http_health_check is True:
+        if _http_health_check := kwargs.pop("http_health_check", None):
+            if _validate_dict_types(_http_health_check, HttpHealthCheckParameters):
+                path = cast(HttpHealthCheckParameters, _http_health_check).get("path")
+                status_code = cast(HttpHealthCheckParameters, _http_health_check).get("status_code")
+                endpoint_name = cast(HttpHealthCheckParameters, _http_health_check).get("endpoint_name")
+                __builder.write(f'\n    .WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {_format_value(status_code, None)}, endpointName: {_format_string(endpoint_name, None)})')
+            elif _http_health_check is True:
                 __builder.write(f'\n    .WithHttpHealthCheck()')
             else:
-                raise TypeError("Invalid type for option 'with_http_health_check'")
-        if _with_http_command := kwargs.pop("with_http_command", None):
-            if _validate_tuple_types(_with_http_command, (str, str)):
-                path, display_name, = cast(tuple[str, str], _with_http_command)
+                raise TypeError("Invalid type for option 'http_health_check'")
+        if _http_command := kwargs.pop("http_command", None):
+            if _validate_tuple_types(_http_command, (str, str)):
+                path, display_name, = cast(tuple[str, str], _http_command)
                 endpoint_name = None
                 command_name = None
                 __builder.write(f'\n    .WithHttpCommand(path: {_format_string(path, None)}, displayName: {_format_string(display_name, None)}, endpointName: {_format_string(endpoint_name, None)}, commandName: {_format_string(command_name, None)})')
-            elif _validate_dict_types(_with_http_command, HttpCommandParameters):
-                path = cast(HttpCommandParameters, _with_http_command)["path"]
-                display_name = cast(HttpCommandParameters, _with_http_command)["display_name"]
-                endpoint_name = cast(HttpCommandParameters, _with_http_command).get("endpoint_name")
-                command_name = cast(HttpCommandParameters, _with_http_command).get("command_name")
+            elif _validate_dict_types(_http_command, HttpCommandParameters):
+                path = cast(HttpCommandParameters, _http_command)["path"]
+                display_name = cast(HttpCommandParameters, _http_command)["display_name"]
+                endpoint_name = cast(HttpCommandParameters, _http_command).get("endpoint_name")
+                command_name = cast(HttpCommandParameters, _http_command).get("command_name")
                 __builder.write(f'\n    .WithHttpCommand(path: {_format_string(path, None)}, displayName: {_format_string(display_name, None)}, endpointName: {_format_string(endpoint_name, None)}, commandName: {_format_string(command_name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_http_command'")
-        if _with_certificate_authority_collection := kwargs.pop("with_certificate_authority_collection", None):
-            if _validate_type(_with_certificate_authority_collection, CertificateAuthorityCollection):
-                certificate_authority_collection = cast(CertificateAuthorityCollection, _with_certificate_authority_collection)
-                __builder.write(f'\n    .WithCertificateAuthorityCollection(certificateAuthorityCollection: {certificate_authority_collection.name})')
+                raise TypeError("Invalid type for option 'http_command'")
+        if _certificate_authority_collection := kwargs.pop("certificate_authority_collection", None):
+            if _validate_type(_certificate_authority_collection, CertificateAuthorityCollection):
+                certificate_authority_collection = cast(CertificateAuthorityCollection, _certificate_authority_collection)
+                __builder.write(f'\n    .WithCertificateAuthorityCollection(certificateAuthorityCollection: {_format_value(certificate_authority_collection.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_certificate_authority_collection'")
-        if _with_developer_certificate_trust := kwargs.pop("with_developer_certificate_trust", None):
-            if _validate_type(_with_developer_certificate_trust, bool):
-                trust = cast(bool, _with_developer_certificate_trust)
+                raise TypeError("Invalid type for option 'certificate_authority_collection'")
+        if _developer_certificate_trust := kwargs.pop("developer_certificate_trust", None):
+            if _validate_type(_developer_certificate_trust, bool):
+                trust = cast(bool, _developer_certificate_trust)
                 __builder.write(f'\n    .WithDeveloperCertificateTrust(trust: {_format_bool(trust, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_developer_certificate_trust'")
-        if _with_certificate_trust_scope := kwargs.pop("with_certificate_trust_scope", None):
-            if _validate_type(_with_certificate_trust_scope, CertificateTrustScope):
-                scope = cast(CertificateTrustScope, _with_certificate_trust_scope)
+                raise TypeError("Invalid type for option 'developer_certificate_trust'")
+        if _certificate_trust_scope := kwargs.pop("certificate_trust_scope", None):
+            if _validate_type(_certificate_trust_scope, CertificateTrustScope):
+                scope = cast(CertificateTrustScope, _certificate_trust_scope)
                 __builder.write(f'\n    .WithCertificateTrustScope(scope: {_format_enum("CertificateTrustScope", scope, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_certificate_trust_scope'")
-        if _with_compute_env := kwargs.pop("with_compute_env", None):
-            if _validate_type(_with_compute_env, ComputeEnvironmentResource):
-                compute_env_resource = cast(ComputeEnvironmentResource, _with_compute_env)
-                __builder.write(f'\n    .WithComputeEnvironment(computeEnvironmentResource: {compute_env_resource.name})')
+                raise TypeError("Invalid type for option 'certificate_trust_scope'")
+        if _compute_env := kwargs.pop("compute_env", None):
+            if _validate_type(_compute_env, ComputeEnvironmentResource):
+                compute_env_resource = cast(ComputeEnvironmentResource, _compute_env)
+                __builder.write(f'\n    .WithComputeEnvironment(computeEnvironmentResource: {_format_value(compute_env_resource.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_compute_env'")
-        if _with_http_probe := kwargs.pop("with_http_probe", None):
-            if _validate_type(_with_http_probe, ProbeType):
-                type = cast(ProbeType, _with_http_probe)
+                raise TypeError("Invalid type for option 'compute_env'")
+        if _http_probe := kwargs.pop("http_probe", None):
+            if _validate_type(_http_probe, ProbeType):
+                type = cast(ProbeType, _http_probe)
                 path = None
                 initial_delay_seconds = None
                 period_seconds = None
@@ -1914,24 +1940,24 @@ class ProjectResource(_BaseResource):
                 failure_threshold = None
                 success_threshold = None
                 endpoint_name = None
-                __builder.write(f'\n    .WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {initial_delay_seconds}, periodSeconds: {period_seconds}, timeoutSeconds: {timeout_seconds}, failureThreshold: {failure_threshold}, successThreshold: {success_threshold}, endpointName: {_format_string(endpoint_name, None)})')
-            elif _validate_dict_types(_with_http_probe, HttpProbeParameters):
-                type = cast(HttpProbeParameters, _with_http_probe)["type"]
-                path = cast(HttpProbeParameters, _with_http_probe).get("path")
-                initial_delay_seconds = cast(HttpProbeParameters, _with_http_probe).get("initial_delay_seconds")
-                period_seconds = cast(HttpProbeParameters, _with_http_probe).get("period_seconds")
-                timeout_seconds = cast(HttpProbeParameters, _with_http_probe).get("timeout_seconds")
-                failure_threshold = cast(HttpProbeParameters, _with_http_probe).get("failure_threshold")
-                success_threshold = cast(HttpProbeParameters, _with_http_probe).get("success_threshold")
-                endpoint_name = cast(HttpProbeParameters, _with_http_probe).get("endpoint_name")
-                __builder.write(f'\n    .WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {initial_delay_seconds}, periodSeconds: {period_seconds}, timeoutSeconds: {timeout_seconds}, failureThreshold: {failure_threshold}, successThreshold: {success_threshold}, endpointName: {_format_string(endpoint_name, None)})')
+                __builder.write(f'\n    .WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {_format_value(initial_delay_seconds, None)}, periodSeconds: {_format_value(period_seconds, None)}, timeoutSeconds: {_format_value(timeout_seconds, None)}, failureThreshold: {_format_value(failure_threshold, None)}, successThreshold: {_format_value(success_threshold, None)}, endpointName: {_format_string(endpoint_name, None)})')
+            elif _validate_dict_types(_http_probe, HttpProbeParameters):
+                type = cast(HttpProbeParameters, _http_probe)["type"]
+                path = cast(HttpProbeParameters, _http_probe).get("path")
+                initial_delay_seconds = cast(HttpProbeParameters, _http_probe).get("initial_delay_seconds")
+                period_seconds = cast(HttpProbeParameters, _http_probe).get("period_seconds")
+                timeout_seconds = cast(HttpProbeParameters, _http_probe).get("timeout_seconds")
+                failure_threshold = cast(HttpProbeParameters, _http_probe).get("failure_threshold")
+                success_threshold = cast(HttpProbeParameters, _http_probe).get("success_threshold")
+                endpoint_name = cast(HttpProbeParameters, _http_probe).get("endpoint_name")
+                __builder.write(f'\n    .WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {_format_value(initial_delay_seconds, None)}, periodSeconds: {_format_value(period_seconds, None)}, timeoutSeconds: {_format_value(timeout_seconds, None)}, failureThreshold: {_format_value(failure_threshold, None)}, successThreshold: {_format_value(success_threshold, None)}, endpointName: {_format_string(endpoint_name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_http_probe'")
+                raise TypeError("Invalid type for option 'http_probe'")
         super().__init__(__name, __builder, **kwargs)
 
     def with_replicas(self, replicas: int, /) -> Self:
         if _validate_type(replicas, int):
-            self._builder.write(f'\n{self.name}.WithReplicas(replicas: {replicas});')
+            self._builder.write(f'\n{self.name}.WithReplicas(replicas: {_format_value(replicas, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1982,15 +2008,15 @@ class ProjectResource(_BaseResource):
             return self
         elif _validate_tuple_types(args + (), (str, ExternalServiceResource)):
             name, external_service, = cast(tuple[str, ExternalServiceResource], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, externalService: {external_service.name});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, externalService: {_format_value(external_service.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (str, ParameterResource)):
             name, parameter, = cast(tuple[str, ParameterResource], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, parameter: {parameter.name});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, parameter: {_format_value(parameter.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (str, ResourceWithConnectionString)):
             env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {resource.name});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {_format_value(resource.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2022,48 +2048,48 @@ class ProjectResource(_BaseResource):
     def with_reference(self, source: ResourceWithServiceDiscovery, name: str, /) -> Self:
         ...
     def with_reference(self, *args, **kwargs) -> Self:
-        if _validate_tuple_types(args + (_connection_name := kwargs.get("connection_name"), _optional := kwargs.get("optional"),), (ResourceWithConnectionString, str | None, bool | Literal[False])):
+        if _validate_tuple_types(args + (_connection_name := kwargs.get("connection_name", None), _optional := kwargs.get("optional", False),), (ResourceWithConnectionString, str | None, bool | Literal[False])):
             source, = cast(tuple[ResourceWithConnectionString], args)
             connection_name = _connection_name
             optional = _optional
-            self._builder.write(f'\n{self.name}.WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)});')
             return self
         elif len(args) == 1 and _validate_type(args[0], ResourceWithServiceDiscovery):
             source = cast(ResourceWithServiceDiscovery, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with source")
-            self._builder.write(f'\n{self.name}.WithReference(source: {source.name});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)});')
             return self
         elif len(args) == 1 and _validate_type(args[0], ExternalServiceResource):
             external_service = cast(ExternalServiceResource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with external_service")
-            self._builder.write(f'\n{self.name}.WithReference(externalService: {external_service.name});')
+            self._builder.write(f'\n{self.name}.WithReference(externalService: {_format_value(external_service.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (ResourceWithServiceDiscovery, str)):
             source, name, = cast(tuple[ResourceWithServiceDiscovery, str], args)
-            self._builder.write(f'\n{self.name}.WithReference(source: {source.name}, name: {_format_string(name, None)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)}, name: {_format_string(name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_endpoint(self, *, port: int | None = None, target_port: int | None = None, scheme: str | None = None, name: str | None = None, env: str | None = None, is_proxied: bool = True, is_external: bool | None = None, protocol: ProtocolType | None = None) -> Self:
         if _validate_tuple_types((port, target_port, scheme, name, env, is_proxied, is_external, protocol), (int | None, int | None, str | None, str | None, str | None, bool | Literal[True], bool | None, ProtocolType | None)):
-            self._builder.write(f'\n{self.name}.WithEndpoint(port: {port}, targetPort: {target_port}, scheme: {_format_string(scheme, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)}, isExternal: {is_external}, protocol: {protocol});')
+            self._builder.write(f'\n{self.name}.WithEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, scheme: {_format_string(scheme, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)}, isExternal: {_format_value(is_external, None)}, protocol: {_format_value(protocol, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_http_endpoint(self, *, port: int | None = None, target_port: int | None = None, name: str | None = None, env: str | None = None, is_proxied: bool = True) -> Self:
         if _validate_tuple_types((port, target_port, name, env, is_proxied), (int | None, int | None, str | None, str | None, bool | Literal[True])):
-            self._builder.write(f'\n{self.name}.WithHttpEndpoint(port: {port}, targetPort: {target_port}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)});')
+            self._builder.write(f'\n{self.name}.WithHttpEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_https_endpoint(self, *, port: int | None = None, target_port: int | None = None, name: str | None = None, env: str | None = None, is_proxied: bool = True) -> Self:
         if _validate_tuple_types((port, target_port, name, env, is_proxied), (int | None, int | None, str | None, str | None, bool | Literal[True])):
-            self._builder.write(f'\n{self.name}.WithHttpsEndpoint(port: {port}, targetPort: {target_port}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)});')
+            self._builder.write(f'\n{self.name}.WithHttpsEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2078,7 +2104,7 @@ class ProjectResource(_BaseResource):
 
     def publish_with_container_files(self, source: ResourceWithContainerFiles, destination_path: str, /) -> Self:
         if _validate_tuple_types((source, destination_path, ), (ResourceWithContainerFiles, str)):
-            self._builder.write(f'\n{self.name}.PublishWithContainerFiles(source: {source.name}, destinationPath: {_format_string(destination_path, None)});')
+            self._builder.write(f'\n{self.name}.PublishWithContainerFiles(source: {_format_value(source.name, None)}, destinationPath: {_format_string(destination_path, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2094,11 +2120,11 @@ class ProjectResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2114,25 +2140,25 @@ class ProjectResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def wait_for_completion(self, dependency: Resource, /, *, exit_code: int = 0) -> Self:
         if _validate_tuple_types((dependency, exit_code), (Resource, int | Literal[0])):
-            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {dependency.name}, exitCode: {exit_code});')
+            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_http_health_check(self, *, path: str | None = None, status_code: int | None = None, endpoint_name: str | None = None) -> Self:
         if _validate_tuple_types((path, status_code, endpoint_name), (str | None, int | None, str | None)):
-            self._builder.write(f'\n{self.name}.WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {status_code}, endpointName: {_format_string(endpoint_name, None)});')
+            self._builder.write(f'\n{self.name}.WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {_format_value(status_code, None)}, endpointName: {_format_string(endpoint_name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2146,7 +2172,7 @@ class ProjectResource(_BaseResource):
 
     def with_certificate_authority_collection(self, certificate_authority_collection: CertificateAuthorityCollection, /) -> Self:
         if _validate_type(certificate_authority_collection, CertificateAuthorityCollection):
-            self._builder.write(f'\n{self.name}.WithCertificateAuthorityCollection(certificateAuthorityCollection: {certificate_authority_collection.name});')
+            self._builder.write(f'\n{self.name}.WithCertificateAuthorityCollection(certificateAuthorityCollection: {_format_value(certificate_authority_collection.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2167,7 +2193,7 @@ class ProjectResource(_BaseResource):
 
     def with_compute_env(self, compute_env_resource: ComputeEnvironmentResource, /) -> Self:
         if _validate_type(compute_env_resource, ComputeEnvironmentResource):
-            self._builder.write(f'\n{self.name}.WithComputeEnvironment(computeEnvironmentResource: {compute_env_resource.name});')
+            self._builder.write(f'\n{self.name}.WithComputeEnvironment(computeEnvironmentResource: {_format_value(compute_env_resource.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2175,7 +2201,7 @@ class ProjectResource(_BaseResource):
     def with_http_probe(self, type: ProbeType, /, *, path: str | None = None, initial_delay_seconds: int | None = None, period_seconds: int | None = None, timeout_seconds: int | None = None, failure_threshold: int | None = None, success_threshold: int | None = None, endpoint_name: str | None = None) -> Self:
         if _validate_tuple_types((type, path, initial_delay_seconds, period_seconds, timeout_seconds, failure_threshold, success_threshold, endpoint_name), (ProbeType, str | None, int | None, int | None, int | None, int | None, int | None, str | None)):
             with _experimental(self._builder, "with_http_probe", self.__class__, "ASPIREPROBES001"):
-                self._builder.write(f'\n{self.name}.WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {initial_delay_seconds}, periodSeconds: {period_seconds}, timeoutSeconds: {timeout_seconds}, failureThreshold: {failure_threshold}, successThreshold: {success_threshold}, endpointName: {_format_string(endpoint_name, None)});')
+                self._builder.write(f'\n{self.name}.WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {_format_value(initial_delay_seconds, None)}, periodSeconds: {_format_value(period_seconds, None)}, timeoutSeconds: {_format_value(timeout_seconds, None)}, failureThreshold: {_format_value(failure_threshold, None)}, successThreshold: {_format_value(success_threshold, None)}, endpointName: {_format_string(endpoint_name, None)});')
                 return self
         else:
             raise TypeError("No matching overload found.")
@@ -2196,6 +2222,7 @@ class CSharpAppResource(ProjectResource):
 
 class ExecutableResourceOptions(_BaseResourceOptions, total=False):
     """Options for ExecutableResource"""
+    publish_as_docker_file: Literal[True]
     command: str
     working_dir: str
     otlp_exporter: Literal[True] | OtlpProtocol
@@ -2226,119 +2253,124 @@ class ExecutableResource(_BaseResource):
         return "#:package Aspire.Hosting@13.0.1.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[ExecutableResourceOptions]) -> None:
-        if _with_command := kwargs.pop("with_command", None):
-            if _validate_type(_with_command, str):
-                command = cast(str, _with_command)
+        if _publish_as_docker_file := kwargs.pop("publish_as_docker_file", None):
+            if _publish_as_docker_file is True:
+                __builder.write(f'\n    .PublishAsDockerFile()')
+            else:
+                raise TypeError("Invalid type for option 'publish_as_docker_file'")
+        if _command := kwargs.pop("command", None):
+            if _validate_type(_command, str):
+                command = cast(str, _command)
                 __builder.write(f'\n    .WithCommand(command: {_format_string(command, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_command'")
-        if _with_working_dir := kwargs.pop("with_working_dir", None):
-            if _validate_type(_with_working_dir, str):
-                working_dir = cast(str, _with_working_dir)
+                raise TypeError("Invalid type for option 'command'")
+        if _working_dir := kwargs.pop("working_dir", None):
+            if _validate_type(_working_dir, str):
+                working_dir = cast(str, _working_dir)
                 __builder.write(f'\n    .WithWorkingDirectory(workingDirectory: {_format_string(working_dir, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_working_dir'")
-        if _with_otlp_exporter := kwargs.pop("with_otlp_exporter", None):
-            if _with_otlp_exporter is True:
+                raise TypeError("Invalid type for option 'working_dir'")
+        if _otlp_exporter := kwargs.pop("otlp_exporter", None):
+            if _otlp_exporter is True:
                 __builder.write(f'\n    .WithOtlpExporter()')
-            elif _validate_type(_with_otlp_exporter, OtlpProtocol):
-                protocol = cast(OtlpProtocol, _with_otlp_exporter)
+            elif _validate_type(_otlp_exporter, OtlpProtocol):
+                protocol = cast(OtlpProtocol, _otlp_exporter)
                 __builder.write(f'\n    .WithOtlpExporter(protocol: {_format_enum("OtlpProtocol", protocol, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_otlp_exporter'")
-        if _with_env := kwargs.pop("with_env", None):
-            if _validate_tuple_types(_with_env, (str, str)):
-                name, value, = cast(tuple[str, str], _with_env)
+                raise TypeError("Invalid type for option 'otlp_exporter'")
+        if _env := kwargs.pop("env", None):
+            if _validate_tuple_types(_env, (str, str)):
+                name, value, = cast(tuple[str, str], _env)
                 __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, value: {_format_string(value, None)})')
-            elif _validate_tuple_types(_with_env, (str, ExternalServiceResource)):
-                name, external_service, = cast(tuple[str, ExternalServiceResource], _with_env)
-                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, externalService: {external_service.name})')
-            elif _validate_tuple_types(_with_env, (str, ParameterResource)):
-                name, parameter, = cast(tuple[str, ParameterResource], _with_env)
-                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, parameter: {parameter.name})')
-            elif _validate_tuple_types(_with_env, (str, ResourceWithConnectionString)):
-                env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], _with_env)
-                __builder.write(f'\n    .WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {resource.name})')
+            elif _validate_tuple_types(_env, (str, ExternalServiceResource)):
+                name, external_service, = cast(tuple[str, ExternalServiceResource], _env)
+                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, externalService: {_format_value(external_service.name, None)})')
+            elif _validate_tuple_types(_env, (str, ParameterResource)):
+                name, parameter, = cast(tuple[str, ParameterResource], _env)
+                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, parameter: {_format_value(parameter.name, None)})')
+            elif _validate_tuple_types(_env, (str, ResourceWithConnectionString)):
+                env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], _env)
+                __builder.write(f'\n    .WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {_format_value(resource.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_env'")
-        if _with_args := kwargs.pop("with_args", None):
-            if _validate_type(_with_args, Iterable[str]):
-                args = cast(Iterable[str], _with_args)
+                raise TypeError("Invalid type for option 'env'")
+        if _args := kwargs.pop("args", None):
+            if _validate_type(_args, Iterable[str]):
+                args = cast(Iterable[str], _args)
                 __builder.write(f'\n    .WithArgs(args: {_format_string_array(args)})')
             else:
-                raise TypeError("Invalid type for option 'with_args'")
-        if _with_reference_env := kwargs.pop("with_reference_env", None):
-            if _validate_type(_with_reference_env, ReferenceEnvironmentInjectionFlags):
-                flags = cast(ReferenceEnvironmentInjectionFlags, _with_reference_env)
+                raise TypeError("Invalid type for option 'args'")
+        if _reference_env := kwargs.pop("reference_env", None):
+            if _validate_type(_reference_env, ReferenceEnvironmentInjectionFlags):
+                flags = cast(ReferenceEnvironmentInjectionFlags, _reference_env)
                 __builder.write(f'\n    .WithReferenceEnvironment(flags: {_format_enum("ReferenceEnvironmentInjectionFlags", flags, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_reference_env'")
-        if _with_reference := kwargs.pop("with_reference", None):
-            if _validate_type(_with_reference, ResourceWithConnectionString):
-                source = cast(ResourceWithConnectionString, _with_reference)
+                raise TypeError("Invalid type for option 'reference_env'")
+        if _reference := kwargs.pop("reference", None):
+            if _validate_type(_reference, ResourceWithConnectionString):
+                source = cast(ResourceWithConnectionString, _reference)
                 connection_name = None
                 optional = None
-                __builder.write(f'\n    .WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
-            elif _validate_dict_types(_with_reference, Reference1Parameters):
-                source = cast(Reference1Parameters, _with_reference)["source"]
-                connection_name = cast(Reference1Parameters, _with_reference).get("connection_name")
-                optional = cast(Reference1Parameters, _with_reference).get("optional")
-                __builder.write(f'\n    .WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
-            elif _validate_type(_with_reference, ResourceWithServiceDiscovery):
-                source = cast(ResourceWithServiceDiscovery, _with_reference)
-                __builder.write(f'\n    .WithReference(source: {source.name})')
-            elif _validate_type(_with_reference, ExternalServiceResource):
-                external_service = cast(ExternalServiceResource, _with_reference)
-                __builder.write(f'\n    .WithReference(externalService: {external_service.name})')
-            elif _validate_tuple_types(_with_reference, (ResourceWithServiceDiscovery, str)):
-                source, name, = cast(tuple[ResourceWithServiceDiscovery, str], _with_reference)
-                __builder.write(f'\n    .WithReference(source: {source.name}, name: {_format_string(name, None)})')
+                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
+            elif _validate_dict_types(_reference, Reference1Parameters):
+                source = cast(Reference1Parameters, _reference)["source"]
+                connection_name = cast(Reference1Parameters, _reference).get("connection_name")
+                optional = cast(Reference1Parameters, _reference).get("optional")
+                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
+            elif _validate_type(_reference, ResourceWithServiceDiscovery):
+                source = cast(ResourceWithServiceDiscovery, _reference)
+                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)})')
+            elif _validate_type(_reference, ExternalServiceResource):
+                external_service = cast(ExternalServiceResource, _reference)
+                __builder.write(f'\n    .WithReference(externalService: {_format_value(external_service.name, None)})')
+            elif _validate_tuple_types(_reference, (ResourceWithServiceDiscovery, str)):
+                source, name, = cast(tuple[ResourceWithServiceDiscovery, str], _reference)
+                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, name: {_format_string(name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_reference'")
-        if _with_endpoint := kwargs.pop("with_endpoint", None):
-            if _validate_dict_types(_with_endpoint, EndpointParameters):
-                port = cast(EndpointParameters, _with_endpoint).get("port")
-                target_port = cast(EndpointParameters, _with_endpoint).get("target_port")
-                scheme = cast(EndpointParameters, _with_endpoint).get("scheme")
-                name = cast(EndpointParameters, _with_endpoint).get("name")
-                env = cast(EndpointParameters, _with_endpoint).get("env")
-                is_proxied = cast(EndpointParameters, _with_endpoint).get("is_proxied")
-                is_external = cast(EndpointParameters, _with_endpoint).get("is_external")
-                protocol = cast(EndpointParameters, _with_endpoint).get("protocol")
-                __builder.write(f'\n    .WithEndpoint(port: {port}, targetPort: {target_port}, scheme: {_format_string(scheme, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)}, isExternal: {is_external}, protocol: {protocol})')
-            elif _with_endpoint is True:
+                raise TypeError("Invalid type for option 'reference'")
+        if _endpoint := kwargs.pop("endpoint", None):
+            if _validate_dict_types(_endpoint, EndpointParameters):
+                port = cast(EndpointParameters, _endpoint).get("port")
+                target_port = cast(EndpointParameters, _endpoint).get("target_port")
+                scheme = cast(EndpointParameters, _endpoint).get("scheme")
+                name = cast(EndpointParameters, _endpoint).get("name")
+                env = cast(EndpointParameters, _endpoint).get("env")
+                is_proxied = cast(EndpointParameters, _endpoint).get("is_proxied")
+                is_external = cast(EndpointParameters, _endpoint).get("is_external")
+                protocol = cast(EndpointParameters, _endpoint).get("protocol")
+                __builder.write(f'\n    .WithEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, scheme: {_format_string(scheme, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)}, isExternal: {_format_value(is_external, None)}, protocol: {_format_value(protocol, None)})')
+            elif _endpoint is True:
                 __builder.write(f'\n    .WithEndpoint()')
             else:
-                raise TypeError("Invalid type for option 'with_endpoint'")
-        if _with_http_endpoint := kwargs.pop("with_http_endpoint", None):
-            if _validate_dict_types(_with_http_endpoint, HttpEndpointParameters):
-                port = cast(HttpEndpointParameters, _with_http_endpoint).get("port")
-                target_port = cast(HttpEndpointParameters, _with_http_endpoint).get("target_port")
-                name = cast(HttpEndpointParameters, _with_http_endpoint).get("name")
-                env = cast(HttpEndpointParameters, _with_http_endpoint).get("env")
-                is_proxied = cast(HttpEndpointParameters, _with_http_endpoint).get("is_proxied")
-                __builder.write(f'\n    .WithHttpEndpoint(port: {port}, targetPort: {target_port}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)})')
-            elif _with_http_endpoint is True:
+                raise TypeError("Invalid type for option 'endpoint'")
+        if _http_endpoint := kwargs.pop("http_endpoint", None):
+            if _validate_dict_types(_http_endpoint, HttpEndpointParameters):
+                port = cast(HttpEndpointParameters, _http_endpoint).get("port")
+                target_port = cast(HttpEndpointParameters, _http_endpoint).get("target_port")
+                name = cast(HttpEndpointParameters, _http_endpoint).get("name")
+                env = cast(HttpEndpointParameters, _http_endpoint).get("env")
+                is_proxied = cast(HttpEndpointParameters, _http_endpoint).get("is_proxied")
+                __builder.write(f'\n    .WithHttpEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)})')
+            elif _http_endpoint is True:
                 __builder.write(f'\n    .WithHttpEndpoint()')
             else:
-                raise TypeError("Invalid type for option 'with_http_endpoint'")
-        if _with_https_endpoint := kwargs.pop("with_https_endpoint", None):
-            if _validate_dict_types(_with_https_endpoint, HttpsEndpointParameters):
-                port = cast(HttpsEndpointParameters, _with_https_endpoint).get("port")
-                target_port = cast(HttpsEndpointParameters, _with_https_endpoint).get("target_port")
-                name = cast(HttpsEndpointParameters, _with_https_endpoint).get("name")
-                env = cast(HttpsEndpointParameters, _with_https_endpoint).get("env")
-                is_proxied = cast(HttpsEndpointParameters, _with_https_endpoint).get("is_proxied")
-                __builder.write(f'\n    .WithHttpsEndpoint(port: {port}, targetPort: {target_port}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)})')
-            elif _with_https_endpoint is True:
+                raise TypeError("Invalid type for option 'http_endpoint'")
+        if _https_endpoint := kwargs.pop("https_endpoint", None):
+            if _validate_dict_types(_https_endpoint, HttpsEndpointParameters):
+                port = cast(HttpsEndpointParameters, _https_endpoint).get("port")
+                target_port = cast(HttpsEndpointParameters, _https_endpoint).get("target_port")
+                name = cast(HttpsEndpointParameters, _https_endpoint).get("name")
+                env = cast(HttpsEndpointParameters, _https_endpoint).get("env")
+                is_proxied = cast(HttpsEndpointParameters, _https_endpoint).get("is_proxied")
+                __builder.write(f'\n    .WithHttpsEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)})')
+            elif _https_endpoint is True:
                 __builder.write(f'\n    .WithHttpsEndpoint()')
             else:
-                raise TypeError("Invalid type for option 'with_https_endpoint'")
-        if _with_external_http_endpoints := kwargs.pop("with_external_http_endpoints", None):
-            if _with_external_http_endpoints is True:
+                raise TypeError("Invalid type for option 'https_endpoint'")
+        if _external_http_endpoints := kwargs.pop("external_http_endpoints", None):
+            if _external_http_endpoints is True:
                 __builder.write(f'\n    .WithExternalHttpEndpoints()')
             else:
-                raise TypeError("Invalid type for option 'with_external_http_endpoints'")
+                raise TypeError("Invalid type for option 'external_http_endpoints'")
         if _as_http2_service := kwargs.pop("as_http2_service", None):
             if _as_http2_service is True:
                 __builder.write(f'\n    .AsHttp2Service()')
@@ -2347,82 +2379,82 @@ class ExecutableResource(_BaseResource):
         if _wait_for := kwargs.pop("wait_for", None):
             if _validate_type(_wait_for, Resource):
                 dependency = cast(Resource, _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {dependency.name})')
+                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)})')
             elif _validate_tuple_types(_wait_for, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for'")
         if _wait_for_start := kwargs.pop("wait_for_start", None):
             if _validate_type(_wait_for_start, Resource):
                 dependency = cast(Resource, _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name})')
+                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)})')
             elif _validate_tuple_types(_wait_for_start, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_start'")
         if _wait_for_completion := kwargs.pop("wait_for_completion", None):
             if _validate_type(_wait_for_completion, Resource):
                 dependency = cast(Resource, _wait_for_completion)
                 exit_code = None
-                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {exit_code})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
             elif _validate_tuple_types(_wait_for_completion, (Resource, int)):
                 dependency, exit_code = cast(tuple[Resource, int], _wait_for_completion)
-                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {exit_code})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_completion'")
-        if _with_http_health_check := kwargs.pop("with_http_health_check", None):
-            if _validate_dict_types(_with_http_health_check, HttpHealthCheckParameters):
-                path = cast(HttpHealthCheckParameters, _with_http_health_check).get("path")
-                status_code = cast(HttpHealthCheckParameters, _with_http_health_check).get("status_code")
-                endpoint_name = cast(HttpHealthCheckParameters, _with_http_health_check).get("endpoint_name")
-                __builder.write(f'\n    .WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {status_code}, endpointName: {_format_string(endpoint_name, None)})')
-            elif _with_http_health_check is True:
+        if _http_health_check := kwargs.pop("http_health_check", None):
+            if _validate_dict_types(_http_health_check, HttpHealthCheckParameters):
+                path = cast(HttpHealthCheckParameters, _http_health_check).get("path")
+                status_code = cast(HttpHealthCheckParameters, _http_health_check).get("status_code")
+                endpoint_name = cast(HttpHealthCheckParameters, _http_health_check).get("endpoint_name")
+                __builder.write(f'\n    .WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {_format_value(status_code, None)}, endpointName: {_format_string(endpoint_name, None)})')
+            elif _http_health_check is True:
                 __builder.write(f'\n    .WithHttpHealthCheck()')
             else:
-                raise TypeError("Invalid type for option 'with_http_health_check'")
-        if _with_http_command := kwargs.pop("with_http_command", None):
-            if _validate_tuple_types(_with_http_command, (str, str)):
-                path, display_name, = cast(tuple[str, str], _with_http_command)
+                raise TypeError("Invalid type for option 'http_health_check'")
+        if _http_command := kwargs.pop("http_command", None):
+            if _validate_tuple_types(_http_command, (str, str)):
+                path, display_name, = cast(tuple[str, str], _http_command)
                 endpoint_name = None
                 command_name = None
                 __builder.write(f'\n    .WithHttpCommand(path: {_format_string(path, None)}, displayName: {_format_string(display_name, None)}, endpointName: {_format_string(endpoint_name, None)}, commandName: {_format_string(command_name, None)})')
-            elif _validate_dict_types(_with_http_command, HttpCommandParameters):
-                path = cast(HttpCommandParameters, _with_http_command)["path"]
-                display_name = cast(HttpCommandParameters, _with_http_command)["display_name"]
-                endpoint_name = cast(HttpCommandParameters, _with_http_command).get("endpoint_name")
-                command_name = cast(HttpCommandParameters, _with_http_command).get("command_name")
+            elif _validate_dict_types(_http_command, HttpCommandParameters):
+                path = cast(HttpCommandParameters, _http_command)["path"]
+                display_name = cast(HttpCommandParameters, _http_command)["display_name"]
+                endpoint_name = cast(HttpCommandParameters, _http_command).get("endpoint_name")
+                command_name = cast(HttpCommandParameters, _http_command).get("command_name")
                 __builder.write(f'\n    .WithHttpCommand(path: {_format_string(path, None)}, displayName: {_format_string(display_name, None)}, endpointName: {_format_string(endpoint_name, None)}, commandName: {_format_string(command_name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_http_command'")
-        if _with_certificate_authority_collection := kwargs.pop("with_certificate_authority_collection", None):
-            if _validate_type(_with_certificate_authority_collection, CertificateAuthorityCollection):
-                certificate_authority_collection = cast(CertificateAuthorityCollection, _with_certificate_authority_collection)
-                __builder.write(f'\n    .WithCertificateAuthorityCollection(certificateAuthorityCollection: {certificate_authority_collection.name})')
+                raise TypeError("Invalid type for option 'http_command'")
+        if _certificate_authority_collection := kwargs.pop("certificate_authority_collection", None):
+            if _validate_type(_certificate_authority_collection, CertificateAuthorityCollection):
+                certificate_authority_collection = cast(CertificateAuthorityCollection, _certificate_authority_collection)
+                __builder.write(f'\n    .WithCertificateAuthorityCollection(certificateAuthorityCollection: {_format_value(certificate_authority_collection.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_certificate_authority_collection'")
-        if _with_developer_certificate_trust := kwargs.pop("with_developer_certificate_trust", None):
-            if _validate_type(_with_developer_certificate_trust, bool):
-                trust = cast(bool, _with_developer_certificate_trust)
+                raise TypeError("Invalid type for option 'certificate_authority_collection'")
+        if _developer_certificate_trust := kwargs.pop("developer_certificate_trust", None):
+            if _validate_type(_developer_certificate_trust, bool):
+                trust = cast(bool, _developer_certificate_trust)
                 __builder.write(f'\n    .WithDeveloperCertificateTrust(trust: {_format_bool(trust, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_developer_certificate_trust'")
-        if _with_certificate_trust_scope := kwargs.pop("with_certificate_trust_scope", None):
-            if _validate_type(_with_certificate_trust_scope, CertificateTrustScope):
-                scope = cast(CertificateTrustScope, _with_certificate_trust_scope)
+                raise TypeError("Invalid type for option 'developer_certificate_trust'")
+        if _certificate_trust_scope := kwargs.pop("certificate_trust_scope", None):
+            if _validate_type(_certificate_trust_scope, CertificateTrustScope):
+                scope = cast(CertificateTrustScope, _certificate_trust_scope)
                 __builder.write(f'\n    .WithCertificateTrustScope(scope: {_format_enum("CertificateTrustScope", scope, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_certificate_trust_scope'")
-        if _with_compute_env := kwargs.pop("with_compute_env", None):
-            if _validate_type(_with_compute_env, ComputeEnvironmentResource):
-                compute_env_resource = cast(ComputeEnvironmentResource, _with_compute_env)
-                __builder.write(f'\n    .WithComputeEnvironment(computeEnvironmentResource: {compute_env_resource.name})')
+                raise TypeError("Invalid type for option 'certificate_trust_scope'")
+        if _compute_env := kwargs.pop("compute_env", None):
+            if _validate_type(_compute_env, ComputeEnvironmentResource):
+                compute_env_resource = cast(ComputeEnvironmentResource, _compute_env)
+                __builder.write(f'\n    .WithComputeEnvironment(computeEnvironmentResource: {_format_value(compute_env_resource.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_compute_env'")
-        if _with_http_probe := kwargs.pop("with_http_probe", None):
-            if _validate_type(_with_http_probe, ProbeType):
-                type = cast(ProbeType, _with_http_probe)
+                raise TypeError("Invalid type for option 'compute_env'")
+        if _http_probe := kwargs.pop("http_probe", None):
+            if _validate_type(_http_probe, ProbeType):
+                type = cast(ProbeType, _http_probe)
                 path = None
                 initial_delay_seconds = None
                 period_seconds = None
@@ -2430,20 +2462,24 @@ class ExecutableResource(_BaseResource):
                 failure_threshold = None
                 success_threshold = None
                 endpoint_name = None
-                __builder.write(f'\n    .WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {initial_delay_seconds}, periodSeconds: {period_seconds}, timeoutSeconds: {timeout_seconds}, failureThreshold: {failure_threshold}, successThreshold: {success_threshold}, endpointName: {_format_string(endpoint_name, None)})')
-            elif _validate_dict_types(_with_http_probe, HttpProbeParameters):
-                type = cast(HttpProbeParameters, _with_http_probe)["type"]
-                path = cast(HttpProbeParameters, _with_http_probe).get("path")
-                initial_delay_seconds = cast(HttpProbeParameters, _with_http_probe).get("initial_delay_seconds")
-                period_seconds = cast(HttpProbeParameters, _with_http_probe).get("period_seconds")
-                timeout_seconds = cast(HttpProbeParameters, _with_http_probe).get("timeout_seconds")
-                failure_threshold = cast(HttpProbeParameters, _with_http_probe).get("failure_threshold")
-                success_threshold = cast(HttpProbeParameters, _with_http_probe).get("success_threshold")
-                endpoint_name = cast(HttpProbeParameters, _with_http_probe).get("endpoint_name")
-                __builder.write(f'\n    .WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {initial_delay_seconds}, periodSeconds: {period_seconds}, timeoutSeconds: {timeout_seconds}, failureThreshold: {failure_threshold}, successThreshold: {success_threshold}, endpointName: {_format_string(endpoint_name, None)})')
+                __builder.write(f'\n    .WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {_format_value(initial_delay_seconds, None)}, periodSeconds: {_format_value(period_seconds, None)}, timeoutSeconds: {_format_value(timeout_seconds, None)}, failureThreshold: {_format_value(failure_threshold, None)}, successThreshold: {_format_value(success_threshold, None)}, endpointName: {_format_string(endpoint_name, None)})')
+            elif _validate_dict_types(_http_probe, HttpProbeParameters):
+                type = cast(HttpProbeParameters, _http_probe)["type"]
+                path = cast(HttpProbeParameters, _http_probe).get("path")
+                initial_delay_seconds = cast(HttpProbeParameters, _http_probe).get("initial_delay_seconds")
+                period_seconds = cast(HttpProbeParameters, _http_probe).get("period_seconds")
+                timeout_seconds = cast(HttpProbeParameters, _http_probe).get("timeout_seconds")
+                failure_threshold = cast(HttpProbeParameters, _http_probe).get("failure_threshold")
+                success_threshold = cast(HttpProbeParameters, _http_probe).get("success_threshold")
+                endpoint_name = cast(HttpProbeParameters, _http_probe).get("endpoint_name")
+                __builder.write(f'\n    .WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {_format_value(initial_delay_seconds, None)}, periodSeconds: {_format_value(period_seconds, None)}, timeoutSeconds: {_format_value(timeout_seconds, None)}, failureThreshold: {_format_value(failure_threshold, None)}, successThreshold: {_format_value(success_threshold, None)}, endpointName: {_format_string(endpoint_name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_http_probe'")
+                raise TypeError("Invalid type for option 'http_probe'")
         super().__init__(__name, __builder, **kwargs)
+
+    def publish_as_docker_file(self) -> Self:
+        self._builder.write(f'\n{self.name}.PublishAsDockerFile();')
+        return self
 
     def with_command(self, command: str, /) -> Self:
         if _validate_type(command, str):
@@ -2497,15 +2533,15 @@ class ExecutableResource(_BaseResource):
             return self
         elif _validate_tuple_types(args + (), (str, ExternalServiceResource)):
             name, external_service, = cast(tuple[str, ExternalServiceResource], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, externalService: {external_service.name});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, externalService: {_format_value(external_service.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (str, ParameterResource)):
             name, parameter, = cast(tuple[str, ParameterResource], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, parameter: {parameter.name});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, parameter: {_format_value(parameter.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (str, ResourceWithConnectionString)):
             env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {resource.name});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {_format_value(resource.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2537,48 +2573,48 @@ class ExecutableResource(_BaseResource):
     def with_reference(self, source: ResourceWithServiceDiscovery, name: str, /) -> Self:
         ...
     def with_reference(self, *args, **kwargs) -> Self:
-        if _validate_tuple_types(args + (_connection_name := kwargs.get("connection_name"), _optional := kwargs.get("optional"),), (ResourceWithConnectionString, str | None, bool | Literal[False])):
+        if _validate_tuple_types(args + (_connection_name := kwargs.get("connection_name", None), _optional := kwargs.get("optional", False),), (ResourceWithConnectionString, str | None, bool | Literal[False])):
             source, = cast(tuple[ResourceWithConnectionString], args)
             connection_name = _connection_name
             optional = _optional
-            self._builder.write(f'\n{self.name}.WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)});')
             return self
         elif len(args) == 1 and _validate_type(args[0], ResourceWithServiceDiscovery):
             source = cast(ResourceWithServiceDiscovery, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with source")
-            self._builder.write(f'\n{self.name}.WithReference(source: {source.name});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)});')
             return self
         elif len(args) == 1 and _validate_type(args[0], ExternalServiceResource):
             external_service = cast(ExternalServiceResource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with external_service")
-            self._builder.write(f'\n{self.name}.WithReference(externalService: {external_service.name});')
+            self._builder.write(f'\n{self.name}.WithReference(externalService: {_format_value(external_service.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (ResourceWithServiceDiscovery, str)):
             source, name, = cast(tuple[ResourceWithServiceDiscovery, str], args)
-            self._builder.write(f'\n{self.name}.WithReference(source: {source.name}, name: {_format_string(name, None)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)}, name: {_format_string(name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_endpoint(self, *, port: int | None = None, target_port: int | None = None, scheme: str | None = None, name: str | None = None, env: str | None = None, is_proxied: bool = True, is_external: bool | None = None, protocol: ProtocolType | None = None) -> Self:
         if _validate_tuple_types((port, target_port, scheme, name, env, is_proxied, is_external, protocol), (int | None, int | None, str | None, str | None, str | None, bool | Literal[True], bool | None, ProtocolType | None)):
-            self._builder.write(f'\n{self.name}.WithEndpoint(port: {port}, targetPort: {target_port}, scheme: {_format_string(scheme, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)}, isExternal: {is_external}, protocol: {protocol});')
+            self._builder.write(f'\n{self.name}.WithEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, scheme: {_format_string(scheme, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)}, isExternal: {_format_value(is_external, None)}, protocol: {_format_value(protocol, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_http_endpoint(self, *, port: int | None = None, target_port: int | None = None, name: str | None = None, env: str | None = None, is_proxied: bool = True) -> Self:
         if _validate_tuple_types((port, target_port, name, env, is_proxied), (int | None, int | None, str | None, str | None, bool | Literal[True])):
-            self._builder.write(f'\n{self.name}.WithHttpEndpoint(port: {port}, targetPort: {target_port}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)});')
+            self._builder.write(f'\n{self.name}.WithHttpEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_https_endpoint(self, *, port: int | None = None, target_port: int | None = None, name: str | None = None, env: str | None = None, is_proxied: bool = True) -> Self:
         if _validate_tuple_types((port, target_port, name, env, is_proxied), (int | None, int | None, str | None, str | None, bool | Literal[True])):
-            self._builder.write(f'\n{self.name}.WithHttpsEndpoint(port: {port}, targetPort: {target_port}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)});')
+            self._builder.write(f'\n{self.name}.WithHttpsEndpoint(port: {_format_value(port, None)}, targetPort: {_format_value(target_port, None)}, name: {_format_string(name, None)}, env: {_format_string(env, None)}, isProxied: {_format_bool(is_proxied, True)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2602,11 +2638,11 @@ class ExecutableResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2622,25 +2658,25 @@ class ExecutableResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def wait_for_completion(self, dependency: Resource, /, *, exit_code: int = 0) -> Self:
         if _validate_tuple_types((dependency, exit_code), (Resource, int | Literal[0])):
-            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {dependency.name}, exitCode: {exit_code});')
+            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_http_health_check(self, *, path: str | None = None, status_code: int | None = None, endpoint_name: str | None = None) -> Self:
         if _validate_tuple_types((path, status_code, endpoint_name), (str | None, int | None, str | None)):
-            self._builder.write(f'\n{self.name}.WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {status_code}, endpointName: {_format_string(endpoint_name, None)});')
+            self._builder.write(f'\n{self.name}.WithHttpHealthCheck(path: {_format_string(path, None)}, statusCode: {_format_value(status_code, None)}, endpointName: {_format_string(endpoint_name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2654,7 +2690,7 @@ class ExecutableResource(_BaseResource):
 
     def with_certificate_authority_collection(self, certificate_authority_collection: CertificateAuthorityCollection, /) -> Self:
         if _validate_type(certificate_authority_collection, CertificateAuthorityCollection):
-            self._builder.write(f'\n{self.name}.WithCertificateAuthorityCollection(certificateAuthorityCollection: {certificate_authority_collection.name});')
+            self._builder.write(f'\n{self.name}.WithCertificateAuthorityCollection(certificateAuthorityCollection: {_format_value(certificate_authority_collection.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2675,7 +2711,7 @@ class ExecutableResource(_BaseResource):
 
     def with_compute_env(self, compute_env_resource: ComputeEnvironmentResource, /) -> Self:
         if _validate_type(compute_env_resource, ComputeEnvironmentResource):
-            self._builder.write(f'\n{self.name}.WithComputeEnvironment(computeEnvironmentResource: {compute_env_resource.name});')
+            self._builder.write(f'\n{self.name}.WithComputeEnvironment(computeEnvironmentResource: {_format_value(compute_env_resource.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2683,7 +2719,7 @@ class ExecutableResource(_BaseResource):
     def with_http_probe(self, type: ProbeType, /, *, path: str | None = None, initial_delay_seconds: int | None = None, period_seconds: int | None = None, timeout_seconds: int | None = None, failure_threshold: int | None = None, success_threshold: int | None = None, endpoint_name: str | None = None) -> Self:
         if _validate_tuple_types((type, path, initial_delay_seconds, period_seconds, timeout_seconds, failure_threshold, success_threshold, endpoint_name), (ProbeType, str | None, int | None, int | None, int | None, int | None, int | None, str | None)):
             with _experimental(self._builder, "with_http_probe", self.__class__, "ASPIREPROBES001"):
-                self._builder.write(f'\n{self.name}.WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {initial_delay_seconds}, periodSeconds: {period_seconds}, timeoutSeconds: {timeout_seconds}, failureThreshold: {failure_threshold}, successThreshold: {success_threshold}, endpointName: {_format_string(endpoint_name, None)});')
+                self._builder.write(f'\n{self.name}.WithHttpProbe(type: {_format_enum("ProbeType", type, None)}, path: {_format_string(path, None)}, initialDelaySeconds: {_format_value(initial_delay_seconds, None)}, periodSeconds: {_format_value(period_seconds, None)}, timeoutSeconds: {_format_value(timeout_seconds, None)}, failureThreshold: {_format_value(failure_threshold, None)}, successThreshold: {_format_value(success_threshold, None)}, endpointName: {_format_string(endpoint_name, None)});')
                 return self
         else:
             raise TypeError("No matching overload found.")
@@ -2700,16 +2736,16 @@ class ParameterResource(_BaseResource):
         return "#:package Aspire.Hosting@13.0.1.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[ParameterResourceOptions]) -> None:
-        if _with_description := kwargs.pop("with_description", None):
-            if _validate_type(_with_description, str):
-                description = cast(str, _with_description)
+        if _description := kwargs.pop("description", None):
+            if _validate_type(_description, str):
+                description = cast(str, _description)
                 enable_markdown = None
                 __builder.write(f'\n    .WithDescription(description: {_format_string(description, None)}, enableMarkdown: {_format_bool(enable_markdown, False)})')
-            elif _validate_tuple_types(_with_description, (str, bool)):
-                description, enable_markdown = cast(tuple[str, bool], _with_description)
+            elif _validate_tuple_types(_description, (str, bool)):
+                description, enable_markdown = cast(tuple[str, bool], _description)
                 __builder.write(f'\n    .WithDescription(description: {_format_string(description, None)}, enableMarkdown: {_format_bool(enable_markdown, False)})')
             else:
-                raise TypeError("Invalid type for option 'with_description'")
+                raise TypeError("Invalid type for option 'description'")
         super().__init__(__name, __builder, **kwargs)
 
     def with_description(self, description: str, /, *, enable_markdown: bool = False) -> Self:
@@ -2732,18 +2768,18 @@ class PostgresDatabaseResource(_BaseResource):
         return "#:package Aspire.Hosting.PostgreSQL@13.0.1.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[PostgresDatabaseResourceOptions]) -> None:
-        if _with_creation_script := kwargs.pop("with_creation_script", None):
-            if _validate_type(_with_creation_script, str):
-                script = cast(str, _with_creation_script)
+        if _creation_script := kwargs.pop("creation_script", None):
+            if _validate_type(_creation_script, str):
+                script = cast(str, _creation_script)
                 __builder.write(f'\n    .WithCreationScript(script: {_format_string(script, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_creation_script'")
-        if _with_connection_string_redirection := kwargs.pop("with_connection_string_redirection", None):
-            if _validate_type(_with_connection_string_redirection, ResourceWithConnectionString):
-                resource = cast(ResourceWithConnectionString, _with_connection_string_redirection)
-                __builder.write(f'\n    .WithConnectionStringRedirection(resource: {resource})')
+                raise TypeError("Invalid type for option 'creation_script'")
+        if _connection_string_redirection := kwargs.pop("connection_string_redirection", None):
+            if _validate_type(_connection_string_redirection, ResourceWithConnectionString):
+                resource = cast(ResourceWithConnectionString, _connection_string_redirection)
+                __builder.write(f'\n    .WithConnectionStringRedirection(resource: {_format_value(resource, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_connection_string_redirection'")
+                raise TypeError("Invalid type for option 'connection_string_redirection'")
         super().__init__(__name, __builder, **kwargs)
 
     def with_creation_script(self, script: str, /) -> Self:
@@ -2755,7 +2791,7 @@ class PostgresDatabaseResource(_BaseResource):
 
     def with_connection_string_redirection(self, resource: ResourceWithConnectionString, /) -> Self:
         if _validate_type(resource, ResourceWithConnectionString):
-            self._builder.write(f'\n{self.name}.WithConnectionStringRedirection(resource: {resource});')
+            self._builder.write(f'\n{self.name}.WithConnectionStringRedirection(resource: {_format_value(resource, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2769,7 +2805,7 @@ class PostgresServerResourceOptions(ContainerResourceOptions, total=False):
     init_files: str
     password: ParameterResource
     user_name: ParameterResource
-    host_port: int | Literal[True]
+    host_port: int
     pg_admin: str | Literal[True]
     connection_string_redirection: ResourceWithConnectionString
 
@@ -2780,76 +2816,73 @@ class PostgresServerResource(ContainerResource):
         return "#:package Aspire.Hosting.PostgreSQL@13.0.1.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[PostgresServerResourceOptions]) -> None:
-        if _with_pg_web := kwargs.pop("with_pg_web", None):
-            if _validate_type(_with_pg_web, str):
-                container_name = cast(str, _with_pg_web)
+        if _pg_web := kwargs.pop("pg_web", None):
+            if _validate_type(_pg_web, str):
+                container_name = cast(str, _pg_web)
                 container_name = None
                 __builder.write(f'\n    .WithPgWeb(containerName: {_format_string(container_name, None)})')
-            elif _with_pg_web is True:
+            elif _pg_web is True:
                 __builder.write(f'\n    .WithPgWeb()')
             else:
-                raise TypeError("Invalid type for option 'with_pg_web'")
-        if _with_data_volume := kwargs.pop("with_data_volume", None):
-            if _validate_dict_types(_with_data_volume, DataVolumeParameters):
-                name = cast(DataVolumeParameters, _with_data_volume).get("name")
-                is_read_only = cast(DataVolumeParameters, _with_data_volume).get("is_read_only")
+                raise TypeError("Invalid type for option 'pg_web'")
+        if _data_volume := kwargs.pop("data_volume", None):
+            if _validate_dict_types(_data_volume, DataVolumeParameters):
+                name = cast(DataVolumeParameters, _data_volume).get("name")
+                is_read_only = cast(DataVolumeParameters, _data_volume).get("is_read_only")
                 __builder.write(f'\n    .WithDataVolume(name: {_format_string(name, None)}, isReadOnly: {_format_bool(is_read_only, False)})')
-            elif _with_data_volume is True:
+            elif _data_volume is True:
                 __builder.write(f'\n    .WithDataVolume()')
             else:
-                raise TypeError("Invalid type for option 'with_data_volume'")
-        if _with_data_bind_mount := kwargs.pop("with_data_bind_mount", None):
-            if _validate_type(_with_data_bind_mount, str):
-                source = cast(str, _with_data_bind_mount)
+                raise TypeError("Invalid type for option 'data_volume'")
+        if _data_bind_mount := kwargs.pop("data_bind_mount", None):
+            if _validate_type(_data_bind_mount, str):
+                source = cast(str, _data_bind_mount)
                 is_read_only = None
                 __builder.write(f'\n    .WithDataBindMount(source: {_format_string(source, None)}, isReadOnly: {_format_bool(is_read_only, False)})')
-            elif _validate_tuple_types(_with_data_bind_mount, (str, bool)):
-                source, is_read_only = cast(tuple[str, bool], _with_data_bind_mount)
+            elif _validate_tuple_types(_data_bind_mount, (str, bool)):
+                source, is_read_only = cast(tuple[str, bool], _data_bind_mount)
                 __builder.write(f'\n    .WithDataBindMount(source: {_format_string(source, None)}, isReadOnly: {_format_bool(is_read_only, False)})')
             else:
-                raise TypeError("Invalid type for option 'with_data_bind_mount'")
-        if _with_init_files := kwargs.pop("with_init_files", None):
-            if _validate_type(_with_init_files, str):
-                source = cast(str, _with_init_files)
+                raise TypeError("Invalid type for option 'data_bind_mount'")
+        if _init_files := kwargs.pop("init_files", None):
+            if _validate_type(_init_files, str):
+                source = cast(str, _init_files)
                 __builder.write(f'\n    .WithInitFiles(source: {_format_string(source, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_init_files'")
-        if _with_password := kwargs.pop("with_password", None):
-            if _validate_type(_with_password, ParameterResource):
-                password = cast(ParameterResource, _with_password)
-                __builder.write(f'\n    .WithPassword(password: {password.name})')
+                raise TypeError("Invalid type for option 'init_files'")
+        if _password := kwargs.pop("password", None):
+            if _validate_type(_password, ParameterResource):
+                password = cast(ParameterResource, _password)
+                __builder.write(f'\n    .WithPassword(password: {_format_value(password.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_password'")
-        if _with_user_name := kwargs.pop("with_user_name", None):
-            if _validate_type(_with_user_name, ParameterResource):
-                user_name = cast(ParameterResource, _with_user_name)
-                __builder.write(f'\n    .WithUserName(userName: {user_name.name})')
+                raise TypeError("Invalid type for option 'password'")
+        if _user_name := kwargs.pop("user_name", None):
+            if _validate_type(_user_name, ParameterResource):
+                user_name = cast(ParameterResource, _user_name)
+                __builder.write(f'\n    .WithUserName(userName: {_format_value(user_name.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_user_name'")
-        if _with_host_port := kwargs.pop("with_host_port", None):
-            if _validate_type(_with_host_port, int):
-                port = cast(int, _with_host_port)
-                port = None
-                __builder.write(f'\n    .WithHostPort(port: {port})')
-            elif _with_host_port is True:
-                __builder.write(f'\n    .WithHostPort()')
+                raise TypeError("Invalid type for option 'user_name'")
+        if _host_port := kwargs.pop("host_port", None):
+            if _validate_type(_host_port, int):
+                port = cast(int, _host_port)
+                __builder.write(f'\n    .WithHostPort(port: {_format_value(port, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_host_port'")
-        if _with_pg_admin := kwargs.pop("with_pg_admin", None):
-            if _validate_type(_with_pg_admin, str):
-                container_name = cast(str, _with_pg_admin)
+                raise TypeError("Invalid type for option 'host_port'")
+        if _pg_admin := kwargs.pop("pg_admin", None):
+            if _validate_type(_pg_admin, str):
+                container_name = cast(str, _pg_admin)
                 container_name = None
                 __builder.write(f'\n    .WithPgAdmin(containerName: {_format_string(container_name, None)})')
-            elif _with_pg_admin is True:
+            elif _pg_admin is True:
                 __builder.write(f'\n    .WithPgAdmin()')
             else:
-                raise TypeError("Invalid type for option 'with_pg_admin'")
-        if _with_connection_string_redirection := kwargs.pop("with_connection_string_redirection", None):
-            if _validate_type(_with_connection_string_redirection, ResourceWithConnectionString):
-                resource = cast(ResourceWithConnectionString, _with_connection_string_redirection)
-                __builder.write(f'\n    .WithConnectionStringRedirection(resource: {resource})')
+                raise TypeError("Invalid type for option 'pg_admin'")
+        if _connection_string_redirection := kwargs.pop("connection_string_redirection", None):
+            if _validate_type(_connection_string_redirection, ResourceWithConnectionString):
+                resource = cast(ResourceWithConnectionString, _connection_string_redirection)
+                __builder.write(f'\n    .WithConnectionStringRedirection(resource: {_format_value(resource, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_connection_string_redirection'")
+                raise TypeError("Invalid type for option 'connection_string_redirection'")
         super().__init__(__name, __builder, **kwargs)
 
     def add_database(self, name: str, /, database_name: str | None = None, **kwargs: Unpack[PostgresDatabaseResourceOptions]) -> PostgresDatabaseResource:
@@ -2890,22 +2923,21 @@ class PostgresServerResource(ContainerResource):
 
     def with_password(self, password: ParameterResource, /) -> Self:
         if _validate_type(password, ParameterResource):
-            self._builder.write(f'\n{self.name}.WithPassword(password: {password.name});')
+            self._builder.write(f'\n{self.name}.WithPassword(password: {_format_value(password.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_user_name(self, user_name: ParameterResource, /) -> Self:
         if _validate_type(user_name, ParameterResource):
-            self._builder.write(f'\n{self.name}.WithUserName(userName: {user_name.name});')
+            self._builder.write(f'\n{self.name}.WithUserName(userName: {_format_value(user_name.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
-    def with_host_port(self, *, port: int | None = None) -> Self:
-        if _validate_type(port, int | None):
-            port = None
-            self._builder.write(f'\n{self.name}.WithHostPort(port: {port});')
+    def with_host_port(self, port: int | None = None, /) -> Self:
+        if _validate_type(port, int):
+            self._builder.write(f'\n{self.name}.WithHostPort(port: {_format_value(port, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2920,7 +2952,7 @@ class PostgresServerResource(ContainerResource):
 
     def with_connection_string_redirection(self, resource: ResourceWithConnectionString, /) -> Self:
         if _validate_type(resource, ResourceWithConnectionString):
-            self._builder.write(f'\n{self.name}.WithConnectionStringRedirection(resource: {resource});')
+            self._builder.write(f'\n{self.name}.WithConnectionStringRedirection(resource: {_format_value(resource, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2928,7 +2960,7 @@ class PostgresServerResource(ContainerResource):
 
 class PgAdminContainerResourceOptions(ContainerResourceOptions, total=False):
     """Options for PgAdminContainerResource"""
-    host_port: int | Literal[True]
+    host_port: int
 
 
 class PgAdminContainerResource(ContainerResource):
@@ -2937,21 +2969,17 @@ class PgAdminContainerResource(ContainerResource):
         return "#:package Aspire.Hosting.PostgreSQL@13.0.1.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[PgAdminContainerResourceOptions]) -> None:
-        if _with_host_port := kwargs.pop("with_host_port", None):
-            if _validate_type(_with_host_port, int):
-                port = cast(int, _with_host_port)
-                port = None
-                __builder.write(f'\n    .WithHostPort(port: {port})')
-            elif _with_host_port is True:
-                __builder.write(f'\n    .WithHostPort()')
+        if _host_port := kwargs.pop("host_port", None):
+            if _validate_type(_host_port, int):
+                port = cast(int, _host_port)
+                __builder.write(f'\n    .WithHostPort(port: {_format_value(port, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_host_port'")
+                raise TypeError("Invalid type for option 'host_port'")
         super().__init__(__name, __builder, **kwargs)
 
-    def with_host_port(self, *, port: int | None = None) -> Self:
-        if _validate_type(port, int | None):
-            port = None
-            self._builder.write(f'\n{self.name}.WithHostPort(port: {port});')
+    def with_host_port(self, port: int | None = None, /) -> Self:
+        if _validate_type(port, int):
+            self._builder.write(f'\n{self.name}.WithHostPort(port: {_format_value(port, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2959,7 +2987,7 @@ class PgAdminContainerResource(ContainerResource):
 
 class PgWebContainerResourceOptions(ContainerResourceOptions, total=False):
     """Options for PgWebContainerResource"""
-    host_port: int | Literal[True]
+    host_port: int
 
 
 class PgWebContainerResource(ContainerResource):
@@ -2968,21 +2996,17 @@ class PgWebContainerResource(ContainerResource):
         return "#:package Aspire.Hosting.PostgreSQL@13.0.1.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[PgWebContainerResourceOptions]) -> None:
-        if _with_host_port := kwargs.pop("with_host_port", None):
-            if _validate_type(_with_host_port, int):
-                port = cast(int, _with_host_port)
-                port = None
-                __builder.write(f'\n    .WithHostPort(port: {port})')
-            elif _with_host_port is True:
-                __builder.write(f'\n    .WithHostPort()')
+        if _host_port := kwargs.pop("host_port", None):
+            if _validate_type(_host_port, int):
+                port = cast(int, _host_port)
+                __builder.write(f'\n    .WithHostPort(port: {_format_value(port, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_host_port'")
+                raise TypeError("Invalid type for option 'host_port'")
         super().__init__(__name, __builder, **kwargs)
 
-    def with_host_port(self, *, port: int | None = None) -> Self:
-        if _validate_type(port, int | None):
-            port = None
-            self._builder.write(f'\n{self.name}.WithHostPort(port: {port});')
+    def with_host_port(self, port: int | None = None, /) -> Self:
+        if _validate_type(port, int):
+            self._builder.write(f'\n{self.name}.WithHostPort(port: {_format_value(port, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -3004,49 +3028,49 @@ class PythonAppResource(ExecutableResource):
         return "#:package Aspire.Hosting.Python@13.0.0.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[PythonAppResourceOptions]) -> None:
-        if _with_virtual_env := kwargs.pop("with_virtual_env", None):
-            if _validate_type(_with_virtual_env, str):
-                virtual_env_path = cast(str, _with_virtual_env)
+        if _virtual_env := kwargs.pop("virtual_env", None):
+            if _validate_type(_virtual_env, str):
+                virtual_env_path = cast(str, _virtual_env)
                 create_if_not_exists = None
                 __builder.write(f'\n    .WithVirtualEnvironment(virtualEnvironmentPath: {_format_string(virtual_env_path, None)}, createIfNotExists: {_format_bool(create_if_not_exists, True)})')
-            elif _validate_tuple_types(_with_virtual_env, (str, bool)):
-                virtual_env_path, create_if_not_exists = cast(tuple[str, bool], _with_virtual_env)
+            elif _validate_tuple_types(_virtual_env, (str, bool)):
+                virtual_env_path, create_if_not_exists = cast(tuple[str, bool], _virtual_env)
                 __builder.write(f'\n    .WithVirtualEnvironment(virtualEnvironmentPath: {_format_string(virtual_env_path, None)}, createIfNotExists: {_format_bool(create_if_not_exists, True)})')
             else:
-                raise TypeError("Invalid type for option 'with_virtual_env'")
-        if _with_debugging := kwargs.pop("with_debugging", None):
-            if _with_debugging is True:
+                raise TypeError("Invalid type for option 'virtual_env'")
+        if _debugging := kwargs.pop("debugging", None):
+            if _debugging is True:
                 __builder.write(f'\n    .WithDebugging()')
             else:
-                raise TypeError("Invalid type for option 'with_debugging'")
-        if _with_entrypoint := kwargs.pop("with_entrypoint", None):
-            if _validate_tuple_types(_with_entrypoint, (EntrypointType, str)):
-                entrypoint_type, entrypoint, = cast(tuple[EntrypointType, str], _with_entrypoint)
+                raise TypeError("Invalid type for option 'debugging'")
+        if _entrypoint := kwargs.pop("entrypoint", None):
+            if _validate_tuple_types(_entrypoint, (EntrypointType, str)):
+                entrypoint_type, entrypoint, = cast(tuple[EntrypointType, str], _entrypoint)
                 __builder.write(f'\n    .WithEntrypoint(entrypointType: {_format_enum("EntrypointType", entrypoint_type, None)}, entrypoint: {_format_string(entrypoint, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_entrypoint'")
-        if _with_pip := kwargs.pop("with_pip", None):
-            if _validate_dict_types(_with_pip, PipParameters):
-                install = cast(PipParameters, _with_pip).get("install")
-                install_args = cast(PipParameters, _with_pip).get("install_args")
+                raise TypeError("Invalid type for option 'entrypoint'")
+        if _pip := kwargs.pop("pip", None):
+            if _validate_dict_types(_pip, PipParameters):
+                install = cast(PipParameters, _pip).get("install")
+                install_args = cast(PipParameters, _pip).get("install_args")
                 __builder.write(f'\n    .WithPip(install: {_format_bool(install, True)}, installArgs: {_format_string_array(install_args)})')
-            elif _with_pip is True:
+            elif _pip is True:
                 __builder.write(f'\n    .WithPip()')
             else:
-                raise TypeError("Invalid type for option 'with_pip'")
-        if _with_uv := kwargs.pop("with_uv", None):
-            if _validate_dict_types(_with_uv, UvParameters):
-                install = cast(UvParameters, _with_uv).get("install")
-                args = cast(UvParameters, _with_uv).get("args")
+                raise TypeError("Invalid type for option 'pip'")
+        if _uv := kwargs.pop("uv", None):
+            if _validate_dict_types(_uv, UvParameters):
+                install = cast(UvParameters, _uv).get("install")
+                args = cast(UvParameters, _uv).get("args")
                 __builder.write(f'\n    .WithUv(install: {_format_bool(install, True)}, args: {_format_string_array(args)})')
-            elif _with_uv is True:
+            elif _uv is True:
                 __builder.write(f'\n    .WithUv()')
             else:
-                raise TypeError("Invalid type for option 'with_uv'")
+                raise TypeError("Invalid type for option 'uv'")
         if _publish_with_container_files := kwargs.pop("publish_with_container_files", None):
             if _validate_tuple_types(_publish_with_container_files, (ResourceWithContainerFiles, str)):
                 source, destination_path, = cast(tuple[ResourceWithContainerFiles, str], _publish_with_container_files)
-                __builder.write(f'\n    .PublishWithContainerFiles(source: {source.name}, destinationPath: {_format_string(destination_path, None)})')
+                __builder.write(f'\n    .PublishWithContainerFiles(source: {_format_value(source.name, None)}, destinationPath: {_format_string(destination_path, None)})')
             else:
                 raise TypeError("Invalid type for option 'publish_with_container_files'")
         super().__init__(__name, __builder, **kwargs)
@@ -3085,7 +3109,7 @@ class PythonAppResource(ExecutableResource):
 
     def publish_with_container_files(self, source: ResourceWithContainerFiles, destination_path: str, /) -> Self:
         if _validate_tuple_types((source, destination_path, ), (ResourceWithContainerFiles, str)):
-            self._builder.write(f'\n{self.name}.PublishWithContainerFiles(source: {source.name}, destinationPath: {_format_string(destination_path, None)});')
+            self._builder.write(f'\n{self.name}.PublishWithContainerFiles(source: {_format_value(source.name, None)}, destinationPath: {_format_string(destination_path, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -3112,7 +3136,7 @@ class RedisResourceOptions(ContainerResourceOptions, total=False):
     data_bind_mount: str | tuple[str, bool]
     persistence: PersistenceParameters | Literal[True]
     password: ParameterResource
-    host_port: int | Literal[True]
+    host_port: int
     connection_string_redirection: ResourceWithConnectionString
 
 
@@ -3122,73 +3146,70 @@ class RedisResource(ContainerResource):
         return "#:package Aspire.Hosting.Redis@13.0.0.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[RedisResourceOptions]) -> None:
-        if _with_redis_commander := kwargs.pop("with_redis_commander", None):
-            if _validate_type(_with_redis_commander, str):
-                container_name = cast(str, _with_redis_commander)
+        if _redis_commander := kwargs.pop("redis_commander", None):
+            if _validate_type(_redis_commander, str):
+                container_name = cast(str, _redis_commander)
                 container_name = None
                 __builder.write(f'\n    .WithRedisCommander(containerName: {_format_string(container_name, None)})')
-            elif _with_redis_commander is True:
+            elif _redis_commander is True:
                 __builder.write(f'\n    .WithRedisCommander()')
             else:
-                raise TypeError("Invalid type for option 'with_redis_commander'")
-        if _with_redis_insight := kwargs.pop("with_redis_insight", None):
-            if _validate_type(_with_redis_insight, str):
-                container_name = cast(str, _with_redis_insight)
+                raise TypeError("Invalid type for option 'redis_commander'")
+        if _redis_insight := kwargs.pop("redis_insight", None):
+            if _validate_type(_redis_insight, str):
+                container_name = cast(str, _redis_insight)
                 container_name = None
                 __builder.write(f'\n    .WithRedisInsight(containerName: {_format_string(container_name, None)})')
-            elif _with_redis_insight is True:
+            elif _redis_insight is True:
                 __builder.write(f'\n    .WithRedisInsight()')
             else:
-                raise TypeError("Invalid type for option 'with_redis_insight'")
-        if _with_data_volume := kwargs.pop("with_data_volume", None):
-            if _validate_dict_types(_with_data_volume, DataVolumeParameters):
-                name = cast(DataVolumeParameters, _with_data_volume).get("name")
-                is_read_only = cast(DataVolumeParameters, _with_data_volume).get("is_read_only")
+                raise TypeError("Invalid type for option 'redis_insight'")
+        if _data_volume := kwargs.pop("data_volume", None):
+            if _validate_dict_types(_data_volume, DataVolumeParameters):
+                name = cast(DataVolumeParameters, _data_volume).get("name")
+                is_read_only = cast(DataVolumeParameters, _data_volume).get("is_read_only")
                 __builder.write(f'\n    .WithDataVolume(name: {_format_string(name, None)}, isReadOnly: {_format_bool(is_read_only, False)})')
-            elif _with_data_volume is True:
+            elif _data_volume is True:
                 __builder.write(f'\n    .WithDataVolume()')
             else:
-                raise TypeError("Invalid type for option 'with_data_volume'")
-        if _with_data_bind_mount := kwargs.pop("with_data_bind_mount", None):
-            if _validate_type(_with_data_bind_mount, str):
-                source = cast(str, _with_data_bind_mount)
+                raise TypeError("Invalid type for option 'data_volume'")
+        if _data_bind_mount := kwargs.pop("data_bind_mount", None):
+            if _validate_type(_data_bind_mount, str):
+                source = cast(str, _data_bind_mount)
                 is_read_only = None
                 __builder.write(f'\n    .WithDataBindMount(source: {_format_string(source, None)}, isReadOnly: {_format_bool(is_read_only, False)})')
-            elif _validate_tuple_types(_with_data_bind_mount, (str, bool)):
-                source, is_read_only = cast(tuple[str, bool], _with_data_bind_mount)
+            elif _validate_tuple_types(_data_bind_mount, (str, bool)):
+                source, is_read_only = cast(tuple[str, bool], _data_bind_mount)
                 __builder.write(f'\n    .WithDataBindMount(source: {_format_string(source, None)}, isReadOnly: {_format_bool(is_read_only, False)})')
             else:
-                raise TypeError("Invalid type for option 'with_data_bind_mount'")
-        if _with_persistence := kwargs.pop("with_persistence", None):
-            if _validate_dict_types(_with_persistence, PersistenceParameters):
-                interval = cast(PersistenceParameters, _with_persistence).get("interval")
-                keys_changed_threshold = cast(PersistenceParameters, _with_persistence).get("keys_changed_threshold")
-                __builder.write(f'\n    .WithPersistence(interval: {interval}, keysChangedThreshold: {keys_changed_threshold})')
-            elif _with_persistence is True:
+                raise TypeError("Invalid type for option 'data_bind_mount'")
+        if _persistence := kwargs.pop("persistence", None):
+            if _validate_dict_types(_persistence, PersistenceParameters):
+                interval = cast(PersistenceParameters, _persistence).get("interval")
+                keys_changed_threshold = cast(PersistenceParameters, _persistence).get("keys_changed_threshold")
+                __builder.write(f'\n    .WithPersistence(interval: {_format_value(interval, None)}, keysChangedThreshold: {_format_value(keys_changed_threshold, 1)})')
+            elif _persistence is True:
                 __builder.write(f'\n    .WithPersistence()')
             else:
-                raise TypeError("Invalid type for option 'with_persistence'")
-        if _with_password := kwargs.pop("with_password", None):
-            if _validate_type(_with_password, ParameterResource):
-                password = cast(ParameterResource, _with_password)
-                __builder.write(f'\n    .WithPassword(password: {password.name})')
+                raise TypeError("Invalid type for option 'persistence'")
+        if _password := kwargs.pop("password", None):
+            if _validate_type(_password, ParameterResource):
+                password = cast(ParameterResource, _password)
+                __builder.write(f'\n    .WithPassword(password: {_format_value(password.name, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_password'")
-        if _with_host_port := kwargs.pop("with_host_port", None):
-            if _validate_type(_with_host_port, int):
-                port = cast(int, _with_host_port)
-                port = None
-                __builder.write(f'\n    .WithHostPort(port: {port})')
-            elif _with_host_port is True:
-                __builder.write(f'\n    .WithHostPort()')
+                raise TypeError("Invalid type for option 'password'")
+        if _host_port := kwargs.pop("host_port", None):
+            if _validate_type(_host_port, int):
+                port = cast(int, _host_port)
+                __builder.write(f'\n    .WithHostPort(port: {_format_value(port, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_host_port'")
-        if _with_connection_string_redirection := kwargs.pop("with_connection_string_redirection", None):
-            if _validate_type(_with_connection_string_redirection, ResourceWithConnectionString):
-                resource = cast(ResourceWithConnectionString, _with_connection_string_redirection)
-                __builder.write(f'\n    .WithConnectionStringRedirection(resource: {resource})')
+                raise TypeError("Invalid type for option 'host_port'")
+        if _connection_string_redirection := kwargs.pop("connection_string_redirection", None):
+            if _validate_type(_connection_string_redirection, ResourceWithConnectionString):
+                resource = cast(ResourceWithConnectionString, _connection_string_redirection)
+                __builder.write(f'\n    .WithConnectionStringRedirection(resource: {_format_value(resource, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_connection_string_redirection'")
+                raise TypeError("Invalid type for option 'connection_string_redirection'")
         super().__init__(__name, __builder, **kwargs)
 
     def with_redis_commander(self, *, container_name: str | None = None) -> Self:
@@ -3223,29 +3244,28 @@ class RedisResource(ContainerResource):
 
     def with_persistence(self, *, interval: timedelta | None = None, keys_changed_threshold: int = 1) -> Self:
         if _validate_tuple_types((interval, keys_changed_threshold), (timedelta | None, int | Literal[1])):
-            self._builder.write(f'\n{self.name}.WithPersistence(interval: {interval}, keysChangedThreshold: {keys_changed_threshold});')
+            self._builder.write(f'\n{self.name}.WithPersistence(interval: {_format_value(interval, None)}, keysChangedThreshold: {_format_value(keys_changed_threshold, 1)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_password(self, password: ParameterResource, /) -> Self:
         if _validate_type(password, ParameterResource):
-            self._builder.write(f'\n{self.name}.WithPassword(password: {password.name});')
+            self._builder.write(f'\n{self.name}.WithPassword(password: {_format_value(password.name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
-    def with_host_port(self, *, port: int | None = None) -> Self:
-        if _validate_type(port, int | None):
-            port = None
-            self._builder.write(f'\n{self.name}.WithHostPort(port: {port});')
+    def with_host_port(self, port: int | None = None, /) -> Self:
+        if _validate_type(port, int):
+            self._builder.write(f'\n{self.name}.WithHostPort(port: {_format_value(port, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_connection_string_redirection(self, resource: ResourceWithConnectionString, /) -> Self:
         if _validate_type(resource, ResourceWithConnectionString):
-            self._builder.write(f'\n{self.name}.WithConnectionStringRedirection(resource: {resource});')
+            self._builder.write(f'\n{self.name}.WithConnectionStringRedirection(resource: {_format_value(resource, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -3253,7 +3273,7 @@ class RedisResource(ContainerResource):
 
 class RedisCommanderResourceOptions(ContainerResourceOptions, total=False):
     """Options for RedisCommanderResource"""
-    host_port: int | Literal[True]
+    host_port: int
 
 
 class RedisCommanderResource(ContainerResource):
@@ -3262,21 +3282,17 @@ class RedisCommanderResource(ContainerResource):
         return "#:package Aspire.Hosting.Redis@13.0.0.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[RedisCommanderResourceOptions]) -> None:
-        if _with_host_port := kwargs.pop("with_host_port", None):
-            if _validate_type(_with_host_port, int):
-                port = cast(int, _with_host_port)
-                port = None
-                __builder.write(f'\n    .WithHostPort(port: {port})')
-            elif _with_host_port is True:
-                __builder.write(f'\n    .WithHostPort()')
+        if _host_port := kwargs.pop("host_port", None):
+            if _validate_type(_host_port, int):
+                port = cast(int, _host_port)
+                __builder.write(f'\n    .WithHostPort(port: {_format_value(port, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_host_port'")
+                raise TypeError("Invalid type for option 'host_port'")
         super().__init__(__name, __builder, **kwargs)
 
-    def with_host_port(self, *, port: int | None = None) -> Self:
-        if _validate_type(port, int | None):
-            port = None
-            self._builder.write(f'\n{self.name}.WithHostPort(port: {port});')
+    def with_host_port(self, port: int | None = None, /) -> Self:
+        if _validate_type(port, int):
+            self._builder.write(f'\n{self.name}.WithHostPort(port: {_format_value(port, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -3284,7 +3300,7 @@ class RedisCommanderResource(ContainerResource):
 
 class RedisInsightResourceOptions(ContainerResourceOptions, total=False):
     """Options for RedisInsightResource"""
-    host_port: int | Literal[True]
+    host_port: int
     data_volume: str | Literal[True]
     data_bind_mount: str
 
@@ -3295,36 +3311,32 @@ class RedisInsightResource(ContainerResource):
         return "#:package Aspire.Hosting.Redis@13.0.0.0"
 
     def __init__(self, __name: str, __builder: StringIO, **kwargs: Unpack[RedisInsightResourceOptions]) -> None:
-        if _with_host_port := kwargs.pop("with_host_port", None):
-            if _validate_type(_with_host_port, int):
-                port = cast(int, _with_host_port)
-                port = None
-                __builder.write(f'\n    .WithHostPort(port: {port})')
-            elif _with_host_port is True:
-                __builder.write(f'\n    .WithHostPort()')
+        if _host_port := kwargs.pop("host_port", None):
+            if _validate_type(_host_port, int):
+                port = cast(int, _host_port)
+                __builder.write(f'\n    .WithHostPort(port: {_format_value(port, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_host_port'")
-        if _with_data_volume := kwargs.pop("with_data_volume", None):
-            if _validate_type(_with_data_volume, str):
-                name = cast(str, _with_data_volume)
+                raise TypeError("Invalid type for option 'host_port'")
+        if _data_volume := kwargs.pop("data_volume", None):
+            if _validate_type(_data_volume, str):
+                name = cast(str, _data_volume)
                 name = None
                 __builder.write(f'\n    .WithDataVolume(name: {_format_string(name, None)})')
-            elif _with_data_volume is True:
+            elif _data_volume is True:
                 __builder.write(f'\n    .WithDataVolume()')
             else:
-                raise TypeError("Invalid type for option 'with_data_volume'")
-        if _with_data_bind_mount := kwargs.pop("with_data_bind_mount", None):
-            if _validate_type(_with_data_bind_mount, str):
-                source = cast(str, _with_data_bind_mount)
+                raise TypeError("Invalid type for option 'data_volume'")
+        if _data_bind_mount := kwargs.pop("data_bind_mount", None):
+            if _validate_type(_data_bind_mount, str):
+                source = cast(str, _data_bind_mount)
                 __builder.write(f'\n    .WithDataBindMount(source: {_format_string(source, None)})')
             else:
-                raise TypeError("Invalid type for option 'with_data_bind_mount'")
+                raise TypeError("Invalid type for option 'data_bind_mount'")
         super().__init__(__name, __builder, **kwargs)
 
-    def with_host_port(self, *, port: int | None = None) -> Self:
-        if _validate_type(port, int | None):
-            port = None
-            self._builder.write(f'\n{self.name}.WithHostPort(port: {port});')
+    def with_host_port(self, port: int | None = None, /) -> Self:
+        if _validate_type(port, int):
+            self._builder.write(f'\n{self.name}.WithHostPort(port: {_format_value(port, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -3366,7 +3378,8 @@ class DistributedApplicationBuilder:
         csharp += "\n\nbuilder.Build().Run();\n"
         csharp = (
             f"#:sdk Aspire.AppHost.Sdk@{__VERSION__}\n" +
-            "\n".join(set(sorted([d for dependency in self._dependencies for d in dependency]))) +
+            "\n".join(set(sorted(self._dependencies))) +
+            "\nusing System.Security.Cryptography.X509Certificates;" +
             "\n\n" + csharp
         )
         if output_dir:
@@ -3382,7 +3395,7 @@ class DistributedApplicationBuilder:
                 f.write(csharp)
         return DistributedApplication(apphost_path=output_path / "apphost.cs")
 
-    def add_connection_string(self, name: str, /, env_var_name: str | None = None, **kwargs: Unpack[ConnectionStringResourceOptions]) -> ResourceWithConnectionString:
+    def add_connection_string(self, name: str, /, *, env_var_name: str | None = None, **kwargs: Unpack[ConnectionStringResourceOptions]) -> ResourceWithConnectionString:
         with _check_warnings(self._builder, kwargs, ConnectionStringResourceOptions, "add_connection_string"):
             var_name = _valid_var_name(name)
             self._builder.write(f'\nvar {var_name} = builder.AddConnectionString(name: {_format_string(name, None)}, environmentVariableName: {_format_string(env_var_name, None)})')
@@ -3397,7 +3410,7 @@ class DistributedApplicationBuilder:
     def add_container(self, name: str, image: str, tag: str, /, **kwargs: Unpack[ContainerResourceOptions]) -> ContainerResource:
         ...
     def add_container(self, *args, **kwargs):
-        if _validate_tuple_types(args, (str, str)):
+        if _validate_tuple_types(args, (str, str,)):
             with _check_warnings(self._builder, kwargs, ContainerResourceOptions, "add_container"):
                 name, image, = args
                 var_name = _valid_var_name(name)
@@ -3405,7 +3418,7 @@ class DistributedApplicationBuilder:
                 result = ContainerResource(var_name, self._builder, **kwargs)
                 self._dependencies.append(result.package)
                 return result
-        if _validate_tuple_types(args, (str, str, str)):
+        if _validate_tuple_types(args, (str, str, str,)):
             with _check_warnings(self._builder, kwargs, ContainerResourceOptions, "add_container"):
                 name, image, tag, = args
                 var_name = _valid_var_name(name)
@@ -3415,7 +3428,7 @@ class DistributedApplicationBuilder:
                 return result
         raise TypeError("No matching overload found.")
 
-    def add_dockerfile(self, name: str, context_path: str, /, dockerfile_path: str | None = None, stage: str | None = None, **kwargs: Unpack[ContainerResourceOptions]) -> ContainerResource:
+    def add_dockerfile(self, name: str, context_path: str, /, *, dockerfile_path: str | None = None, stage: str | None = None, **kwargs: Unpack[ContainerResourceOptions]) -> ContainerResource:
         with _check_warnings(self._builder, kwargs, ContainerResourceOptions, "add_dockerfile"):
             var_name = _valid_var_name(name)
             self._builder.write(f'\nvar {var_name} = builder.AddDockerfile(name: {_format_string(name, None)}, contextPath: {_format_string(context_path, None)}, dockerfilePath: {_format_string(dockerfile_path, None)}, stage: {_format_string(stage, None)})')
@@ -3438,7 +3451,7 @@ class DistributedApplicationBuilder:
     def add_external_service(self, name: str, url_parameter: ParameterResource, /, **kwargs: Unpack[ExternalServiceResourceOptions]) -> ExternalServiceResource:
         ...
     def add_external_service(self, *args, **kwargs):
-        if _validate_tuple_types(args, (str, str)):
+        if _validate_tuple_types(args, (str, str,)):
             with _check_warnings(self._builder, kwargs, ExternalServiceResourceOptions, "add_external_service"):
                 name, url, = args
                 var_name = _valid_var_name(name)
@@ -3446,25 +3459,45 @@ class DistributedApplicationBuilder:
                 result = ExternalServiceResource(var_name, self._builder, **kwargs)
                 self._dependencies.append(result.package)
                 return result
-        if _validate_tuple_types(args, (str, ParameterResource)):
+        if _validate_tuple_types(args, (str, ParameterResource,)):
             with _check_warnings(self._builder, kwargs, ExternalServiceResourceOptions, "add_external_service"):
                 name, url_parameter, = args
                 var_name = _valid_var_name(name)
-                self._builder.write(f'\nvar {var_name} = builder.AddExternalService(name: {_format_string(name, None)}, urlParameter: {url_parameter.name})')
+                self._builder.write(f'\nvar {var_name} = builder.AddExternalService(name: {_format_string(name, None)}, urlParameter: {_format_value(url_parameter.name, None)})')
                 result = ExternalServiceResource(var_name, self._builder, **kwargs)
                 self._dependencies.append(result.package)
                 return result
         raise TypeError("No matching overload found.")
 
-    def add_parameter(self, name: str, value: str, /, publish_value_as_default: bool = False, secret: bool = False, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
-        with _check_warnings(self._builder, kwargs, ParameterResourceOptions, "add_parameter"):
-            var_name = _valid_var_name(name)
-            self._builder.write(f'\nvar {var_name} = builder.AddParameter(name: {_format_string(name, None)}, value: {_format_string(value, None)}, publishValueAsDefault: {_format_bool(publish_value_as_default, False)}, secret: {_format_bool(secret, False)})')
-            result = ParameterResource(var_name, self._builder, **kwargs)
-            self._dependencies.append(result.package)
-            return result
+    @overload
+    def add_parameter(self, name: str, /, *, secret: bool = False, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
+        ...
+    @overload
+    def add_parameter(self, name: str, value: str, /, *, publish_value_as_default: bool = False, secret: bool = False, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
+        ...
+    def add_parameter(self, *args, **kwargs):
+        if _validate_tuple_types(args, (str,)):
+            with _check_warnings(self._builder, kwargs, ParameterResourceOptions, "add_parameter"):
+                name, = args
+                var_name = _valid_var_name(name)
+                secret = kwargs.pop("secret", None)
+                self._builder.write(f'\nvar {var_name} = builder.AddParameter(name: {_format_string(name, None)}, secret: {_format_bool(secret, False)})')
+                result = ParameterResource(var_name, self._builder, **kwargs)
+                self._dependencies.append(result.package)
+                return result
+        if _validate_tuple_types(args, (str, str,)):
+            with _check_warnings(self._builder, kwargs, ParameterResourceOptions, "add_parameter"):
+                name, value, = args
+                var_name = _valid_var_name(name)
+                publish_value_as_default = kwargs.pop("publish_value_as_default", None)
+                secret = kwargs.pop("secret", None)
+                self._builder.write(f'\nvar {var_name} = builder.AddParameter(name: {_format_string(name, None)}, value: {_format_string(value, None)}, publishValueAsDefault: {_format_bool(publish_value_as_default, False)}, secret: {_format_bool(secret, False)})')
+                result = ParameterResource(var_name, self._builder, **kwargs)
+                self._dependencies.append(result.package)
+                return result
+        raise TypeError("No matching overload found.")
 
-    def add_parameter_from_config(self, name: str, config_key: str, /, secret: bool = False, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
+    def add_parameter_from_config(self, name: str, config_key: str, /, *, secret: bool = False, **kwargs: Unpack[ParameterResourceOptions]) -> ParameterResource:
         with _check_warnings(self._builder, kwargs, ParameterResourceOptions, "add_parameter_from_config"):
             var_name = _valid_var_name(name)
             self._builder.write(f'\nvar {var_name} = builder.AddParameterFromConfiguration(name: {_format_string(name, None)}, configurationKey: {_format_string(config_key, None)}, secret: {_format_bool(secret, False)})')
@@ -3473,21 +3506,21 @@ class DistributedApplicationBuilder:
             return result
 
     @overload
-    def add_project(self, name: str, launch_profile_name: str, /, **kwargs: Unpack[ProjectResourceOptions]) -> ProjectResource:
+    def add_project(self, name: str, project_path: str, /, **kwargs: Unpack[ProjectResourceOptions]) -> ProjectResource:
         ...
     @overload
     def add_project(self, name: str, project_path: str, launch_profile_name: str, /, **kwargs: Unpack[ProjectResourceOptions]) -> ProjectResource:
         ...
     def add_project(self, *args, **kwargs):
-        if _validate_tuple_types(args, (str, str)):
+        if _validate_tuple_types(args, (str, str,)):
             with _check_warnings(self._builder, kwargs, ProjectResourceOptions, "add_project"):
-                name, launch_profile_name, = args
+                name, project_path, = args
                 var_name = _valid_var_name(name)
-                self._builder.write(f'\nvar {var_name} = builder.AddProject(name: {_format_string(name, None)}, launchProfileName: {_format_string(launch_profile_name, None)})')
+                self._builder.write(f'\nvar {var_name} = builder.AddProject(name: {_format_string(name, None)}, projectPath: {_format_string(project_path, None)})')
                 result = ProjectResource(var_name, self._builder, **kwargs)
                 self._dependencies.append(result.package)
                 return result
-        if _validate_tuple_types(args, (str, str, str)):
+        if _validate_tuple_types(args, (str, str, str,)):
             with _check_warnings(self._builder, kwargs, ProjectResourceOptions, "add_project"):
                 name, project_path, launch_profile_name, = args
                 var_name = _valid_var_name(name)
@@ -3514,10 +3547,10 @@ class DistributedApplicationBuilder:
             self._dependencies.append(result.package)
             return result
 
-    def add_postgres(self, name: str, /, port: int | None = None, **kwargs: Unpack[PostgresServerResourceOptions]) -> PostgresServerResource:
+    def add_postgres(self, name: str, /, *, port: int | None = None, **kwargs: Unpack[PostgresServerResourceOptions]) -> PostgresServerResource:
         with _check_warnings(self._builder, kwargs, PostgresServerResourceOptions, "add_postgres"):
             var_name = _valid_var_name(name)
-            self._builder.write(f'\nvar {var_name} = builder.AddPostgres(name: {_format_string(name, None)}, port: {port})')
+            self._builder.write(f'\nvar {var_name} = builder.AddPostgres(name: {_format_string(name, None)}, port: {_format_value(port, None)})')
             result = PostgresServerResource(var_name, self._builder, **kwargs)
             self._dependencies.append(result.package)
             return result
@@ -3554,10 +3587,10 @@ class DistributedApplicationBuilder:
             self._dependencies.append(result.package)
             return result
 
-    def add_redis(self, name: str, /, port: int | None = None, **kwargs: Unpack[RedisResourceOptions]) -> RedisResource:
+    def add_redis(self, name: str, /, *, port: int | None = None, **kwargs: Unpack[RedisResourceOptions]) -> RedisResource:
         with _check_warnings(self._builder, kwargs, RedisResourceOptions, "add_redis"):
             var_name = _valid_var_name(name)
-            self._builder.write(f'\nvar {var_name} = builder.AddRedis(name: {_format_string(name, None)}, port: {port})')
+            self._builder.write(f'\nvar {var_name} = builder.AddRedis(name: {_format_string(name, None)}, port: {_format_value(port, None)})')
             result = RedisResource(var_name, self._builder, **kwargs)
             self._dependencies.append(result.package)
             return result

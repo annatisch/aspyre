@@ -7,15 +7,6 @@
 import pytest
 
 from aspyre import build_distributed_application
-from aspyre.resources._models import (
-    IconVariant,
-    WaitBehavior,
-    ProbeType,
-    ProtocolType,
-    CertificateTrustScope,
-    ContainerLifetime,
-    ImagePullPolicy,
-)
 
 
 # Tests for add_container (basic)
@@ -30,7 +21,7 @@ def test_add_container_basic(verify_dotnet_apphost):
 def test_add_container_with_tag(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx", tag="1.25")
+    container = builder.add_container("mycontainer", "nginx", "1.25")
     builder.build(output_dir=export_path)
     verify()
 
@@ -108,19 +99,7 @@ def test_add_dockerfile_with_bind_mount_readonly(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_dockerfile("myapp", "./app",
-                                       bind_mount=("/host/path", "/container/path", True))
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_add_dockerfile_with_multiple_bind_mounts(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    container = builder.add_dockerfile("myapp", "./app",
-                                       bind_mounts=[
-                                           ("/host/data", "/container/data"),
-                                           ("/host/config", "/container/config", True)
-                                       ])
+                                       bind_mount=("/host/path", "/container/path"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -135,34 +114,12 @@ def test_add_dockerfile_with_build_arg(verify_dotnet_apphost):
     verify()
 
 
-def test_add_dockerfile_with_multiple_build_args(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    version = builder.add_parameter("version", "1.0.0")
-    environment = builder.add_parameter("environment", "production")
-    container = builder.add_dockerfile("myapp", "./app",
-                                       build_args=[("VERSION", version), ("ENV", environment)])
-    builder.build(output_dir=export_path)
-    verify()
-
-
 def test_add_dockerfile_with_build_secret(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     api_key = builder.add_parameter("apikey", "secret-key", secret=True)
     container = builder.add_dockerfile("myapp", "./app",
                                        build_secret=("API_KEY", api_key))
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_add_dockerfile_with_multiple_build_secrets(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    api_key = builder.add_parameter("apikey", "secret-key", secret=True)
-    db_password = builder.add_parameter("dbpass", "db-secret", secret=True)
-    container = builder.add_dockerfile("myapp", "./app",
-                                       build_secrets=[("API_KEY", api_key), ("DB_PASSWORD", db_password)])
     builder.build(output_dir=export_path)
     verify()
 
@@ -198,7 +155,7 @@ def test_add_dockerfile_with_image_pull_policy(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_dockerfile("myapp", "./app",
-                                       image_pull_policy=ImagePullPolicy.ALWAYS)
+                                       image_pull_policy="Always")
     builder.build(output_dir=export_path)
     verify()
 
@@ -216,7 +173,7 @@ def test_add_dockerfile_with_lifetime_session(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_dockerfile("myapp", "./app",
-                                       lifetime=ContainerLifetime.SESSION)
+                                       lifetime="Session")
     builder.build(output_dir=export_path)
     verify()
 
@@ -225,7 +182,7 @@ def test_add_dockerfile_with_lifetime_persistent(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_dockerfile("myapp", "./app",
-                                       lifetime=ContainerLifetime.PERSISTENT)
+                                       lifetime="Persistent")
     builder.build(output_dir=export_path)
     verify()
 
@@ -234,7 +191,7 @@ def test_add_dockerfile_with_volume_basic(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_dockerfile("myapp", "./app",
-                                       volume={"target": "/app/data"})
+                                       volume="/app/data")
     builder.build(output_dir=export_path)
     verify()
 
@@ -252,7 +209,7 @@ def test_add_dockerfile_with_volume_readonly(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_dockerfile("myapp", "./app",
-                                       volume={"target": "/app/config", "is_read_only": True})
+                                       volume={"target": "/app/config", "name": "config", "is_read_only": True})
     builder.build(output_dir=export_path)
     verify()
 
@@ -261,7 +218,7 @@ def test_add_dockerfile_with_environment_string(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_dockerfile("myapp", "./app",
-                                       environment=("PORT", "8080"))
+                                       env=("PORT", "8080"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -271,17 +228,7 @@ def test_add_dockerfile_with_environment_parameter(verify_dotnet_apphost):
     builder = build_distributed_application()
     port = builder.add_parameter("port", "8080")
     container = builder.add_dockerfile("myapp", "./app",
-                                       environment=("PORT", port))
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_add_dockerfile_with_multiple_environments(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    api_key = builder.add_parameter("apikey", "key123", secret=True)
-    container = builder.add_dockerfile("myapp", "./app",
-                                       environments=[("API_KEY", api_key), ("DEBUG", "true")])
+                                       env=("PORT", port))
     builder.build(output_dir=export_path)
     verify()
 
@@ -289,7 +236,7 @@ def test_add_dockerfile_with_multiple_environments(verify_dotnet_apphost):
 def test_add_dockerfile_with_reference_connection_string(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
-    db = builder.add_connection_string("db", env_var="DATABASE_URL")
+    db = builder.add_connection_string("db", env_var_name="DATABASE_URL")
     container = builder.add_dockerfile("myapp", "./app",
                                        reference=db)
     builder.build(output_dir=export_path)
@@ -300,9 +247,8 @@ def test_add_dockerfile_with_multiple_references(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     db = builder.add_connection_string("db")
-    cache = builder.add_connection_string("cache")
     container = builder.add_dockerfile("myapp", "./app",
-                                       references=[db, cache])
+                                       reference=db)
     builder.build(output_dir=export_path)
     verify()
 
@@ -361,7 +307,7 @@ def test_add_dockerfile_comprehensive_options(verify_dotnet_apphost):
     # Dependencies
     api_key = builder.add_parameter("apikey", "secret-key", secret=True)
     version = builder.add_parameter("version", "1.0.0")
-    db = builder.add_connection_string("db", env_var="DATABASE_URL")
+    db = builder.add_connection_string("db", env_var_name="DATABASE_URL")
 
     # Dockerfile container with many options
     container = builder.add_dockerfile("myapp", "./app",
@@ -369,17 +315,17 @@ def test_add_dockerfile_comprehensive_options(verify_dotnet_apphost):
                                        stage="release",
                                        args=["--verbose"],
                                        publish_as_container=True,
-                                       bind_mounts=[("/host/data", "/app/data", True)],
-                                       build_args=[("VERSION", version)],
-                                       build_secrets=[("API_KEY", api_key)],
+                                       bind_mount=("/host/data", "/app/data"),
+                                       build_arg=("VERSION", version),
+                                       build_secret=("API_KEY", api_key),
                                        container_name="my-app-container",
                                        entrypoint="/app/start.sh",
-                                       image_pull_policy=ImagePullPolicy.ALWAYS,
-                                       lifetime=ContainerLifetime.PERSISTENT,
+                                       image_pull_policy="Always",
+                                       lifetime="Persistent",
                                        volume={"name": "appdata", "target": "/app/data"},
                                        url="http://localhost:8080",
-                                       icon_name=("box", IconVariant.FILLED),
-                                       environments=[("DEBUG", "true")],
+                                       icon_name=("box", "Filled"),
+                                       env=("DEBUG", "true"),
                                        reference=db,
                                        http_endpoint={"port": 8080, "name": "http"},
                                        https_endpoint={"port": 8443, "name": "https"},
@@ -395,16 +341,14 @@ def test_add_dockerfile_microservices_scenario(verify_dotnet_apphost):
     builder = build_distributed_application()
 
     # Infrastructure
-    postgres = builder.add_container("postgres", "postgres",
-                                    tag="16",
-                                    environment=("POSTGRES_PASSWORD", "dev-password"),
+    postgres = builder.add_container("postgres", "postgres", "16",
+                                    env=("POSTGRES_PASSWORD", "dev-password"),
                                     volume={"name": "pgdata", "target": "/var/lib/postgresql/data"},
-                                    lifetime=ContainerLifetime.PERSISTENT,
+                                    lifetime="Persistent",
                                     http_endpoint={"port": 5432})
 
-    redis = builder.add_container("redis", "redis",
-                                 tag="7-alpine",
-                                 lifetime=ContainerLifetime.PERSISTENT,
+    redis = builder.add_container("redis", "redis", "7-alpine",
+                                 lifetime="Persistent",
                                  http_endpoint={"port": 6379})
 
     # Services built from Dockerfiles
@@ -419,7 +363,7 @@ def test_add_dockerfile_microservices_scenario(verify_dotnet_apphost):
     api_service = builder.add_dockerfile("api", "./services/api",
                                         dockerfile_path="Dockerfile.multi",
                                         stage="release",
-                                        wait_for_start=[postgres, redis, auth_service],
+                                        wait_for_start=postgres,
                                         http_endpoint={"port": 8080},
                                         https_endpoint={"port": 8443},
                                         http_health_check={"path": "/health"})
@@ -450,19 +394,7 @@ def test_container_with_bind_mount_readonly(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_container("mycontainer", "nginx",
-                                     bind_mount=("/host/path", "/container/path", True))
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_with_multiple_bind_mounts(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx",
-                                     bind_mounts=[
-                                         ("/host/data", "/container/data"),
-                                         ("/host/config", "/container/config", True)
-                                     ])
+                                     bind_mount=("/host/path", "/container/path"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -477,34 +409,12 @@ def test_container_with_build_arg(verify_dotnet_apphost):
     verify()
 
 
-def test_container_with_multiple_build_args(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    version = builder.add_parameter("version", "1.0.0")
-    environment = builder.add_parameter("environment", "production")
-    container = builder.add_container("mycontainer", "myapp",
-                                     build_args=[("VERSION", version), ("ENV", environment)])
-    builder.build(output_dir=export_path)
-    verify()
-
-
 def test_container_with_build_secret(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     api_key = builder.add_parameter("apikey", "secret-key", secret=True)
     container = builder.add_container("mycontainer", "myapp",
                                      build_secret=("API_KEY", api_key))
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_with_multiple_build_secrets(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    api_key = builder.add_parameter("apikey", "secret-key", secret=True)
-    db_password = builder.add_parameter("dbpass", "db-secret", secret=True)
-    container = builder.add_container("mycontainer", "myapp",
-                                     build_secrets=[("API_KEY", api_key), ("DB_PASSWORD", db_password)])
     builder.build(output_dir=export_path)
     verify()
 
@@ -540,10 +450,11 @@ def test_container_with_dockerfile_and_options(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_container("mycontainer", "myapp",
-                                     dockerfile=("Dockerfile.multi", {
+                                     dockerfile={
+                                         "context_path":"Dockerfile.multi",
                                          "dockerfile_path": "docker/Dockerfile",
                                          "stage": "production"
-                                     }))
+                                     })
     builder.build(output_dir=export_path)
     verify()
 
@@ -588,16 +499,7 @@ def test_container_with_image_pull_policy(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_container("mycontainer", "nginx",
-                                     image_pull_policy=ImagePullPolicy.ALWAYS)
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_with_image_registry_default(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    container = builder.add_container("mycontainer", "nginx",
-                                     image_registry=True)
+                                     image_pull_policy="Always")
     builder.build(output_dir=export_path)
     verify()
 
@@ -633,7 +535,7 @@ def test_container_with_lifetime_session(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_container("mycontainer", "nginx",
-                                     lifetime=ContainerLifetime.SESSION)
+                                     lifetime="Session")
     builder.build(output_dir=export_path)
     verify()
 
@@ -642,7 +544,7 @@ def test_container_with_lifetime_persistent(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_container("mycontainer", "postgres",
-                                     lifetime=ContainerLifetime.PERSISTENT)
+                                     lifetime="Persistent")
     builder.build(output_dir=export_path)
     verify()
 
@@ -651,7 +553,7 @@ def test_container_with_volume_basic(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_container("mycontainer", "postgres",
-                                     volume={"target": "/var/lib/postgresql/data"})
+                                     volume="/var/lib/postgresql/data")
     builder.build(output_dir=export_path)
     verify()
 
@@ -660,7 +562,7 @@ def test_container_with_volume_named(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_container("mycontainer", "postgres",
-                                     volume={"name": "pgdata", "target": "/var/lib/postgresql/data"})
+                                     volume=("pgdata", "/var/lib/postgresql/data"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -669,7 +571,7 @@ def test_container_with_volume_readonly(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_container("mycontainer", "nginx",
-                                     volume={"target": "/usr/share/nginx/html", "is_read_only": True})
+                                     volume={"target": "/usr/share/nginx/html", "name": "html", "is_read_only": True})
     builder.build(output_dir=export_path)
     verify()
 
@@ -697,7 +599,7 @@ def test_container_with_icon_name(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_container("mycontainer", "nginx",
-                                     icon_name=("box", IconVariant.FILLED))
+                                     icon_name=("box", "Filled"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -707,7 +609,7 @@ def test_container_with_environment_string(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_container("mycontainer", "nginx",
-                                     environment=("PORT", "8080"))
+                                     env=("PORT", "8080"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -717,17 +619,7 @@ def test_container_with_environment_parameter(verify_dotnet_apphost):
     builder = build_distributed_application()
     port = builder.add_parameter("port", "8080")
     container = builder.add_container("mycontainer", "nginx",
-                                     environment=("PORT", port))
-    builder.build(output_dir=export_path)
-    verify()
-
-
-def test_container_with_multiple_environments(verify_dotnet_apphost):
-    export_path, verify = verify_dotnet_apphost
-    builder = build_distributed_application()
-    api_key = builder.add_parameter("apikey", "key123", secret=True)
-    container = builder.add_container("mycontainer", "myapp",
-                                     environments=[("API_KEY", api_key), ("DEBUG", "true")])
+                                     env=("PORT", port))
     builder.build(output_dir=export_path)
     verify()
 
@@ -735,7 +627,7 @@ def test_container_with_multiple_environments(verify_dotnet_apphost):
 def test_container_with_reference_connection_string(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
-    db = builder.add_connection_string("db", env_var="DATABASE_URL")
+    db = builder.add_connection_string("db", env_var_name="DATABASE_URL")
     container = builder.add_container("mycontainer", "myapp",
                                      reference=db)
     builder.build(output_dir=export_path)
@@ -746,9 +638,8 @@ def test_container_with_multiple_references(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     db = builder.add_connection_string("db")
-    cache = builder.add_connection_string("cache")
     container = builder.add_container("mycontainer", "myapp",
-                                     references=[db, cache])
+                                     reference=db)
     builder.build(output_dir=export_path)
     verify()
 
@@ -757,7 +648,7 @@ def test_container_with_certificate_trust_scope(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_container("mycontainer", "myapp",
-                                     certificate_trust_scope=CertificateTrustScope.APPEND)
+                                     certificate_trust_scope="Append")
     builder.build(output_dir=export_path)
     verify()
 
@@ -776,7 +667,7 @@ def test_container_with_http2_service(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_container("mycontainer", "myapp",
-                                     http2_service=True)
+                                      as_http2_service=True)
     builder.build(output_dir=export_path)
     verify()
 
@@ -830,7 +721,7 @@ def test_container_with_http_probe(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     container = builder.add_container("mycontainer", "nginx",
-                                     http_probe={"type": ProbeType.LIVENESS, "path": "/alive"})
+                                     http_probe={"type": "Liveness", "path": "/alive"})
     builder.build(output_dir=export_path)
     verify()
 
@@ -851,7 +742,7 @@ def test_container_with_wait_for_behavior(verify_dotnet_apphost):
     builder = build_distributed_application()
     db = builder.add_connection_string("db")
     container = builder.add_container("mycontainer", "myapp",
-                                     wait_for=(db, WaitBehavior.STOP_ON_RESOURCE_UNAVAILABLE))
+                                     wait_for=(db, "StopOnResourceUnavailable"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -884,33 +775,26 @@ def test_container_with_multiple_property_setters(verify_dotnet_apphost):
     cache = builder.add_connection_string("cache")
     container = builder.add_container("mycontainer", "nginx")
     container.publish_as_container().publish_as_container()
-    container.with_bind_mount(("/host/path", "/container/path")).with_bind_mount(("/host/path", "/container/path", True))
+    container.with_bind_mount("/host/path", "/container/path").with_bind_mount("/host/path", "/container/path", is_read_only=True)
     container.with_container_name("my-nginx-container").with_container_name("another-name")
     container.with_entrypoint("/app/entrypoint.sh").with_entrypoint("/app/another-entrypoint.sh")
-    container.with_image("nginx:alpine").with_image(("nginx", "latest"))
-    container.with_environment(("PORT", "8080")).with_environment(("PORT", "9090"))
-    container.with_reference(db).with_reference(cache)
+    container.with_image("nginx:alpine").with_image("nginx", tag="latest")
+    container.with_env("PORT", "8080").with_env("PORT", "9090")
+    container.with_reference(db, connection_name="db", optional=True).with_reference(cache)
     container.with_http_endpoint(
         port=8080,
         name="http",
         target_port=80,
-        scheme="http",
         env="env",
-        is_external=True,
         is_proxied=False,
-        protocol=ProtocolType.ICMP
     ).with_http_endpoint(
         port=9090,
         name="http-alt"
     )
     container.wait_for(db).wait_for(cache)
     builder.build(output_dir=export_path)
-    container.with_volume(
-        {"target": "/var/lib/postgresql/data", "is_read_only": False, "name": "pgdata"}
-    ).with_volume(
-        {"target": "/var/lib/postgresql/data"}
-    )
-    container.with_lifetime(ContainerLifetime.PERSISTENT).with_lifetime(ContainerLifetime.SESSION)
+    container.with_volume("pgdata", "/var/lib/postgresql/data", is_read_only=False).with_volume("/var/lib/postgresql/data")
+    container.with_lifetime("Persistent").with_lifetime("Session")
     verify()
 
 
@@ -921,28 +805,28 @@ def test_container_with_comprehensive_options(verify_dotnet_apphost):
 
     # Dependencies
     api_key = builder.add_parameter("apikey", "secret-key", secret=True)
-    db = builder.add_connection_string("db", env_var="DATABASE_URL")
+    db = builder.add_connection_string("db", env_var_name="DATABASE_URL")
 
     # Container with many options
-    container = builder.add_container("mycontainer", "myapp", tag="1.0.0",
+    container = builder.add_container("mycontainer", "myapp", "1.0.0",
                                      args=["--verbose"],
                                      publish_as_container=True,
-                                     bind_mounts=[("/host/data", "/app/data", True)],
+                                     bind_mount={"source": "/host/data", "target": "/app/data", "is_read_only": True},
                                      container_name="my-app-container",
                                      entrypoint="/app/start.sh",
-                                     image_pull_policy=ImagePullPolicy.ALWAYS,
-                                     lifetime=ContainerLifetime.PERSISTENT,
+                                     image_pull_policy="Always",
+                                     lifetime="Persistent",
                                      volume={"name": "appdata", "target": "/app/data"},
                                      url="http://localhost:8080",
-                                     icon_name=("box", IconVariant.FILLED),
-                                     environments=[("API_KEY", api_key), ("DEBUG", "true")],
+                                     icon_name=("box", "Filled"),
+                                     env=("API_KEY", api_key),
                                      reference=db,
                                      http_endpoint={"port": 8080, "name": "http"},
                                      https_endpoint={"port": 8443, "name": "https"},
                                      http_health_check={"path": "/health"},
-                                     http_probe={"type": ProbeType.READINESS, "path": "/ready"},
+                                     http_probe={"type": "Readiness", "path": "/ready"},
                                      wait_for=db,
-                                     certificate_trust_scope=CertificateTrustScope.APPEND)
+                                     certificate_trust_scope="Append").with_env("DEBUG", "true")
 
     builder.build(output_dir=export_path)
     verify()
@@ -956,8 +840,8 @@ def test_container_with_relationships(verify_dotnet_apphost):
     db = builder.add_external_service("database", "postgres://user:pass@dbhost:5432/mydb")
     cache = builder.add_external_service("cache", "redis://cachehost:6379")
     app = builder.add_container("webapp", "myapp",
-                                references=[db, cache],
-                                wait_for_start=[db, cache])
+                                reference=db,
+                                wait_for_start=db).with_reference(cache).wait_for_start(cache)
 
     builder.build(output_dir=export_path)
     verify()
@@ -968,25 +852,23 @@ def test_multiple_containers_with_dependencies(verify_dotnet_apphost):
     builder = build_distributed_application()
 
     # Database
-    postgres = builder.add_container("postgres", "postgres",
-                                    tag="16",
-                                    environment=("POSTGRES_PASSWORD", "password"),
+    postgres = builder.add_container("postgres", "postgres", "16",
+                                    env=("POSTGRES_PASSWORD", "password"),
                                     volume={"name": "pgdata", "target": "/var/lib/postgresql/data"},
-                                    lifetime=ContainerLifetime.PERSISTENT,
+                                    lifetime="Persistent",
                                     http_endpoint={"port": 5432})
 
     # Cache
-    redis = builder.add_container("redis", "redis",
-                                 tag="7",
-                                 lifetime=ContainerLifetime.PERSISTENT,
+    redis = builder.add_container("redis", "redis", "7",
+                                 lifetime="Persistent",
                                  http_endpoint={"port": 6379})
 
     # Application
     app = builder.add_container("webapp", "myapp",
-                               wait_for_start=[postgres, redis],
+                               wait_for_start=postgres,
                                http_endpoint={"port": 8080},
                                https_endpoint={"port": 8443},
-                               http_health_check={"path": "/health"})
+                               http_health_check={"path": "/health"}).wait_for_start(redis)
 
     builder.build(output_dir=export_path)
     verify()
@@ -1013,8 +895,8 @@ def test_container_with_dockerfile_build(verify_dotnet_apphost):
 
     container = builder.add_container("mycontainer", "myapp",
                                      dockerfile="Dockerfile",
-                                     build_args=[("VERSION", version)],
-                                     build_secrets=[("BUILD_KEY", api_key)])
+                                     build_arg=("VERSION", version),
+                                     build_secret=("BUILD_KEY", api_key))
 
     builder.build(output_dir=export_path)
     verify()

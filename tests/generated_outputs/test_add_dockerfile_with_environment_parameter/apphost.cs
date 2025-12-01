@@ -1,10 +1,11 @@
-#:sdk Aspire.AppHost.Sdk@13.0.0
-
+#:sdk Aspire.AppHost.Sdk@13.0.1.0
+#:package Aspire.Hosting@13.0.1.0
+using System.Security.Cryptography.X509Certificates;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var port = builder.AddParameter("port", "8080", false, false);
-var myapp = builder.AddDockerfile("myapp", "./app", null, null)
-    .WithEnvironment("PORT", port);
+var port = builder.AddParameter(name: "port", value: "8080", publishValueAsDefault: false, secret: false);
+var myapp = builder.AddDockerfile(name: "myapp", contextPath: "./app", dockerfilePath: null, stage: null)
+    .WithEnvironment(name: "PORT", parameter: port);
 
 builder.Build().Run();

@@ -1,12 +1,13 @@
-#:sdk Aspire.AppHost.Sdk@13.0.0
+#:sdk Aspire.AppHost.Sdk@13.0.1.0
+#:package Aspire.Hosting@13.0.1.0
 using System.Security.Cryptography.X509Certificates;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var cacerts = builder.AddCertificateAuthorityCollection("cacerts")
-    .WithCertificatesFromStore(StoreName.Root, StoreLocation.LocalMachine);
-var webapp = builder.AddContainer("webapp", "nginx")
-    .WithDeveloperCertificateTrust(true)
-    .WithCertificateAuthorityCollection(cacerts);
+var cacerts = builder.AddCertificateAuthorityCollection(name: "cacerts")
+    .WithCertificatesFromStore(storeName: StoreName.Root, storeLocation: StoreLocation.LocalMachine);
+var webapp = builder.AddContainer(name: "webapp", image: "nginx")
+    .WithCertificateAuthorityCollection(certificateAuthorityCollection: cacerts)
+    .WithDeveloperCertificateTrust(trust: true);
 
 builder.Build().Run();

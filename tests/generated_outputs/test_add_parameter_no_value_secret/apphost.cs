@@ -1,8 +1,9 @@
-#:sdk Aspire.AppHost.Sdk@13.0.0
-
+#:sdk Aspire.AppHost.Sdk@13.0.1.0
+#:package Aspire.Hosting@13.0.1.0
+using System.Security.Cryptography.X509Certificates;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var apikey = builder.AddParameter("apikey", true);
+var apikey = builder.AddParameter(name: "apikey", secret: true);
 
 builder.Build().Run();

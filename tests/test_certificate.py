@@ -7,11 +7,6 @@
 import pytest
 
 from aspyre import build_distributed_application
-from aspyre.resources._models import (
-    StoreName,
-    StoreLocation,
-    IconVariant,
-)
 
 
 # Tests for add_certificate_authority_collection (basic)
@@ -86,7 +81,7 @@ def test_add_certificate_authority_collection_with_certificates_from_store_my(ve
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     ca_collection = builder.add_certificate_authority_collection("cacerts",
-                                                                 certificates_from_store=(StoreName.MY, StoreLocation.CURRENT_USER))
+                                                                 certificates_from_store=("My", "CurrentUser"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -95,7 +90,7 @@ def test_add_certificate_authority_collection_with_certificates_from_store_root(
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     ca_collection = builder.add_certificate_authority_collection("cacerts",
-                                                                 certificates_from_store=(StoreName.ROOT, StoreLocation.LOCAL_MACHINE))
+                                                                 certificates_from_store=("Root", "LocalMachine"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -104,7 +99,7 @@ def test_add_certificate_authority_collection_with_certificates_from_store_auth_
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     ca_collection = builder.add_certificate_authority_collection("cacerts",
-                                                                 certificates_from_store=(StoreName.AUTH_ROOT, StoreLocation.LOCAL_MACHINE))
+                                                                 certificates_from_store=("AuthRoot", "LocalMachine"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -113,7 +108,7 @@ def test_add_certificate_authority_collection_with_certificates_from_store_ca(ve
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     ca_collection = builder.add_certificate_authority_collection("cacerts",
-                                                                 certificates_from_store=(StoreName.CERTIFICATE_AUTHORITY, StoreLocation.CURRENT_USER))
+                                                                 certificates_from_store=("CertificateAuthority", "CurrentUser"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -122,7 +117,7 @@ def test_add_certificate_authority_collection_with_certificates_from_store_trust
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     ca_collection = builder.add_certificate_authority_collection("cacerts",
-                                                                 certificates_from_store=(StoreName.TRUSTED_PEOPLE, StoreLocation.CURRENT_USER))
+                                                                 certificates_from_store=("TrustedPeople", "CurrentUser"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -159,7 +154,7 @@ def test_add_certificate_authority_collection_with_icon_name(verify_dotnet_appho
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     ca_collection = builder.add_certificate_authority_collection("cacerts",
-                                                                 icon_name=("certificate", IconVariant.FILLED))
+                                                                 icon_name=("certificate", "Filled"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -181,9 +176,9 @@ def test_certificate_authority_collection_with_comprehensive_options(verify_dotn
     builder = build_distributed_application()
     ca_collection = builder.add_certificate_authority_collection("cacerts",
                                                                  certificates=["./certs/ca1.crt", "./certs/ca2.crt"],
-                                                                 certificates_from_store=(StoreName.ROOT, StoreLocation.LOCAL_MACHINE),
+                                                                 certificates_from_store=("Root", "LocalMachine"),
                                                                  url="https://ca.example.com",
-                                                                 icon_name=("shield", IconVariant.FILLED))
+                                                                 icon_name=("shield", "Filled"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -193,7 +188,7 @@ def test_certificate_authority_collection_with_multiple_property_setters(verify_
     builder = build_distributed_application()
     ca_collection = builder.add_certificate_authority_collection("cacerts")
     ca_collection.with_certificate("./certs/root-ca.crt").with_certificate("./certs/extra-ca.crt")
-    ca_collection.with_certificates_from_store(StoreName.ROOT, StoreLocation.LOCAL_MACHINE).with_certificates_from_store(StoreName.MY, StoreLocation.CURRENT_USER)
+    ca_collection.with_certificates_from_store("Root", "LocalMachine").with_certificates_from_store("My", "CurrentUser")
     ca_collection.with_certificates_from_file("./certs/bundle.pem").with_certificates_from_file("./certs/extra-bundle.pem")
     builder.build(output_dir=export_path)
     verify()
@@ -204,7 +199,7 @@ def test_certificate_authority_collection_with_container_reference(verify_dotnet
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     ca_collection = builder.add_certificate_authority_collection("cacerts",
-                                                                 certificates_from_store=(StoreName.ROOT, StoreLocation.LOCAL_MACHINE))
+                                                                 certificates_from_store=("Root", "LocalMachine"))
     container = builder.add_container("webapp", "nginx",
                                      certificate_authority_collection=ca_collection,
                                      developer_certificate_trust=True)
@@ -245,12 +240,11 @@ def test_certificate_authority_collection_store_combinations(verify_dotnet_appho
 
     # Different store combinations
     ca1 = builder.add_certificate_authority_collection("caMy",
-                                                       certificates_from_store=(StoreName.MY, StoreLocation.CURRENT_USER))
+                                                       certificates_from_store=("My", "CurrentUser"))
     ca2 = builder.add_certificate_authority_collection("caRoot",
-                                                       certificates_from_store=(StoreName.ROOT, StoreLocation.LOCAL_MACHINE))
+                                                       certificates_from_store=("Root", "LocalMachine"))
     ca3 = builder.add_certificate_authority_collection("caTrusted",
-                                                       certificates_from_store=(StoreName.TRUSTED_PEOPLE, StoreLocation.CURRENT_USER))
-
+                                                       certificates_from_store=("TrustedPeople", "CurrentUser"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -261,21 +255,20 @@ def test_certificate_authority_collection_all_store_names(verify_dotnet_apphost)
     builder = build_distributed_application()
 
     ca_address_book = builder.add_certificate_authority_collection("caAddressBook",
-                                                                   certificates_from_store=(StoreName.ADDRESS_BOOK, StoreLocation.CURRENT_USER))
+                                                                   certificates_from_store=("AddressBook", "CurrentUser"))
     ca_auth_root = builder.add_certificate_authority_collection("caAuthRoot",
-                                                                certificates_from_store=(StoreName.AUTH_ROOT, StoreLocation.LOCAL_MACHINE))
+                                                                certificates_from_store=("AuthRoot", "LocalMachine"))
     ca_cert_authority = builder.add_certificate_authority_collection("caCertAuthority",
-                                                                     certificates_from_store=(StoreName.CERTIFICATE_AUTHORITY, StoreLocation.CURRENT_USER))
+                                                                     certificates_from_store=("CertificateAuthority", "CurrentUser"))
     ca_disallowed = builder.add_certificate_authority_collection("caDisallowed",
-                                                                certificates_from_store=(StoreName.DISALLOWED, StoreLocation.LOCAL_MACHINE))
+                                                                certificates_from_store=("Disallowed", "LocalMachine"))
     ca_my = builder.add_certificate_authority_collection("caMy",
-                                                         certificates_from_store=(StoreName.MY, StoreLocation.CURRENT_USER))
+                                                         certificates_from_store=("My", "CurrentUser"))
     ca_root = builder.add_certificate_authority_collection("caRoot",
-                                                           certificates_from_store=(StoreName.ROOT, StoreLocation.LOCAL_MACHINE))
+                                                           certificates_from_store=("Root", "LocalMachine"))
     ca_trusted_people = builder.add_certificate_authority_collection("caTrustedPeople",
-                                                                     certificates_from_store=(StoreName.TRUSTED_PEOPLE, StoreLocation.CURRENT_USER))
+                                                                     certificates_from_store=("TrustedPeople", "CurrentUser"))
     ca_trusted_publisher = builder.add_certificate_authority_collection("caTrustedPublisher",
-                                                                        certificates_from_store=(StoreName.TRUSTED_PUBLISHER, StoreLocation.LOCAL_MACHINE))
-
+                                                                        certificates_from_store=("TrustedPublisher", "LocalMachine"))
     builder.build(output_dir=export_path)
     verify()

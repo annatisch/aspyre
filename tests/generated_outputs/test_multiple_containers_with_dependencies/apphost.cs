@@ -1,21 +1,22 @@
-#:sdk Aspire.AppHost.Sdk@13.0.0
-
+#:sdk Aspire.AppHost.Sdk@13.0.1.0
+#:package Aspire.Hosting@13.0.1.0
+using System.Security.Cryptography.X509Certificates;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var postgres = builder.AddContainer("postgres", "postgres", "16")
-    .WithLifetime(ContainerLifetime.Persistent)
-    .WithVolume("pgdata", "/var/lib/postgresql/data", false)
-    .WithEnvironment("POSTGRES_PASSWORD", "password")
-    .WithHttpEndpoint(5432, null, null, null, true);
-var redis = builder.AddContainer("redis", "redis", "7")
-    .WithLifetime(ContainerLifetime.Persistent)
-    .WithHttpEndpoint(6379, null, null, null, true);
-var webapp = builder.AddContainer("webapp", "myapp")
-    .WithHttpEndpoint(8080, null, null, null, true)
-    .WithHttpsEndpoint(8443, null, null, null, true)
-    .WithHttpHealthCheck("/health", null, null)
-    .WaitForStart(postgres)
-    .WaitForStart(redis);
+var postgres = builder.AddContainer(name: "postgres", image: "postgres", tag: "16")
+    .WithVolume(name: "pgdata", target: "/var/lib/postgresql/data", isReadOnly: false)
+    .WithLifetime(lifetime: ContainerLifetime.Persistent)
+    .WithEnvironment(name: "POSTGRES_PASSWORD", value: "password")
+    .WithHttpEndpoint(port: 5432, targetPort: null, name: null, env: null, isProxied: true);
+var redis = builder.AddContainer(name: "redis", image: "redis", tag: "7")
+    .WithLifetime(lifetime: ContainerLifetime.Persistent)
+    .WithHttpEndpoint(port: 6379, targetPort: null, name: null, env: null, isProxied: true);
+var webapp = builder.AddContainer(name: "webapp", image: "myapp")
+    .WithHttpEndpoint(port: 8080, targetPort: null, name: null, env: null, isProxied: true)
+    .WithHttpsEndpoint(port: 8443, targetPort: null, name: null, env: null, isProxied: true)
+    .WaitForStart(dependency: postgres)
+    .WithHttpHealthCheck(path: "/health", statusCode: null, endpointName: null);
+webapp.WaitForStart(dependency: redis);
 
 builder.Build().Run();

@@ -1,28 +1,29 @@
-#:sdk Aspire.AppHost.Sdk@13.0.0
-
+#:sdk Aspire.AppHost.Sdk@13.0.1.0
+#:package Aspire.Hosting@13.0.1.0
+using System.Security.Cryptography.X509Certificates;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var db = builder.AddConnectionString("db");
-var cache = builder.AddConnectionString("cache");
-var mycontainer = builder.AddContainer("mycontainer", "nginx");
+var db = builder.AddConnectionString(name: "db", environmentVariableName: null);
+var cache = builder.AddConnectionString(name: "cache", environmentVariableName: null);
+var mycontainer = builder.AddContainer(name: "mycontainer", image: "nginx");
 mycontainer.PublishAsContainer();
 mycontainer.PublishAsContainer();
-mycontainer.WithBindMount("/host/path", "/container/path");
-mycontainer.WithBindMount("/host/path", "/container/path", true);
-mycontainer.WithContainerName("my-nginx-container");
-mycontainer.WithContainerName("another-name");
-mycontainer.WithEntrypoint("/app/entrypoint.sh");
-mycontainer.WithEntrypoint("/app/another-entrypoint.sh");
-mycontainer.WithImage("nginx:alpine");
-mycontainer.WithImage("nginx", "latest");
-mycontainer.WithEnvironment("PORT", "8080");
-mycontainer.WithEnvironment("PORT", "9090");
-mycontainer.WithReference(db);
-mycontainer.WithReference(cache);
-mycontainer.WithHttpEndpoint(8080, 80, "http", "env", false);
-mycontainer.WithHttpEndpoint(9090, null, "http-alt", null, true);
-mycontainer.WaitFor(db);
-mycontainer.WaitFor(cache);
+mycontainer.WithBindMount(source: "/host/path", target: "/container/path", isReadOnly: false);
+mycontainer.WithBindMount(source: "/host/path", target: "/container/path", isReadOnly: true);
+mycontainer.WithContainerName(name: "my-nginx-container");
+mycontainer.WithContainerName(name: "another-name");
+mycontainer.WithEntrypoint(entrypoint: "/app/entrypoint.sh");
+mycontainer.WithEntrypoint(entrypoint: "/app/another-entrypoint.sh");
+mycontainer.WithImage(image: "nginx:alpine", tag: null);
+mycontainer.WithImage(image: "nginx", tag: "latest");
+mycontainer.WithEnvironment(name: "PORT", value: "8080");
+mycontainer.WithEnvironment(name: "PORT", value: "9090");
+mycontainer.WithReference(source: db, connectionName: "db", optional: true);
+mycontainer.WithReference(source: cache, connectionName: null, optional: false);
+mycontainer.WithHttpEndpoint(port: 8080, targetPort: 80, name: "http", env: "env", isProxied: false);
+mycontainer.WithHttpEndpoint(port: 9090, targetPort: null, name: "http-alt", env: null, isProxied: true);
+mycontainer.WaitFor(dependency: db);
+mycontainer.WaitFor(dependency: cache);
 
 builder.Build().Run();

@@ -5,7 +5,6 @@
 import os
 
 from aspyre import build_distributed_application
-from aspyre.resources._models import IconVariant, WaitBehavior
 
 
 # Tests for add_connection_string (basic)
@@ -20,7 +19,7 @@ def test_add_connection_string_default(verify_dotnet_apphost):
 def test_add_connection_string_with_env_var(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
-    conn = builder.add_connection_string("myconnection", env_var="MY_CONNECTION_STRING")
+    conn = builder.add_connection_string("myconnection", env_var_name="MY_CONNECTION_STRING")
     builder.build(output_dir=export_path)
     verify()
 
@@ -61,7 +60,7 @@ def test_connection_string_with_exclude_from_mcp(verify_dotnet_apphost):
 def test_connection_string_with_icon_name(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
-    conn = builder.add_connection_string("myconnection", icon_name=("database", IconVariant.FILLED))
+    conn = builder.add_connection_string("myconnection", icon_name=("database", "Filled"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -91,9 +90,9 @@ def test_connection_string_with_multiple_options(verify_dotnet_apphost):
     service = builder.add_external_service("myservice", "http://localhost:8080")
     conn1 = builder.add_connection_string("primary")
     conn2 = builder.add_connection_string("myconnection",
-                                        env_var="DB_CONNECTION",
+                                        env_var_name="DB_CONNECTION",
                                         url="http://localhost:5432",
-                                        icon_name=("database", IconVariant.REGULAR),
+                                        icon_name=("database", "Regular"),
                                         connection_string_redirection=conn1,
                                         health_check="https://db.example.com/health")
     builder.build(output_dir=export_path)
@@ -110,7 +109,7 @@ def test_connection_string_connection_string_redirection_setter(verify_dotnet_ap
     conn3 = builder.add_connection_string("myconnection")
     conn3.with_connection_string_redirection(conn1).with_connection_string_redirection(conn2)
     conn3.with_url("http://localhost:5432").with_url("http://localhost:5433")
-    conn3.with_icon_name("database").with_icon_name(("database2", IconVariant.FILLED))
+    conn3.with_icon_name("database").with_icon_name("database", icon_variant="Filled")
 
     builder.build(output_dir=export_path)
     verify()
@@ -123,7 +122,7 @@ def test_connection_string_with_relationships(verify_dotnet_apphost):
     param = builder.add_parameter("dbconfig")
     conn = builder.add_connection_string("myconnection",
                                         reference_relationship=param,
-                                        icon_name=("database", IconVariant.FILLED))
+                                        icon_name=("database", "Filled"))
     builder.build(output_dir=export_path)
     verify()
 
@@ -132,10 +131,9 @@ def test_connection_string_with_multiple_relationships(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
     param1 = builder.add_parameter("dbhost")
-    param2 = builder.add_parameter("dbport")
     service = builder.add_external_service("dbservice", "http://localhost:5432")
     conn = builder.add_connection_string("myconnection",
-                                        reference_relationships=[param1, param2],
+                                        reference_relationship=param1,
                                         parent_relationship=service)
     builder.build(output_dir=export_path)
     verify()
@@ -145,7 +143,7 @@ def test_connection_string_with_multiple_relationships(verify_dotnet_apphost):
 def test_connection_string_used_by_external_service(verify_dotnet_apphost):
     export_path, verify = verify_dotnet_apphost
     builder = build_distributed_application()
-    conn = builder.add_connection_string("dbconnection", env_var="DB_CONNECTION_STRING")
+    conn = builder.add_connection_string("dbconnection", env_var_name="DB_CONNECTION_STRING")
     service = builder.add_external_service("api", "http://localhost:8080",
                                           reference_relationship=conn)
     builder.build(output_dir=export_path)
@@ -158,17 +156,17 @@ def test_multiple_connection_strings_with_dependencies(verify_dotnet_apphost):
 
     # Primary connection string
     primary = builder.add_connection_string("primary",
-                                           env_var="PRIMARY_DB",
-                                           icon_name=("database", IconVariant.FILLED))
+                                           env_var_name="PRIMARY_DB",
+                                           icon_name=("database", "Filled"))
 
     # Replica connection string that redirects to primary
     replica = builder.add_connection_string("replica",
-                                           env_var="REPLICA_DB",
+                                           env_var_name="REPLICA_DB",
                                            connection_string_redirection=primary)
 
     # Service that uses replica
-    service = builder.add_executable("api", "python", "/app", args=["api.py"],
-                                    references=[primary, replica],
+    service = builder.add_executable("api", "python", "/app", ["api.py"],
+                                    reference=primary,
                                     wait_for_start=replica)
 
     builder.build(output_dir=export_path)

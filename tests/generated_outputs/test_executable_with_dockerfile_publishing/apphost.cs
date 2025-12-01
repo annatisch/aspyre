@@ -1,17 +1,18 @@
-#:sdk Aspire.AppHost.Sdk@13.0.0
-
+#:sdk Aspire.AppHost.Sdk@13.0.1.0
+#:package Aspire.Hosting@13.0.1.0
+using System.Security.Cryptography.X509Certificates;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var db = builder.AddConnectionString("db");
+var db = builder.AddConnectionString(name: "db", environmentVariableName: null);
 #pragma warning disable ASPIREDOCKERFILEBUILDER001
-var pythonapp = builder.AddExecutable("pythonapp", "python", "/app", new string[] { "main.py" })
+var pythonapp = builder.AddExecutable(name: "pythonapp", command: "python", workingDirectory: "/app", args: new string[] { "main.py" })
     .PublishAsDockerFile()
-    .WithEnvironment("PORT", "8080")
-    .WithEnvironment("HOST", "0.0.0.0")
-    .WithReference(db)
-    .WithHttpEndpoint(8080, null, null, null, true)
-    .WithDockerfileBaseImage("python:3.11", "python:3.11-slim");
+    .WithEnvironment(name: "PORT", value: "8080")
+    .WithReference(source: db, connectionName: null, optional: false)
+    .WithHttpEndpoint(port: 8080, targetPort: null, name: null, env: null, isProxied: true)
+    .WithDockerfileBaseImage(buildImage: "python:3.11", runtimeImage: "python:3.11-slim");
 #pragma warning restore ASPIREDOCKERFILEBUILDER001
+pythonapp.WithEnvironment(name: "HOST", value: "0.0.0.0");
 
 builder.Build().Run();

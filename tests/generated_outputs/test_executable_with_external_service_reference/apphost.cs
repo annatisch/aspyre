@@ -1,11 +1,12 @@
-#:sdk Aspire.AppHost.Sdk@13.0.0
-
+#:sdk Aspire.AppHost.Sdk@13.0.1.0
+#:package Aspire.Hosting@13.0.1.0
+using System.Security.Cryptography.X509Certificates;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var external = builder.AddExternalService("external", "https://api.external.com");
-var myapp = builder.AddExecutable("myapp", "python", "/app", new string[] { "app.py" })
-    .WithReference(external)
-    .WithHttpEndpoint(8080, null, null, null, true);
+var external = builder.AddExternalService(name: "external", url: "https://api.external.com");
+var myapp = builder.AddExecutable(name: "myapp", command: "python", workingDirectory: "/app", args: new string[] { "app.py" })
+    .WithReference(externalService: external)
+    .WithHttpEndpoint(port: 8080, targetPort: null, name: null, env: null, isProxied: true);
 
 builder.Build().Run();

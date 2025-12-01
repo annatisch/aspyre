@@ -104,7 +104,7 @@ def _format_string(value: Any, default: Any = None) -> str:
     if value is None:
         if default is not None:
             return _format_string(default)
-        return "null"
+        return "(string?)null"
     return f'"{value}"'
 
 
@@ -393,7 +393,7 @@ class ResourceWithEndpoints(Resource, Protocol):
     def with_endpoint(self, *, port: int | None = None, target_port: int | None = None, scheme: str | None = None, name: str | None = None, env: str | None = None, is_proxied: bool = True, is_external: bool | None = None, protocol: ProtocolType | None = None) -> Self:
         ...
     @overload
-    def with_endpoint(self, scheme: str, name: str, env: str, is_proxied: bool, /, *, port: int | None = None, target_port: int | None = None, is_external: bool | None = None) -> Self:
+    def with_endpoint(self, scheme: str | None, name: str | None, env: str | None, is_proxied: bool, /, *, port: int | None = None, target_port: int | None = None, is_external: bool | None = None) -> Self:
         ...
     def with_endpoint(self, *args, **kwargs) -> Self:
         ...
@@ -434,7 +434,7 @@ class ResourceWithEnvironment(Resource, Protocol):
         ...
 
     @overload
-    def with_env(self, name: str, value: str, /) -> Self:
+    def with_env(self, name: str, value: str | None, /) -> Self:
         ...
     @overload
     def with_env(self, name: str, external_service: ExternalServiceResource, /) -> Self:
@@ -618,19 +618,19 @@ class _BaseResource:
         if _reference_relationship := kwargs.pop("reference_relationship", None):
             if _validate_type(_reference_relationship, Resource):
                 resource_builder = cast(Resource, _reference_relationship)
-                __builder.write(f'\n    .WithReferenceRelationship(resourceBuilder: {_format_value(resource_builder.name, None)})')
+                __builder.write(f'\n    .WithReferenceRelationship(resourceBuilder: {resource_builder.name})')
             else:
                 raise TypeError("Invalid type for option 'reference_relationship'")
         if _parent_relationship := kwargs.pop("parent_relationship", None):
             if _validate_type(_parent_relationship, Resource):
                 parent = cast(Resource, _parent_relationship)
-                __builder.write(f'\n    .WithParentRelationship(parent: {_format_value(parent.name, None)})')
+                __builder.write(f'\n    .WithParentRelationship(parent: {parent.name})')
             else:
                 raise TypeError("Invalid type for option 'parent_relationship'")
         if _child_relationship := kwargs.pop("child_relationship", None):
             if _validate_type(_child_relationship, Resource):
                 child = cast(Resource, _child_relationship)
-                __builder.write(f'\n    .WithChildRelationship(child: {_format_value(child.name, None)})')
+                __builder.write(f'\n    .WithChildRelationship(child: {child.name})')
             else:
                 raise TypeError("Invalid type for option 'child_relationship'")
         if _icon_name := kwargs.pop("icon_name", None):
@@ -687,21 +687,21 @@ class _BaseResource:
 
     def with_reference_relationship(self, resource_builder: Resource, /) -> Self:
         if _validate_type(resource_builder, Resource):
-            self._builder.write(f'\n{self.name}.WithReferenceRelationship(resourceBuilder: {_format_value(resource_builder.name, None)});')
+            self._builder.write(f'\n{self.name}.WithReferenceRelationship(resourceBuilder: {resource_builder.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_parent_relationship(self, parent: Resource, /) -> Self:
         if _validate_type(parent, Resource):
-            self._builder.write(f'\n{self.name}.WithParentRelationship(parent: {_format_value(parent.name, None)});')
+            self._builder.write(f'\n{self.name}.WithParentRelationship(parent: {parent.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_child_relationship(self, child: Resource, /) -> Self:
         if _validate_type(child, Resource):
-            self._builder.write(f'\n{self.name}.WithChildRelationship(child: {_format_value(child.name, None)});')
+            self._builder.write(f'\n{self.name}.WithChildRelationship(child: {child.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -741,29 +741,29 @@ class ConnectionStringResource(_BaseResource):
         if _wait_for := kwargs.pop("wait_for", None):
             if _validate_type(_wait_for, Resource):
                 dependency = cast(Resource, _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)})')
+                __builder.write(f'\n    .WaitFor(dependency: {dependency.name})')
             elif _validate_tuple_types(_wait_for, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for'")
         if _wait_for_start := kwargs.pop("wait_for_start", None):
             if _validate_type(_wait_for_start, Resource):
                 dependency = cast(Resource, _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)})')
+                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name})')
             elif _validate_tuple_types(_wait_for_start, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_start'")
         if _wait_for_completion := kwargs.pop("wait_for_completion", None):
             if _validate_type(_wait_for_completion, Resource):
                 dependency = cast(Resource, _wait_for_completion)
                 exit_code = None
-                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {_format_value(exit_code, 0)})')
             elif _validate_tuple_types(_wait_for_completion, (Resource, int)):
                 dependency, exit_code = cast(tuple[Resource, int], _wait_for_completion)
-                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {_format_value(exit_code, 0)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_completion'")
         super().__init__(__name, __builder, **kwargs)
@@ -786,11 +786,11 @@ class ConnectionStringResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -806,18 +806,18 @@ class ConnectionStringResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def wait_for_completion(self, dependency: Resource, /, *, exit_code: int = 0) -> Self:
         if _validate_tuple_types((dependency, exit_code), (Resource, int | Literal[0])):
-            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)});')
+            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {dependency.name}, exitCode: {_format_value(exit_code, 0)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1076,13 +1076,13 @@ class ContainerResource(_BaseResource):
         if _build_arg := kwargs.pop("build_arg", None):
             if _validate_tuple_types(_build_arg, (str, ParameterResource)):
                 name, value, = cast(tuple[str, ParameterResource], _build_arg)
-                __builder.write(f'\n    .WithBuildArg(name: {_format_string(name, None)}, value: {_format_value(value.name, None)})')
+                __builder.write(f'\n    .WithBuildArg(name: {_format_string(name, None)}, value: {value.name})')
             else:
                 raise TypeError("Invalid type for option 'build_arg'")
         if _build_secret := kwargs.pop("build_secret", None):
             if _validate_tuple_types(_build_secret, (str, ParameterResource)):
                 name, value, = cast(tuple[str, ParameterResource], _build_secret)
-                __builder.write(f'\n    .WithBuildSecret(name: {_format_string(name, None)}, value: {_format_value(value.name, None)})')
+                __builder.write(f'\n    .WithBuildSecret(name: {_format_string(name, None)}, value: {value.name})')
             else:
                 raise TypeError("Invalid type for option 'build_secret'")
         if _container_certificate_paths := kwargs.pop("container_certificate_paths", None):
@@ -1131,13 +1131,13 @@ class ContainerResource(_BaseResource):
                 __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, value: {_format_string(value, None)})')
             elif _validate_tuple_types(_env, (str, ExternalServiceResource)):
                 name, external_service, = cast(tuple[str, ExternalServiceResource], _env)
-                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, externalService: {_format_value(external_service.name, None)})')
+                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, externalService: {external_service.name})')
             elif _validate_tuple_types(_env, (str, ParameterResource)):
                 name, parameter, = cast(tuple[str, ParameterResource], _env)
-                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, parameter: {_format_value(parameter.name, None)})')
+                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, parameter: {parameter.name})')
             elif _validate_tuple_types(_env, (str, ResourceWithConnectionString)):
                 env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], _env)
-                __builder.write(f'\n    .WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {_format_value(resource.name, None)})')
+                __builder.write(f'\n    .WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {resource.name})')
             else:
                 raise TypeError("Invalid type for option 'env'")
         if _args := kwargs.pop("args", None):
@@ -1157,21 +1157,21 @@ class ContainerResource(_BaseResource):
                 source = cast(ResourceWithConnectionString, _reference)
                 connection_name = None
                 optional = None
-                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
+                __builder.write(f'\n    .WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
             elif _validate_dict_types(_reference, Reference1Parameters):
                 source = cast(Reference1Parameters, _reference)["source"]
                 connection_name = cast(Reference1Parameters, _reference).get("connection_name")
                 optional = cast(Reference1Parameters, _reference).get("optional")
-                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
+                __builder.write(f'\n    .WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
             elif _validate_type(_reference, ResourceWithServiceDiscovery):
                 source = cast(ResourceWithServiceDiscovery, _reference)
-                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)})')
+                __builder.write(f'\n    .WithReference(source: {source.name})')
             elif _validate_type(_reference, ExternalServiceResource):
                 external_service = cast(ExternalServiceResource, _reference)
-                __builder.write(f'\n    .WithReference(externalService: {_format_value(external_service.name, None)})')
+                __builder.write(f'\n    .WithReference(externalService: {external_service.name})')
             elif _validate_tuple_types(_reference, (ResourceWithServiceDiscovery, str)):
                 source, name, = cast(tuple[ResourceWithServiceDiscovery, str], _reference)
-                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, name: {_format_string(name, None)})')
+                __builder.write(f'\n    .WithReference(source: {source.name}, name: {_format_string(name, None)})')
             else:
                 raise TypeError("Invalid type for option 'reference'")
         if _endpoint := kwargs.pop("endpoint", None):
@@ -1226,29 +1226,29 @@ class ContainerResource(_BaseResource):
         if _wait_for := kwargs.pop("wait_for", None):
             if _validate_type(_wait_for, Resource):
                 dependency = cast(Resource, _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)})')
+                __builder.write(f'\n    .WaitFor(dependency: {dependency.name})')
             elif _validate_tuple_types(_wait_for, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for'")
         if _wait_for_start := kwargs.pop("wait_for_start", None):
             if _validate_type(_wait_for_start, Resource):
                 dependency = cast(Resource, _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)})')
+                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name})')
             elif _validate_tuple_types(_wait_for_start, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_start'")
         if _wait_for_completion := kwargs.pop("wait_for_completion", None):
             if _validate_type(_wait_for_completion, Resource):
                 dependency = cast(Resource, _wait_for_completion)
                 exit_code = None
-                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {_format_value(exit_code, 0)})')
             elif _validate_tuple_types(_wait_for_completion, (Resource, int)):
                 dependency, exit_code = cast(tuple[Resource, int], _wait_for_completion)
-                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {_format_value(exit_code, 0)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_completion'")
         if _http_health_check := kwargs.pop("http_health_check", None):
@@ -1278,7 +1278,7 @@ class ContainerResource(_BaseResource):
         if _certificate_authority_collection := kwargs.pop("certificate_authority_collection", None):
             if _validate_type(_certificate_authority_collection, CertificateAuthorityCollection):
                 certificate_authority_collection = cast(CertificateAuthorityCollection, _certificate_authority_collection)
-                __builder.write(f'\n    .WithCertificateAuthorityCollection(certificateAuthorityCollection: {_format_value(certificate_authority_collection.name, None)})')
+                __builder.write(f'\n    .WithCertificateAuthorityCollection(certificateAuthorityCollection: {certificate_authority_collection.name})')
             else:
                 raise TypeError("Invalid type for option 'certificate_authority_collection'")
         if _developer_certificate_trust := kwargs.pop("developer_certificate_trust", None):
@@ -1296,7 +1296,7 @@ class ContainerResource(_BaseResource):
         if _compute_env := kwargs.pop("compute_env", None):
             if _validate_type(_compute_env, ComputeEnvironmentResource):
                 compute_env_resource = cast(ComputeEnvironmentResource, _compute_env)
-                __builder.write(f'\n    .WithComputeEnvironment(computeEnvironmentResource: {_format_value(compute_env_resource.name, None)})')
+                __builder.write(f'\n    .WithComputeEnvironment(computeEnvironmentResource: {compute_env_resource.name})')
             else:
                 raise TypeError("Invalid type for option 'compute_env'")
         if _http_probe := kwargs.pop("http_probe", None):
@@ -1328,7 +1328,7 @@ class ContainerResource(_BaseResource):
     def with_volume(self, target: str, /) -> Self:
         ...
     @overload
-    def with_volume(self, name: str, target: str, /, *, is_read_only: bool = False) -> Self:
+    def with_volume(self, name: str | None, target: str, /, *, is_read_only: bool = False) -> Self:
         ...
     def with_volume(self, *args, **kwargs) -> Self:
         if len(args) == 1 and _validate_type(args[0], str):
@@ -1337,7 +1337,7 @@ class ContainerResource(_BaseResource):
                 raise TypeError(f"Keyword arguments not supported with target")
             self._builder.write(f'\n{self.name}.WithVolume(target: {_format_string(target, None)});')
             return self
-        elif _validate_tuple_types(args + (_is_read_only := kwargs.get("is_read_only", False),), (str, str, bool | Literal[False])):
+        elif _validate_tuple_types(args + (_is_read_only := kwargs.get("is_read_only", False),), (str | None, str, bool | Literal[False])):
             name, target, = cast(tuple[str, str], args)
             is_read_only = _is_read_only
             self._builder.write(f'\n{self.name}.WithVolume(name: {_format_string(name, None)}, target: {_format_string(target, None)}, isReadOnly: {_format_bool(is_read_only, False)});')
@@ -1366,8 +1366,8 @@ class ContainerResource(_BaseResource):
         else:
             raise TypeError("No matching overload found.")
 
-    def with_image_registry(self, registry: str, /) -> Self:
-        if _validate_type(registry, str):
+    def with_image_registry(self, registry: str | None, /) -> Self:
+        if _validate_type(registry, str | None):
             self._builder.write(f'\n{self.name}.WithImageRegistry(registry: {_format_string(registry, None)});')
             return self
         else:
@@ -1428,14 +1428,14 @@ class ContainerResource(_BaseResource):
 
     def with_build_arg(self, name: str, value: ParameterResource, /) -> Self:
         if _validate_tuple_types((name, value, ), (str, ParameterResource)):
-            self._builder.write(f'\n{self.name}.WithBuildArg(name: {_format_string(name, None)}, value: {_format_value(value.name, None)});')
+            self._builder.write(f'\n{self.name}.WithBuildArg(name: {_format_string(name, None)}, value: {value.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_build_secret(self, name: str, value: ParameterResource, /) -> Self:
         if _validate_tuple_types((name, value, ), (str, ParameterResource)):
-            self._builder.write(f'\n{self.name}.WithBuildSecret(name: {_format_string(name, None)}, value: {_format_value(value.name, None)});')
+            self._builder.write(f'\n{self.name}.WithBuildSecret(name: {_format_string(name, None)}, value: {value.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1482,7 +1482,7 @@ class ContainerResource(_BaseResource):
             raise TypeError("No matching overload found.")
 
     @overload
-    def with_env(self, name: str, value: str, /) -> Self:
+    def with_env(self, name: str, value: str | None, /) -> Self:
         ...
     @overload
     def with_env(self, name: str, external_service: ExternalServiceResource, /) -> Self:
@@ -1494,21 +1494,21 @@ class ContainerResource(_BaseResource):
     def with_env(self, env_var_name: str, resource: ResourceWithConnectionString, /) -> Self:
         ...
     def with_env(self, *args, **kwargs) -> Self:
-        if _validate_tuple_types(args + (), (str, str)):
+        if _validate_tuple_types(args + (), (str, str | None)):
             name, value, = cast(tuple[str, str], args)
             self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, value: {_format_string(value, None)});')
             return self
         elif _validate_tuple_types(args + (), (str, ExternalServiceResource)):
             name, external_service, = cast(tuple[str, ExternalServiceResource], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, externalService: {_format_value(external_service.name, None)});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, externalService: {external_service.name});')
             return self
         elif _validate_tuple_types(args + (), (str, ParameterResource)):
             name, parameter, = cast(tuple[str, ParameterResource], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, parameter: {_format_value(parameter.name, None)});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, parameter: {parameter.name});')
             return self
         elif _validate_tuple_types(args + (), (str, ResourceWithConnectionString)):
             env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {_format_value(resource.name, None)});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {resource.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1544,23 +1544,23 @@ class ContainerResource(_BaseResource):
             source, = cast(tuple[ResourceWithConnectionString], args)
             connection_name = _connection_name
             optional = _optional
-            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)});')
             return self
         elif len(args) == 1 and _validate_type(args[0], ResourceWithServiceDiscovery):
             source = cast(ResourceWithServiceDiscovery, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with source")
-            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {source.name});')
             return self
         elif len(args) == 1 and _validate_type(args[0], ExternalServiceResource):
             external_service = cast(ExternalServiceResource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with external_service")
-            self._builder.write(f'\n{self.name}.WithReference(externalService: {_format_value(external_service.name, None)});')
+            self._builder.write(f'\n{self.name}.WithReference(externalService: {external_service.name});')
             return self
         elif _validate_tuple_types(args + (), (ResourceWithServiceDiscovery, str)):
             source, name, = cast(tuple[ResourceWithServiceDiscovery, str], args)
-            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)}, name: {_format_string(name, None)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {source.name}, name: {_format_string(name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1605,11 +1605,11 @@ class ContainerResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1625,18 +1625,18 @@ class ContainerResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def wait_for_completion(self, dependency: Resource, /, *, exit_code: int = 0) -> Self:
         if _validate_tuple_types((dependency, exit_code), (Resource, int | Literal[0])):
-            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)});')
+            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {dependency.name}, exitCode: {_format_value(exit_code, 0)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1657,7 +1657,7 @@ class ContainerResource(_BaseResource):
 
     def with_certificate_authority_collection(self, certificate_authority_collection: CertificateAuthorityCollection, /) -> Self:
         if _validate_type(certificate_authority_collection, CertificateAuthorityCollection):
-            self._builder.write(f'\n{self.name}.WithCertificateAuthorityCollection(certificateAuthorityCollection: {_format_value(certificate_authority_collection.name, None)});')
+            self._builder.write(f'\n{self.name}.WithCertificateAuthorityCollection(certificateAuthorityCollection: {certificate_authority_collection.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1678,7 +1678,7 @@ class ContainerResource(_BaseResource):
 
     def with_compute_env(self, compute_env_resource: ComputeEnvironmentResource, /) -> Self:
         if _validate_type(compute_env_resource, ComputeEnvironmentResource):
-            self._builder.write(f'\n{self.name}.WithComputeEnvironment(computeEnvironmentResource: {_format_value(compute_env_resource.name, None)});')
+            self._builder.write(f'\n{self.name}.WithComputeEnvironment(computeEnvironmentResource: {compute_env_resource.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -1756,13 +1756,13 @@ class ProjectResource(_BaseResource):
                 __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, value: {_format_string(value, None)})')
             elif _validate_tuple_types(_env, (str, ExternalServiceResource)):
                 name, external_service, = cast(tuple[str, ExternalServiceResource], _env)
-                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, externalService: {_format_value(external_service.name, None)})')
+                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, externalService: {external_service.name})')
             elif _validate_tuple_types(_env, (str, ParameterResource)):
                 name, parameter, = cast(tuple[str, ParameterResource], _env)
-                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, parameter: {_format_value(parameter.name, None)})')
+                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, parameter: {parameter.name})')
             elif _validate_tuple_types(_env, (str, ResourceWithConnectionString)):
                 env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], _env)
-                __builder.write(f'\n    .WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {_format_value(resource.name, None)})')
+                __builder.write(f'\n    .WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {resource.name})')
             else:
                 raise TypeError("Invalid type for option 'env'")
         if _args := kwargs.pop("args", None):
@@ -1782,21 +1782,21 @@ class ProjectResource(_BaseResource):
                 source = cast(ResourceWithConnectionString, _reference)
                 connection_name = None
                 optional = None
-                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
+                __builder.write(f'\n    .WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
             elif _validate_dict_types(_reference, Reference1Parameters):
                 source = cast(Reference1Parameters, _reference)["source"]
                 connection_name = cast(Reference1Parameters, _reference).get("connection_name")
                 optional = cast(Reference1Parameters, _reference).get("optional")
-                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
+                __builder.write(f'\n    .WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
             elif _validate_type(_reference, ResourceWithServiceDiscovery):
                 source = cast(ResourceWithServiceDiscovery, _reference)
-                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)})')
+                __builder.write(f'\n    .WithReference(source: {source.name})')
             elif _validate_type(_reference, ExternalServiceResource):
                 external_service = cast(ExternalServiceResource, _reference)
-                __builder.write(f'\n    .WithReference(externalService: {_format_value(external_service.name, None)})')
+                __builder.write(f'\n    .WithReference(externalService: {external_service.name})')
             elif _validate_tuple_types(_reference, (ResourceWithServiceDiscovery, str)):
                 source, name, = cast(tuple[ResourceWithServiceDiscovery, str], _reference)
-                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, name: {_format_string(name, None)})')
+                __builder.write(f'\n    .WithReference(source: {source.name}, name: {_format_string(name, None)})')
             else:
                 raise TypeError("Invalid type for option 'reference'")
         if _endpoint := kwargs.pop("endpoint", None):
@@ -1851,35 +1851,35 @@ class ProjectResource(_BaseResource):
         if _publish_with_container_files := kwargs.pop("publish_with_container_files", None):
             if _validate_tuple_types(_publish_with_container_files, (ResourceWithContainerFiles, str)):
                 source, destination_path, = cast(tuple[ResourceWithContainerFiles, str], _publish_with_container_files)
-                __builder.write(f'\n    .PublishWithContainerFiles(source: {_format_value(source.name, None)}, destinationPath: {_format_string(destination_path, None)})')
+                __builder.write(f'\n    .PublishWithContainerFiles(source: {source.name}, destinationPath: {_format_string(destination_path, None)})')
             else:
                 raise TypeError("Invalid type for option 'publish_with_container_files'")
         if _wait_for := kwargs.pop("wait_for", None):
             if _validate_type(_wait_for, Resource):
                 dependency = cast(Resource, _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)})')
+                __builder.write(f'\n    .WaitFor(dependency: {dependency.name})')
             elif _validate_tuple_types(_wait_for, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for'")
         if _wait_for_start := kwargs.pop("wait_for_start", None):
             if _validate_type(_wait_for_start, Resource):
                 dependency = cast(Resource, _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)})')
+                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name})')
             elif _validate_tuple_types(_wait_for_start, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_start'")
         if _wait_for_completion := kwargs.pop("wait_for_completion", None):
             if _validate_type(_wait_for_completion, Resource):
                 dependency = cast(Resource, _wait_for_completion)
                 exit_code = None
-                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {_format_value(exit_code, 0)})')
             elif _validate_tuple_types(_wait_for_completion, (Resource, int)):
                 dependency, exit_code = cast(tuple[Resource, int], _wait_for_completion)
-                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {_format_value(exit_code, 0)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_completion'")
         if _http_health_check := kwargs.pop("http_health_check", None):
@@ -1909,7 +1909,7 @@ class ProjectResource(_BaseResource):
         if _certificate_authority_collection := kwargs.pop("certificate_authority_collection", None):
             if _validate_type(_certificate_authority_collection, CertificateAuthorityCollection):
                 certificate_authority_collection = cast(CertificateAuthorityCollection, _certificate_authority_collection)
-                __builder.write(f'\n    .WithCertificateAuthorityCollection(certificateAuthorityCollection: {_format_value(certificate_authority_collection.name, None)})')
+                __builder.write(f'\n    .WithCertificateAuthorityCollection(certificateAuthorityCollection: {certificate_authority_collection.name})')
             else:
                 raise TypeError("Invalid type for option 'certificate_authority_collection'")
         if _developer_certificate_trust := kwargs.pop("developer_certificate_trust", None):
@@ -1927,7 +1927,7 @@ class ProjectResource(_BaseResource):
         if _compute_env := kwargs.pop("compute_env", None):
             if _validate_type(_compute_env, ComputeEnvironmentResource):
                 compute_env_resource = cast(ComputeEnvironmentResource, _compute_env)
-                __builder.write(f'\n    .WithComputeEnvironment(computeEnvironmentResource: {_format_value(compute_env_resource.name, None)})')
+                __builder.write(f'\n    .WithComputeEnvironment(computeEnvironmentResource: {compute_env_resource.name})')
             else:
                 raise TypeError("Invalid type for option 'compute_env'")
         if _http_probe := kwargs.pop("http_probe", None):
@@ -1990,7 +1990,7 @@ class ProjectResource(_BaseResource):
         return self
 
     @overload
-    def with_env(self, name: str, value: str, /) -> Self:
+    def with_env(self, name: str, value: str | None, /) -> Self:
         ...
     @overload
     def with_env(self, name: str, external_service: ExternalServiceResource, /) -> Self:
@@ -2002,21 +2002,21 @@ class ProjectResource(_BaseResource):
     def with_env(self, env_var_name: str, resource: ResourceWithConnectionString, /) -> Self:
         ...
     def with_env(self, *args, **kwargs) -> Self:
-        if _validate_tuple_types(args + (), (str, str)):
+        if _validate_tuple_types(args + (), (str, str | None)):
             name, value, = cast(tuple[str, str], args)
             self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, value: {_format_string(value, None)});')
             return self
         elif _validate_tuple_types(args + (), (str, ExternalServiceResource)):
             name, external_service, = cast(tuple[str, ExternalServiceResource], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, externalService: {_format_value(external_service.name, None)});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, externalService: {external_service.name});')
             return self
         elif _validate_tuple_types(args + (), (str, ParameterResource)):
             name, parameter, = cast(tuple[str, ParameterResource], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, parameter: {_format_value(parameter.name, None)});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, parameter: {parameter.name});')
             return self
         elif _validate_tuple_types(args + (), (str, ResourceWithConnectionString)):
             env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {_format_value(resource.name, None)});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {resource.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2052,23 +2052,23 @@ class ProjectResource(_BaseResource):
             source, = cast(tuple[ResourceWithConnectionString], args)
             connection_name = _connection_name
             optional = _optional
-            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)});')
             return self
         elif len(args) == 1 and _validate_type(args[0], ResourceWithServiceDiscovery):
             source = cast(ResourceWithServiceDiscovery, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with source")
-            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {source.name});')
             return self
         elif len(args) == 1 and _validate_type(args[0], ExternalServiceResource):
             external_service = cast(ExternalServiceResource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with external_service")
-            self._builder.write(f'\n{self.name}.WithReference(externalService: {_format_value(external_service.name, None)});')
+            self._builder.write(f'\n{self.name}.WithReference(externalService: {external_service.name});')
             return self
         elif _validate_tuple_types(args + (), (ResourceWithServiceDiscovery, str)):
             source, name, = cast(tuple[ResourceWithServiceDiscovery, str], args)
-            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)}, name: {_format_string(name, None)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {source.name}, name: {_format_string(name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2104,7 +2104,7 @@ class ProjectResource(_BaseResource):
 
     def publish_with_container_files(self, source: ResourceWithContainerFiles, destination_path: str, /) -> Self:
         if _validate_tuple_types((source, destination_path, ), (ResourceWithContainerFiles, str)):
-            self._builder.write(f'\n{self.name}.PublishWithContainerFiles(source: {_format_value(source.name, None)}, destinationPath: {_format_string(destination_path, None)});')
+            self._builder.write(f'\n{self.name}.PublishWithContainerFiles(source: {source.name}, destinationPath: {_format_string(destination_path, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2120,11 +2120,11 @@ class ProjectResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2140,18 +2140,18 @@ class ProjectResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def wait_for_completion(self, dependency: Resource, /, *, exit_code: int = 0) -> Self:
         if _validate_tuple_types((dependency, exit_code), (Resource, int | Literal[0])):
-            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)});')
+            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {dependency.name}, exitCode: {_format_value(exit_code, 0)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2172,7 +2172,7 @@ class ProjectResource(_BaseResource):
 
     def with_certificate_authority_collection(self, certificate_authority_collection: CertificateAuthorityCollection, /) -> Self:
         if _validate_type(certificate_authority_collection, CertificateAuthorityCollection):
-            self._builder.write(f'\n{self.name}.WithCertificateAuthorityCollection(certificateAuthorityCollection: {_format_value(certificate_authority_collection.name, None)});')
+            self._builder.write(f'\n{self.name}.WithCertificateAuthorityCollection(certificateAuthorityCollection: {certificate_authority_collection.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2193,7 +2193,7 @@ class ProjectResource(_BaseResource):
 
     def with_compute_env(self, compute_env_resource: ComputeEnvironmentResource, /) -> Self:
         if _validate_type(compute_env_resource, ComputeEnvironmentResource):
-            self._builder.write(f'\n{self.name}.WithComputeEnvironment(computeEnvironmentResource: {_format_value(compute_env_resource.name, None)});')
+            self._builder.write(f'\n{self.name}.WithComputeEnvironment(computeEnvironmentResource: {compute_env_resource.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2284,13 +2284,13 @@ class ExecutableResource(_BaseResource):
                 __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, value: {_format_string(value, None)})')
             elif _validate_tuple_types(_env, (str, ExternalServiceResource)):
                 name, external_service, = cast(tuple[str, ExternalServiceResource], _env)
-                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, externalService: {_format_value(external_service.name, None)})')
+                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, externalService: {external_service.name})')
             elif _validate_tuple_types(_env, (str, ParameterResource)):
                 name, parameter, = cast(tuple[str, ParameterResource], _env)
-                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, parameter: {_format_value(parameter.name, None)})')
+                __builder.write(f'\n    .WithEnvironment(name: {_format_string(name, None)}, parameter: {parameter.name})')
             elif _validate_tuple_types(_env, (str, ResourceWithConnectionString)):
                 env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], _env)
-                __builder.write(f'\n    .WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {_format_value(resource.name, None)})')
+                __builder.write(f'\n    .WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {resource.name})')
             else:
                 raise TypeError("Invalid type for option 'env'")
         if _args := kwargs.pop("args", None):
@@ -2310,21 +2310,21 @@ class ExecutableResource(_BaseResource):
                 source = cast(ResourceWithConnectionString, _reference)
                 connection_name = None
                 optional = None
-                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
+                __builder.write(f'\n    .WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
             elif _validate_dict_types(_reference, Reference1Parameters):
                 source = cast(Reference1Parameters, _reference)["source"]
                 connection_name = cast(Reference1Parameters, _reference).get("connection_name")
                 optional = cast(Reference1Parameters, _reference).get("optional")
-                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
+                __builder.write(f'\n    .WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)})')
             elif _validate_type(_reference, ResourceWithServiceDiscovery):
                 source = cast(ResourceWithServiceDiscovery, _reference)
-                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)})')
+                __builder.write(f'\n    .WithReference(source: {source.name})')
             elif _validate_type(_reference, ExternalServiceResource):
                 external_service = cast(ExternalServiceResource, _reference)
-                __builder.write(f'\n    .WithReference(externalService: {_format_value(external_service.name, None)})')
+                __builder.write(f'\n    .WithReference(externalService: {external_service.name})')
             elif _validate_tuple_types(_reference, (ResourceWithServiceDiscovery, str)):
                 source, name, = cast(tuple[ResourceWithServiceDiscovery, str], _reference)
-                __builder.write(f'\n    .WithReference(source: {_format_value(source.name, None)}, name: {_format_string(name, None)})')
+                __builder.write(f'\n    .WithReference(source: {source.name}, name: {_format_string(name, None)})')
             else:
                 raise TypeError("Invalid type for option 'reference'")
         if _endpoint := kwargs.pop("endpoint", None):
@@ -2379,29 +2379,29 @@ class ExecutableResource(_BaseResource):
         if _wait_for := kwargs.pop("wait_for", None):
             if _validate_type(_wait_for, Resource):
                 dependency = cast(Resource, _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)})')
+                __builder.write(f'\n    .WaitFor(dependency: {dependency.name})')
             elif _validate_tuple_types(_wait_for, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for)
-                __builder.write(f'\n    .WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for'")
         if _wait_for_start := kwargs.pop("wait_for_start", None):
             if _validate_type(_wait_for_start, Resource):
                 dependency = cast(Resource, _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)})')
+                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name})')
             elif _validate_tuple_types(_wait_for_start, (Resource, WaitBehavior)):
                 dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], _wait_for_start)
-                __builder.write(f'\n    .WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
+                __builder.write(f'\n    .WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_start'")
         if _wait_for_completion := kwargs.pop("wait_for_completion", None):
             if _validate_type(_wait_for_completion, Resource):
                 dependency = cast(Resource, _wait_for_completion)
                 exit_code = None
-                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {_format_value(exit_code, 0)})')
             elif _validate_tuple_types(_wait_for_completion, (Resource, int)):
                 dependency, exit_code = cast(tuple[Resource, int], _wait_for_completion)
-                __builder.write(f'\n    .WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)})')
+                __builder.write(f'\n    .WaitForCompletion(dependency: {dependency.name}, exitCode: {_format_value(exit_code, 0)})')
             else:
                 raise TypeError("Invalid type for option 'wait_for_completion'")
         if _http_health_check := kwargs.pop("http_health_check", None):
@@ -2431,7 +2431,7 @@ class ExecutableResource(_BaseResource):
         if _certificate_authority_collection := kwargs.pop("certificate_authority_collection", None):
             if _validate_type(_certificate_authority_collection, CertificateAuthorityCollection):
                 certificate_authority_collection = cast(CertificateAuthorityCollection, _certificate_authority_collection)
-                __builder.write(f'\n    .WithCertificateAuthorityCollection(certificateAuthorityCollection: {_format_value(certificate_authority_collection.name, None)})')
+                __builder.write(f'\n    .WithCertificateAuthorityCollection(certificateAuthorityCollection: {certificate_authority_collection.name})')
             else:
                 raise TypeError("Invalid type for option 'certificate_authority_collection'")
         if _developer_certificate_trust := kwargs.pop("developer_certificate_trust", None):
@@ -2449,7 +2449,7 @@ class ExecutableResource(_BaseResource):
         if _compute_env := kwargs.pop("compute_env", None):
             if _validate_type(_compute_env, ComputeEnvironmentResource):
                 compute_env_resource = cast(ComputeEnvironmentResource, _compute_env)
-                __builder.write(f'\n    .WithComputeEnvironment(computeEnvironmentResource: {_format_value(compute_env_resource.name, None)})')
+                __builder.write(f'\n    .WithComputeEnvironment(computeEnvironmentResource: {compute_env_resource.name})')
             else:
                 raise TypeError("Invalid type for option 'compute_env'")
         if _http_probe := kwargs.pop("http_probe", None):
@@ -2515,7 +2515,7 @@ class ExecutableResource(_BaseResource):
             raise TypeError("No matching overload found.")
 
     @overload
-    def with_env(self, name: str, value: str, /) -> Self:
+    def with_env(self, name: str, value: str | None, /) -> Self:
         ...
     @overload
     def with_env(self, name: str, external_service: ExternalServiceResource, /) -> Self:
@@ -2527,21 +2527,21 @@ class ExecutableResource(_BaseResource):
     def with_env(self, env_var_name: str, resource: ResourceWithConnectionString, /) -> Self:
         ...
     def with_env(self, *args, **kwargs) -> Self:
-        if _validate_tuple_types(args + (), (str, str)):
+        if _validate_tuple_types(args + (), (str, str | None)):
             name, value, = cast(tuple[str, str], args)
             self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, value: {_format_string(value, None)});')
             return self
         elif _validate_tuple_types(args + (), (str, ExternalServiceResource)):
             name, external_service, = cast(tuple[str, ExternalServiceResource], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, externalService: {_format_value(external_service.name, None)});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, externalService: {external_service.name});')
             return self
         elif _validate_tuple_types(args + (), (str, ParameterResource)):
             name, parameter, = cast(tuple[str, ParameterResource], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, parameter: {_format_value(parameter.name, None)});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(name: {_format_string(name, None)}, parameter: {parameter.name});')
             return self
         elif _validate_tuple_types(args + (), (str, ResourceWithConnectionString)):
             env_var_name, resource, = cast(tuple[str, ResourceWithConnectionString], args)
-            self._builder.write(f'\n{self.name}.WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {_format_value(resource.name, None)});')
+            self._builder.write(f'\n{self.name}.WithEnvironment(envVarName: {_format_string(env_var_name, None)}, resource: {resource.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2577,23 +2577,23 @@ class ExecutableResource(_BaseResource):
             source, = cast(tuple[ResourceWithConnectionString], args)
             connection_name = _connection_name
             optional = _optional
-            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {source.name}, connectionName: {_format_string(connection_name, None)}, optional: {_format_bool(optional, False)});')
             return self
         elif len(args) == 1 and _validate_type(args[0], ResourceWithServiceDiscovery):
             source = cast(ResourceWithServiceDiscovery, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with source")
-            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {source.name});')
             return self
         elif len(args) == 1 and _validate_type(args[0], ExternalServiceResource):
             external_service = cast(ExternalServiceResource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with external_service")
-            self._builder.write(f'\n{self.name}.WithReference(externalService: {_format_value(external_service.name, None)});')
+            self._builder.write(f'\n{self.name}.WithReference(externalService: {external_service.name});')
             return self
         elif _validate_tuple_types(args + (), (ResourceWithServiceDiscovery, str)):
             source, name, = cast(tuple[ResourceWithServiceDiscovery, str], args)
-            self._builder.write(f'\n{self.name}.WithReference(source: {_format_value(source.name, None)}, name: {_format_string(name, None)});')
+            self._builder.write(f'\n{self.name}.WithReference(source: {source.name}, name: {_format_string(name, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2638,11 +2638,11 @@ class ExecutableResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitFor(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitFor(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2658,18 +2658,18 @@ class ExecutableResource(_BaseResource):
             dependency = cast(Resource, args[0])
             if kwargs:
                 raise TypeError(f"Keyword arguments not supported with dependency")
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name});')
             return self
         elif _validate_tuple_types(args + (), (Resource, WaitBehavior)):
             dependency, wait_behavior, = cast(tuple[Resource, WaitBehavior], args)
-            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {_format_value(dependency.name, None)}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
+            self._builder.write(f'\n{self.name}.WaitForStart(dependency: {dependency.name}, waitBehavior: {_format_enum("WaitBehavior", wait_behavior, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def wait_for_completion(self, dependency: Resource, /, *, exit_code: int = 0) -> Self:
         if _validate_tuple_types((dependency, exit_code), (Resource, int | Literal[0])):
-            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {_format_value(dependency.name, None)}, exitCode: {_format_value(exit_code, 0)});')
+            self._builder.write(f'\n{self.name}.WaitForCompletion(dependency: {dependency.name}, exitCode: {_format_value(exit_code, 0)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2690,7 +2690,7 @@ class ExecutableResource(_BaseResource):
 
     def with_certificate_authority_collection(self, certificate_authority_collection: CertificateAuthorityCollection, /) -> Self:
         if _validate_type(certificate_authority_collection, CertificateAuthorityCollection):
-            self._builder.write(f'\n{self.name}.WithCertificateAuthorityCollection(certificateAuthorityCollection: {_format_value(certificate_authority_collection.name, None)});')
+            self._builder.write(f'\n{self.name}.WithCertificateAuthorityCollection(certificateAuthorityCollection: {certificate_authority_collection.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2711,7 +2711,7 @@ class ExecutableResource(_BaseResource):
 
     def with_compute_env(self, compute_env_resource: ComputeEnvironmentResource, /) -> Self:
         if _validate_type(compute_env_resource, ComputeEnvironmentResource):
-            self._builder.write(f'\n{self.name}.WithComputeEnvironment(computeEnvironmentResource: {_format_value(compute_env_resource.name, None)});')
+            self._builder.write(f'\n{self.name}.WithComputeEnvironment(computeEnvironmentResource: {compute_env_resource.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -2853,13 +2853,13 @@ class PostgresServerResource(ContainerResource):
         if _password := kwargs.pop("password", None):
             if _validate_type(_password, ParameterResource):
                 password = cast(ParameterResource, _password)
-                __builder.write(f'\n    .WithPassword(password: {_format_value(password.name, None)})')
+                __builder.write(f'\n    .WithPassword(password: {password.name})')
             else:
                 raise TypeError("Invalid type for option 'password'")
         if _user_name := kwargs.pop("user_name", None):
             if _validate_type(_user_name, ParameterResource):
                 user_name = cast(ParameterResource, _user_name)
-                __builder.write(f'\n    .WithUserName(userName: {_format_value(user_name.name, None)})')
+                __builder.write(f'\n    .WithUserName(userName: {user_name.name})')
             else:
                 raise TypeError("Invalid type for option 'user_name'")
         if _host_port := kwargs.pop("host_port", None):
@@ -2923,14 +2923,14 @@ class PostgresServerResource(ContainerResource):
 
     def with_password(self, password: ParameterResource, /) -> Self:
         if _validate_type(password, ParameterResource):
-            self._builder.write(f'\n{self.name}.WithPassword(password: {_format_value(password.name, None)});')
+            self._builder.write(f'\n{self.name}.WithPassword(password: {password.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
 
     def with_user_name(self, user_name: ParameterResource, /) -> Self:
         if _validate_type(user_name, ParameterResource):
-            self._builder.write(f'\n{self.name}.WithUserName(userName: {_format_value(user_name.name, None)});')
+            self._builder.write(f'\n{self.name}.WithUserName(userName: {user_name.name});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -3070,7 +3070,7 @@ class PythonAppResource(ExecutableResource):
         if _publish_with_container_files := kwargs.pop("publish_with_container_files", None):
             if _validate_tuple_types(_publish_with_container_files, (ResourceWithContainerFiles, str)):
                 source, destination_path, = cast(tuple[ResourceWithContainerFiles, str], _publish_with_container_files)
-                __builder.write(f'\n    .PublishWithContainerFiles(source: {_format_value(source.name, None)}, destinationPath: {_format_string(destination_path, None)})')
+                __builder.write(f'\n    .PublishWithContainerFiles(source: {source.name}, destinationPath: {_format_string(destination_path, None)})')
             else:
                 raise TypeError("Invalid type for option 'publish_with_container_files'")
         super().__init__(__name, __builder, **kwargs)
@@ -3109,7 +3109,7 @@ class PythonAppResource(ExecutableResource):
 
     def publish_with_container_files(self, source: ResourceWithContainerFiles, destination_path: str, /) -> Self:
         if _validate_tuple_types((source, destination_path, ), (ResourceWithContainerFiles, str)):
-            self._builder.write(f'\n{self.name}.PublishWithContainerFiles(source: {_format_value(source.name, None)}, destinationPath: {_format_string(destination_path, None)});')
+            self._builder.write(f'\n{self.name}.PublishWithContainerFiles(source: {source.name}, destinationPath: {_format_string(destination_path, None)});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -3195,7 +3195,7 @@ class RedisResource(ContainerResource):
         if _password := kwargs.pop("password", None):
             if _validate_type(_password, ParameterResource):
                 password = cast(ParameterResource, _password)
-                __builder.write(f'\n    .WithPassword(password: {_format_value(password.name, None)})')
+                __builder.write(f'\n    .WithPassword(password: {password.name if password else "null"})')
             else:
                 raise TypeError("Invalid type for option 'password'")
         if _host_port := kwargs.pop("host_port", None):
@@ -3249,9 +3249,9 @@ class RedisResource(ContainerResource):
         else:
             raise TypeError("No matching overload found.")
 
-    def with_password(self, password: ParameterResource, /) -> Self:
-        if _validate_type(password, ParameterResource):
-            self._builder.write(f'\n{self.name}.WithPassword(password: {_format_value(password.name, None)});')
+    def with_password(self, password: ParameterResource | None, /) -> Self:
+        if _validate_type(password, ParameterResource | None):
+            self._builder.write(f'\n{self.name}.WithPassword(password: {password.name if password else "null"});')
             return self
         else:
             raise TypeError("No matching overload found.")
@@ -3436,7 +3436,7 @@ class DistributedApplicationBuilder:
             self._dependencies.append(result.package)
             return result
 
-    def add_executable(self, name: str, command: str, working_dir: str, args: Iterable[str], /, **kwargs: Unpack[ExecutableResourceOptions]) -> ExecutableResource:
+    def add_executable(self, name: str, command: str, working_dir: str, args: Iterable[str] | None, /, **kwargs: Unpack[ExecutableResourceOptions]) -> ExecutableResource:
         with _check_warnings(self._builder, kwargs, ExecutableResourceOptions, "add_executable"):
             var_name = _valid_var_name(name)
             self._builder.write(f'\nvar {var_name} = builder.AddExecutable(name: {_format_string(name, None)}, command: {_format_string(command, None)}, workingDirectory: {_format_string(working_dir, None)}, args: {_format_string_array(args)})')
@@ -3463,7 +3463,7 @@ class DistributedApplicationBuilder:
             with _check_warnings(self._builder, kwargs, ExternalServiceResourceOptions, "add_external_service"):
                 name, url_parameter, = args
                 var_name = _valid_var_name(name)
-                self._builder.write(f'\nvar {var_name} = builder.AddExternalService(name: {_format_string(name, None)}, urlParameter: {_format_value(url_parameter.name, None)})')
+                self._builder.write(f'\nvar {var_name} = builder.AddExternalService(name: {_format_string(name, None)}, urlParameter: {url_parameter.name})')
                 result = ExternalServiceResource(var_name, self._builder, **kwargs)
                 self._dependencies.append(result.package)
                 return result
@@ -3509,7 +3509,7 @@ class DistributedApplicationBuilder:
     def add_project(self, name: str, project_path: str, /, **kwargs: Unpack[ProjectResourceOptions]) -> ProjectResource:
         ...
     @overload
-    def add_project(self, name: str, project_path: str, launch_profile_name: str, /, **kwargs: Unpack[ProjectResourceOptions]) -> ProjectResource:
+    def add_project(self, name: str, project_path: str, launch_profile_name: str | None, /, **kwargs: Unpack[ProjectResourceOptions]) -> ProjectResource:
         ...
     def add_project(self, *args, **kwargs):
         if _validate_tuple_types(args, (str, str,)):

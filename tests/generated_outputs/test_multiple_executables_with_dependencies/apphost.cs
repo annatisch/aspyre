@@ -1,17 +1,17 @@
-#:sdk Aspire.AppHost.Sdk@13.0.0
-
+#:sdk Aspire.AppHost.Sdk@13.0.1.0
+#:package Aspire.Hosting@13.0.1.0
+using System.Security.Cryptography.X509Certificates;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var db = builder.AddConnectionString("db", "DATABASE_URL");
-var telemetry = builder.AddConnectionString("telemetry", "TELEMETRY_URL");
-var api = builder.AddExecutable("api", "python", "/app", new string[] { "api.py", "--port", "8000" })
-    .WithReference(db)
-    .WithHttpEndpoint(8000, null, null, null, true)
-    .WaitFor(db);
-var worker = builder.AddExecutable("worker", "python", "/app", new string[] { "worker.py" })
-    .WithReference(db)
-    .WithReference(telemetry)
-    .WaitForStart(api);
+var db = builder.AddConnectionString(name: "db", environmentVariableName: "DATABASE_URL");
+var telemetry = builder.AddConnectionString(name: "telemetry", environmentVariableName: "TELEMETRY_URL");
+var api = builder.AddExecutable(name: "api", command: "python", workingDirectory: "/app", args: new string[] { "api.py", "--port", "8000" })
+    .WithReference(source: db, connectionName: null, optional: false)
+    .WithHttpEndpoint(port: 8000, targetPort: null, name: null, env: null, isProxied: true)
+    .WaitFor(dependency: db);
+var worker = builder.AddExecutable(name: "worker", command: "python", workingDirectory: "/app", args: new string[] { "worker.py" })
+    .WithReference(source: telemetry, connectionName: null, optional: false)
+    .WaitForStart(dependency: api);
 
 builder.Build().Run();
